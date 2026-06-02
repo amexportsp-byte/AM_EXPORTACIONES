@@ -1408,14 +1408,25 @@ function openModal(id = null) {
   document.getElementById("fCodigoMotivo").value = "";
   document.getElementById("fCodigo").dataset.originalCode = "";
 
+  const codigoGroup = document.getElementById("codigoGroup");
+  const codigoInput = document.getElementById("fCodigo");
+
   if (id) {
+    // EDITAR: mostrar código (solo lectura por defecto)
+    codigoGroup.style.display = "";
+    codigoInput.readOnly = true;
+    codigoInput.style.opacity = "0.7";
     const p = State.products.find((x) => x.id === id);
     if (p) {
       fillForm(p);
-      // Guardar código original para detectar cambios
-      document.getElementById("fCodigo").dataset.originalCode = p.codigo;
+      codigoInput.dataset.originalCode = p.codigo;
     }
   } else {
+    // NUEVO: ocultar campo código (se genera automáticamente)
+    codigoGroup.style.display = "none";
+    codigoInput.value = "";
+    codigoInput.readOnly = false;
+    codigoInput.style.opacity = "1";
     document.getElementById("productForm").reset();
     document.getElementById("productId").value = "";
     document.getElementById("imagePreview").style.display = "none";
@@ -1423,6 +1434,16 @@ function openModal(id = null) {
   }
 
   modal.classList.add("open");
+}
+
+function habilitarEditCodigo() {
+  const input = document.getElementById("fCodigo");
+  input.readOnly = false;
+  input.style.opacity = "1";
+  input.focus();
+  input.select();
+  document.getElementById("codigoEditIcon").style.display = "none";
+  toast("Puedes editar el código. Se pedirá el motivo al guardar.", "info");
 }
 
 function fillForm(p) {
@@ -1514,7 +1535,10 @@ function openEdit(id) {
 
 async function saveProduct() {
   const nombre = document.getElementById("fNombre").value.trim();
-  const codigoNuevo = document.getElementById("fCodigo").value.trim();
+  // Código solo aplica al editar (al crear lo genera el servidor)
+  const codigoNuevo = State.editingId
+    ? document.getElementById("fCodigo").value.trim()
+    : null;
   const cat = document.getElementById("fCategoria").value;
   const precio = parseFloat(document.getElementById("fPrecioVenta").value);
   const compra = parseFloat(document.getElementById("fPrecioCompra").value);

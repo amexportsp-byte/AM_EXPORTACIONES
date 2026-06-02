@@ -932,16 +932,24 @@
                   placeholder="Nombre del producto"
                 />
               </div>
-              <div class="form-group">
-                <label class="form-label">Código *</label
-                ><input
-                  type="text"
-                  class="form-input"
-                  id="fCodigo"
-                  required
-                  placeholder="SKU-001"
-                  oninput="onCodigoInput()"
-                />
+              <div class="form-group" id="codigoGroup" style="display:none">
+                <label class="form-label">
+                  Código
+                  <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px">(generado automáticamente)</span>
+                </label>
+                <div style="position:relative">
+                  <input
+                    type="text"
+                    class="form-input"
+                    id="fCodigo"
+                    placeholder="PRO0000000001"
+                    oninput="onCodigoInput()"
+                    style="padding-right:36px"
+                  />
+                  <span id="codigoEditIcon" title="Editar código"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;opacity:0.5"
+                    onclick="habilitarEditCodigo()">✏️</span>
+                </div>
               </div>
               <div class="form-group with-btn">
                 <label class="form-label">Categoría *</label>
