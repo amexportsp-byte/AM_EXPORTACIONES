@@ -4009,7 +4009,9 @@
       async function cargarDatosVenta() {
         // Cargar productos y clientes por separado para que uno no bloquee al otro
         try {
+          console.log("[venta] Cargando productos desde API...");
           const productos = await API.products.list();
+          console.log("[venta] Productos recibidos:", productos.length, productos);
           PRODUCTOS_DB = productos
             .filter((p) => p.status !== "inactivo" && p.status !== "descontinuado")
             .map((p) => ({
@@ -4029,12 +4031,15 @@
               fecha_ingreso: p.fechaCompra || "",
             }));
           S.productosFiltrados = [...PRODUCTOS_DB];
+          console.log("[venta] PRODUCTOS_DB final:", PRODUCTOS_DB.length);
           initFiltros();
           renderProductos();
           calcularTotales();
+          if (PRODUCTOS_DB.length > 0)
+            toast(`✅ ${PRODUCTOS_DB.length} producto(s) cargado(s)`, "success");
         } catch (err) {
-          console.error("Error cargando productos:", err);
-          toast("⚠️ Error al cargar productos: " + err.message, "warning");
+          console.error("[venta] Error cargando productos:", err);
+          toast("⚠️ Error: " + err.message, "warning");
         }
 
         // Clientes (independiente — no bloquea productos)
