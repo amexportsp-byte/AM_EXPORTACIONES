@@ -4164,7 +4164,7 @@
         };
         document.getElementById("topbarTitle").textContent =
           titles[name] || name;
-        if (name === "comprobantes") renderTablaComprobantes();
+        if (name === "comprobantes") cargarYRenderComprobantes();
         if (name === "clientes") renderTablaClientes();
         if (name === "reclamos") renderTablaReclamos();
       }
@@ -4876,6 +4876,50 @@
         document.getElementById("fTipoDocComp").value = "";
         renderTablaComprobantes();
       }
+      async function cargarYRenderComprobantes() {
+        try {
+          const ventas = await API.sales.list();
+          // Mapear ventas de BD al formato de comprobante local
+          const fromDB = ventas.map((v) => ({
+            id: v.id,
+            numero: v.sale_number,
+            fecha: new Date(v.sale_date).toLocaleString("es-PE"),
+            cliente: {
+              tipoDoc: v.client_doc_type || "—",
+              numDoc: v.client_doc || v.client_doc_num || "—",
+              nombre: v.client_name || "Sin cliente",
+              email: "—",
+            },
+            items: [],           // detalle no disponible en lista
+            totales: {
+              importeBase: parseFloat(v.subtotal) || 0,
+              descProd: parseFloat(v.discount) || 0,
+              descuentoG: 0,
+              subtotalSIGV: parseFloat(v.subtotal) - parseFloat(v.discount || 0),
+              igv: parseFloat(v.igv) || 0,
+              totalFinal: parseFloat(v.total) || 0,
+              qtyTotal: 0,
+            },
+            pagos: [],
+            auditLog: [],
+            _fromDB: true,
+          }));
+
+          // Combinar: primero las nuevas en memoria, luego las de BD que no estén ya
+          const memIds = new Set(S.comprobantes.map((c) => c.numero));
+          const merged = [
+            ...S.comprobantes,
+            ...fromDB.filter((c) => !memIds.has(c.numero)),
+          ];
+          merged.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          S.comprobantes = merged;
+          document.getElementById("badgeComprobantes").textContent = S.comprobantes.length;
+        } catch (err) {
+          console.error("Error cargando comprobantes:", err.message);
+        }
+        renderTablaComprobantes();
+      }
+
       function renderTablaComprobantes(data = S.comprobantes) {
         const tbody = document.getElementById("tablaCompBody");
         document.getElementById("countComp").textContent = data.length;
