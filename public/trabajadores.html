@@ -2793,7 +2793,7 @@
               >
             </div>
             <div class="form-group">
-              <label class="form-label">Contraseña *</label>
+              <label class="form-label" id="wPasswordLabel">Contraseña *</label>
               <div class="pass-wrap">
                 <input
                   class="inp"
@@ -2809,16 +2809,20 @@
                 </button>
               </div>
               <span class="form-error" id="e-password">Requerido</span>
+              <span id="wPasswordHint" style="display:none;font-size:11px;color:#888;margin-top:3px">
+                Dejar en blanco para no cambiar la contraseña actual
+              </span>
             </div>
             <div class="form-group">
               <label class="form-label">Rol</label
               ><select class="inp sel" id="wRole">
-                <option>Administrador</option>
-                <option>Supervisor</option>
-                <option>Vendedor</option>
-                <option>Almacén</option>
-                <option>Contabilidad</option>
-                <option>Soporte</option>
+                <option value="admin">Administrador</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="cajero">Cajero</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="almacen">Almacén</option>
+                <option value="contabilidad">Contabilidad</option>
+                <option value="soporte">Soporte</option>
               </select>
             </div>
             <div class="form-group">
@@ -3138,7 +3142,6 @@
           email: w.email || "",
           phone: w.phone || "",
           username: w.username,
-          password: "***",
           role: w.role,
           schedule: w.work_schedule || "Lun-Vie 08:00-17:00",
           status: w.status,
@@ -3803,7 +3806,9 @@
           $("wEmail").value = w.email;
           $("wPhone").value = w.phone;
           $("wUsername").value = w.username;
-          $("wPassword").value = w.password;
+          $("wPassword").value = ""; // nunca mostrar hash; vacío = no cambiar
+          $("wPasswordLabel").textContent = "Contraseña";
+          $("wPasswordHint").style.display = "block";
           $("wRole").value = w.role;
           $("wSchedule").value = w.schedule;
           $("wStatus").value = w.status;
@@ -3831,9 +3836,11 @@
           $("wDocType").value = "DNI";
           $("wGender").value = "Femenino";
           $("wAntec").value = "No";
-          $("wRole").value = "Vendedor";
+          $("wRole").value = "vendedor";
           $("wStatus").value = "activo";
           $("wSchedule").value = "Lun-Vie 08:00-17:00";
+          $("wPasswordLabel").textContent = "Contraseña *";
+          $("wPasswordHint").style.display = "none";
         }
         document
           .querySelectorAll(".form-error")
