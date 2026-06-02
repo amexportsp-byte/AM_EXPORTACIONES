@@ -1874,23 +1874,34 @@ async function init() {
     });
   });
 
-  // ─── CLOUDINARY CONFIG ───────────────────────────────────────
-  const CLOUDINARY_CLOUD = "dokafzzic";
-  const CLOUDINARY_PRESET = "am_productos"; // ← lo creas en el Paso 2
+  // ─── CLOUDINARY CONFIG (cargada desde el servidor) ──────────
+  let _cloudinaryConfig = null;
+
+  async function getCloudinaryConfig() {
+    if (_cloudinaryConfig) return _cloudinaryConfig;
+    try {
+      const cfg = await API.get("/api/auth/config");
+      _cloudinaryConfig = cfg.cloudinary;
+    } catch {
+      _cloudinaryConfig = { cloud_name: "dokafzzic", upload_preset: "am_productos" };
+    }
+    return _cloudinaryConfig;
+  }
 
   async function uploadToCloudinary(file) {
+    const cfg = await getCloudinaryConfig();
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", CLOUDINARY_PRESET);
+    formData.append("upload_preset", cfg.upload_preset);
     formData.append("folder", "am_exportaciones/productos");
 
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cfg.cloud_name}/image/upload`,
       { method: "POST", body: formData },
     );
     if (!res.ok) throw new Error("Error al subir imagen a Cloudinary");
     const data = await res.json();
-    return data.secure_url; // URL pública HTTPS
+    return data.secure_url;
   }
 
   // Image upload
