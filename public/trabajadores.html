@@ -3123,6 +3123,33 @@
         return `<span class="att-type ${m[t] || "att-none"}">${t.charAt(0).toUpperCase() + t.slice(1).replace("_", " ")}</span>`;
       }
 
+      // ─── MAPEO API → formato local ───
+      function mapWorker(w) {
+        return {
+          id: w.id,
+          firstName: w.first_name,
+          lastName: w.last_name,
+          docType: w.document_type,
+          docNumber: w.document_number,
+          gender: w.gender || "",
+          birthday: w.birthday ? String(w.birthday).split("T")[0] : "",
+          address: w.address || "",
+          antecedentes: w.antecedentes || "No",
+          email: w.email || "",
+          phone: w.phone || "",
+          username: w.username,
+          password: "***",
+          role: w.role,
+          schedule: w.work_schedule || "Lun-Vie 08:00-17:00",
+          status: w.status,
+          refName: w.ref_name || "",
+          refPhone: w.ref_phone || "",
+          currentPage: w.current_page || null,
+          lastSeen: w.last_seen || null,
+          createdAt: w.created_at ? new Date(w.created_at).toLocaleString("es-PE") : nowStr(),
+        };
+      }
+
       // ─── DB ───
       function seedWorkers() {
         return [
@@ -3276,67 +3303,25 @@
         });
         return recs;
       }
-      function loadDB() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const d = JSON.parse(raw);
-            if (d.attendance)
-              d.attendance.forEach((r) => {
-                if (!r.editHistory) r.editHistory = [];
-              });
-            if (!d.notifications) d.notifications = [];
-            return d;
-          }
-        } catch (e) {}
-        const workers = seedWorkers();
-        const db = {
-          workers,
-          attendance: seedAttendance(workers),
-          auditLog: [],
-          notifications: [],
-        };
-        // seed notifications
-        db.notifications = [
-          {
-            id: genId(),
-            type: "warn",
-            title: "Trabajador con antecedentes activo",
-            body: "Diego Vargas Castro tiene antecedentes policiales registrados.",
-            at: nowStr(),
-            atISO: new Date().toISOString(),
-            read: false,
-          },
-          {
-            id: genId(),
-            type: "info",
-            title: "3 sesiones activas ahora",
-            body: "Ana García, Marco Ruiz y Sofía Torres tienen sesiones abiertas.",
-            at: nowStr(),
-            atISO: new Date().toISOString(),
-            read: false,
-          },
-          {
-            id: genId(),
-            type: "success",
-            title: "Sistema operativo",
-            body: "Todos los servicios funcionan correctamente.",
-            at: nowStr(),
-            atISO: new Date().toISOString(),
-            read: true,
-          },
-        ];
-        return db;
-      }
-
-      let DB = loadDB();
+      let DB = {
+        workers: [],
+        attendance: [],
+        auditLog: [],
+        notifications: [],
+      };
       let deleteTarget = null;
 
-      function saveDB() {
+      async function loadFromAPI() {
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
-        } catch (e) {}
+          const workers = await API.workers.list();
+          DB.workers = workers.map(mapWorker);
+        } catch (err) {
+          console.error("Error cargando trabajadores:", err.message);
+          toast("Error al conectar con el servidor", "error");
+        }
       }
+
+      function saveDB() { /* datos ya guardados en el servidor */ }
 
       function addLog(
         workerId,
@@ -3855,7 +3840,7 @@
           .forEach((e) => e.classList.remove("show"));
         openModal("workerModal");
       }
-      function saveWorker() {
+      async function saveWorker() {
         const id = $("wId").value,
           fn = $("wFirstName").value.trim(),
           ln = $("wLastName").value.trim();
@@ -3882,85 +3867,44 @@
         check(!rn, "refName");
         check(!rp, "refPhone");
         if (!valid) return;
-        const fd = {
-          firstName: fn,
-          lastName: ln,
-          docType: $("wDocType").value,
-          docNumber: dn,
+
+        const apiData = {
+          first_name: fn,
+          last_name: ln,
+          document_type: $("wDocType").value,
+          document_number: dn,
           gender: $("wGender").value,
-          birthday: $("wBirthday").value,
+          birthday: $("wBirthday").value || undefined,
           address: ad,
           antecedentes: $("wAntec").value,
           email: em,
           phone: ph,
           username: us,
           role: $("wRole").value,
-          schedule: $("wSchedule").value,
+          work_schedule: $("wSchedule").value,
           status: $("wStatus").value,
-          refName: rn,
-          refPhone: rp,
+          ref_name: rn,
+          ref_phone: rp,
         };
-        if (id) {
-          const w = DB.workers.find((x) => x.id === id);
-          const tracked = {
-            firstName: "Nombre",
-            lastName: "Apellidos",
-            role: "Rol",
-            status: "Estado",
-            email: "Correo",
-            phone: "Celular",
-            address: "Dirección",
-            schedule: "Horario",
-            antecedentes: "Antecedentes",
-          };
-          const diffs = [];
-          Object.entries(tracked).forEach(([k, label]) => {
-            if (w[k] !== fd[k])
-              diffs.push({ field: label, from: w[k], to: fd[k] });
-          });
-          const np = $("wPassword").value.trim();
-          fd.password =
-            np && np !== w.password
-              ? (diffs.push({ field: "Contraseña", from: "***", to: "***" }),
-                np)
-              : w.password;
-          Object.assign(w, fd);
-          saveDB();
-          if (diffs.length)
-            addLog(
-              id,
-              "Edición de datos",
-              `Datos modificados: ${fn} ${ln}`,
-              "Trabajadores",
-              diffs,
-            );
-          toast("Trabajador actualizado", "success");
-        } else {
-          fd.password = pw;
-          const w = {
-            ...fd,
-            id: genId(),
-            createdAt: nowStr(),
-            currentPage: null,
-            lastSeen: null,
-          };
-          DB.workers.unshift(w);
-          saveDB();
-          addLog(
-            w.id,
-            "Creación",
-            `Trabajador creado: ${fn} ${ln} — ${w.role}`,
-          );
-          addNotification(
-            "success",
-            `Nuevo trabajador: ${fn} ${ln}`,
-            `Rol: ${w.role} | Estado: ${w.status}`,
-          );
-          toast("Trabajador creado", "success");
+        if (pw) apiData.password = pw;
+
+        try {
+          if (id) {
+            await API.workers.update(id, apiData);
+            const idx = DB.workers.findIndex((x) => x.id === id);
+            if (idx !== -1) DB.workers[idx] = mapWorker({ ...apiData, id, created_at: DB.workers[idx].createdAt });
+            toast("Trabajador actualizado", "success");
+          } else {
+            const created = await API.workers.create(apiData);
+            DB.workers.unshift(mapWorker({ ...apiData, ...created }));
+            toast("Trabajador creado", "success");
+          }
+          closeModal("workerModal");
+          renderWorkers();
+          updateCounts();
+        } catch (err) {
+          toast(err.message || "Error al guardar trabajador", "error");
         }
-        closeModal("workerModal");
-        renderWorkers();
-        updateCounts();
       }
 
       // ─── DELETE ───
@@ -3972,23 +3916,21 @@
           : "";
         openModal("deleteModal");
       }
-      function confirmDelete() {
+      async function confirmDelete() {
         if (!deleteTarget) return;
         const w = DB.workers.find((x) => x.id === deleteTarget);
-        if (w) {
-          addLog(
-            deleteTarget,
-            "Eliminación",
-            `Trabajador eliminado: ${w.firstName} ${w.lastName}`,
-          );
-          DB.workers = DB.workers.filter((x) => x.id !== deleteTarget);
-          saveDB();
-          toast("Eliminado", "success");
-          renderWorkers();
-          updateCounts();
-        }
+        const id = deleteTarget;
         deleteTarget = null;
         closeModal("deleteModal");
+        try {
+          await API.workers.remove(id);
+          DB.workers = DB.workers.filter((x) => x.id !== id);
+          toast("Trabajador eliminado", "success");
+          renderWorkers();
+          updateCounts();
+        } catch (err) {
+          toast(err.message || "Error al eliminar", "error");
+        }
       }
 
       // ─── SESSIONS ───
@@ -5148,9 +5090,13 @@
       })();
 
       // ─── BOOT ───
-      updateCounts();
-      renderWorkers();
-      renderDashboard();
+      if (!API.requireAuth()) { /* redirige al login */ }
+      (async () => {
+        await loadFromAPI();
+        updateCounts();
+        renderWorkers();
+        renderDashboard();
+      })();
     </script>
   </body>
 </html>

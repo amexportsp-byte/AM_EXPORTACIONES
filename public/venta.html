@@ -3995,264 +3995,66 @@
         return `<div class="audit-section"><div class="audit-section-head"><div class="audit-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial de cambios<span class="audit-count-badge">${total} evento${total !== 1 ? "s" : ""}</span></div><div class="audit-tabs">${tabs.map((t) => `<button class="audit-tab ${filtroActivo === t.tipo ? "active" : ""}" onclick="${onTabClick}('${t.tipo}',this)">${t.label}</button>`).join("")}</div></div><div id="auditTimelineContainer">${renderAuditLog(auditLog, filtroActivo)}</div></div>`;
       }
 
-      const PRODUCTOS_DB = [
-        {
-          id: "P001",
-          nombre: "Smartphone Samsung Galaxy A54",
-          codigo: "SKU-P001",
-          categoria: "Electrónica",
-          subcategoria: "Smartphones",
-          marca: "Samsung",
-          precio: 899.9,
-          descuento: 10,
-          stock: 25,
-          fecha_ingreso: "2024-01-15",
-          emoji: "📱",
-          descripcion:
-            'Pantalla 6.4" Super AMOLED, cámara triple 50MP, batería 5000mAh.',
-        },
-        {
-          id: "P002",
-          nombre: "Laptop HP Pavilion 15 i5",
-          codigo: "SKU-P002",
-          categoria: "Electrónica",
-          subcategoria: "Laptops",
-          marca: "HP",
-          precio: 2450.0,
-          descuento: 5,
-          stock: 8,
-          fecha_ingreso: "2024-01-20",
-          emoji: "💻",
-          descripcion: "Intel Core i5 12va gen, 16GB DDR4, SSD 512GB.",
-        },
-        {
-          id: "P003",
-          nombre: "Auriculares Sony WH-1000XM5",
-          codigo: "SKU-P003",
-          categoria: "Electrónica",
-          subcategoria: "Audio",
-          marca: "Sony",
-          precio: 1299.0,
-          descuento: 0,
-          stock: 15,
-          fecha_ingreso: "2024-02-01",
-          emoji: "🎧",
-          descripcion: "Cancelación de ruido, 30h de batería.",
-        },
-        {
-          id: "P004",
-          nombre: "Camiseta Deportiva Nike Dri-FIT",
-          codigo: "SKU-P004",
-          categoria: "Ropa",
-          subcategoria: "Deportiva",
-          marca: "Nike",
-          precio: 89.9,
-          descuento: 20,
-          stock: 50,
-          fecha_ingreso: "2024-02-10",
-          emoji: "👕",
-          descripcion: "Tela Dri-FIT. Tallas S-XL.",
-        },
-        {
-          id: "P005",
-          nombre: "Zapatillas Adidas Ultraboost 22",
-          codigo: "SKU-P005",
-          categoria: "Calzado",
-          subcategoria: "Deportivo",
-          marca: "Adidas",
-          precio: 459.0,
-          descuento: 15,
-          stock: 12,
-          fecha_ingreso: "2024-02-15",
-          emoji: "👟",
-          descripcion: "Suela BOOST™, malla Primeknit+.",
-        },
-        {
-          id: "P006",
-          nombre: "Mochila Samsonite Urbana 30L",
-          codigo: "SKU-P006",
-          categoria: "Accesorios",
-          subcategoria: "Bolsos",
-          marca: "Samsonite",
-          precio: 249.0,
-          descuento: 0,
-          stock: 30,
-          fecha_ingreso: "2024-02-20",
-          emoji: "🎒",
-          descripcion: '30L, compartimento laptop 15.6".',
-        },
-        {
-          id: "P007",
-          nombre: 'Tablet iPad Air 10.9"',
-          codigo: "SKU-P007",
-          categoria: "Electrónica",
-          subcategoria: "Tablets",
-          marca: "Apple",
-          precio: 3199.0,
-          descuento: 0,
-          stock: 5,
-          fecha_ingreso: "2024-03-01",
-          emoji: "📟",
-          descripcion: 'Chip M1, Liquid Retina 10.9".',
-        },
-        {
-          id: "P008",
-          nombre: "Leche Gloria Entera 1L",
-          codigo: "SKU-P008",
-          categoria: "Alimentos",
-          subcategoria: "Lácteos",
-          marca: "Gloria",
-          precio: 5.2,
-          descuento: 0,
-          stock: 200,
-          fecha_ingreso: "2024-03-05",
-          emoji: "🥛",
-          descripcion: "Leche entera pasteurizada.",
-        },
-        {
-          id: "P009",
-          nombre: "Chocolate Nestlé Amargo 70%",
-          codigo: "SKU-P009",
-          categoria: "Alimentos",
-          subcategoria: "Confitería",
-          marca: "Nestlé",
-          precio: 8.9,
-          descuento: 5,
-          stock: 80,
-          fecha_ingreso: "2024-03-08",
-          emoji: "🍫",
-          descripcion: "Chocolate 70% cacao, 100g.",
-        },
-        {
-          id: "P010",
-          nombre: "Silla Gamer Gaming Pro RGB",
-          codigo: "SKU-P010",
-          categoria: "Muebles",
-          subcategoria: "Sillas",
-          marca: "DXRacer",
-          precio: 899.0,
-          descuento: 10,
-          stock: 3,
-          fecha_ingreso: "2024-03-10",
-          emoji: "🪑",
-          descripcion: "Reclinable 135°, reposabrazos 4D.",
-        },
-        {
-          id: "P011",
-          nombre: 'Monitor LG UltraWide 29"',
-          codigo: "SKU-P011",
-          categoria: "Electrónica",
-          subcategoria: "Monitores",
-          marca: "LG",
-          precio: 1199.0,
-          descuento: 8,
-          stock: 7,
-          fecha_ingreso: "2024-03-12",
-          emoji: "🖥️",
-          descripcion: "IPS 2560x1080, 75Hz, HDR10.",
-        },
-        {
-          id: "P012",
-          nombre: "Teclado Mecánico Logitech G Pro",
-          codigo: "SKU-P012",
-          categoria: "Electrónica",
-          subcategoria: "Periféricos",
-          marca: "Logitech",
-          precio: 349.0,
-          descuento: 0,
-          stock: 20,
-          fecha_ingreso: "2024-03-15",
-          emoji: "⌨️",
-          descripcion: "Switches GX Blue, RGB, TKL.",
-        },
-        {
-          id: "P013",
-          nombre: "Mouse Inalámbrico MX Master 3",
-          codigo: "SKU-P013",
-          categoria: "Electrónica",
-          subcategoria: "Periféricos",
-          marca: "Logitech",
-          precio: 299.0,
-          descuento: 5,
-          stock: 18,
-          fecha_ingreso: "2024-03-18",
-          emoji: "🖱️",
-          descripcion: "Sensor MagSpeed, 70 días batería.",
-        },
-        {
-          id: "P014",
-          nombre: "Perfume Acqua di Giò Homme",
-          codigo: "SKU-P014",
-          categoria: "Belleza",
-          subcategoria: "Perfumes",
-          marca: "Armani",
-          precio: 389.0,
-          descuento: 0,
-          stock: 10,
-          fecha_ingreso: "2024-03-20",
-          emoji: "🧴",
-          descripcion: "Fragancia acuática. 100ml EDT.",
-        },
-        {
-          id: "P015",
-          nombre: "Libro Clean Code - R. Martin",
-          codigo: "SKU-P015",
-          categoria: "Libros",
-          subcategoria: "Tecnología",
-          marca: "Pearson",
-          precio: 89.0,
-          descuento: 0,
-          stock: 0,
-          fecha_ingreso: "2024-03-22",
-          emoji: "📚",
-          descripcion: "431 páginas, inglés.",
-        },
-      ];
-
-      let CLIENTES_DB = [
-        {
-          id: "C001",
-          tipoDoc: "DNI",
-          numDoc: "12345678",
-          nombre: "Carlos",
-          apellidos: "Quispe Mamani",
-          email: "carlos@gmail.com",
-          celular: "987654321",
-          auditLog: [],
-        },
-        {
-          id: "C002",
-          tipoDoc: "DNI",
-          numDoc: "87654321",
-          nombre: "María",
-          apellidos: "Flores Torres",
-          email: "maria@gmail.com",
-          celular: "976543210",
-          auditLog: [],
-        },
-        {
-          id: "C003",
-          tipoDoc: "RUC",
-          numDoc: "20512345678",
-          nombre: "Empresa ABC",
-          apellidos: "SAC",
-          email: "empresa@abc.com",
-          celular: "012345678",
-          auditLog: [],
-        },
-        {
-          id: "C004",
-          tipoDoc: "CE",
-          numDoc: "CE001234",
-          nombre: "John",
-          apellidos: "Smith",
-          email: "john@mail.com",
-          celular: "965432109",
-          auditLog: [],
-        },
-      ];
-
+      let PRODUCTOS_DB = []; // cargado desde /api/products
+      let CLIENTES_DB = []; // cargado desde /api/clients
       let RECLAMOS_DB = [];
+
+      const EMOJI_MAP = {
+        "Electrónica": "📱", "Ropa": "👕", "Alimentos": "🍫",
+        "Hogar": "🛋️", "Deportes": "🏃", "Belleza": "💄",
+        "Juguetes": "🎮", "Libros": "📚", "Calzado": "👟",
+        "Navideño": "🎄", "Festivo": "🎉", "Limpieza": "🧹",
+      };
+
+      async function cargarDatosVenta() {
+        try {
+          const [productos, clientes] = await Promise.all([
+            API.products.list(),
+            API.clients.list(),
+          ]);
+
+          // Mapear productos al formato que usa venta.html
+          PRODUCTOS_DB = productos
+            .filter((p) => p.status !== "inactivo" && p.status !== "descontinuado")
+            .map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              codigo: p.codigo,
+              categoria: p.categoria || "General",
+              subcategoria: p.subcategoria || "",
+              marca: p.marca || "",
+              precio: parseFloat(p.precioVenta) || 0,
+              precioCompra: parseFloat(p.precioCompra) || 0,
+              descuento: parseFloat(p.descuento) || 0,
+              stock: parseInt(p.stock) || 0,
+              imageUrl: p.imageUrl || "",
+              emoji: EMOJI_MAP[p.categoria] || "📦",
+              descripcion: p.info || "",
+              fecha_ingreso: p.fechaCompra || "",
+            }));
+
+          // Mapear clientes al formato que usa venta.html
+          CLIENTES_DB = clientes.map((c) => ({
+            id: c.id,
+            tipoDoc: c.document_type,
+            numDoc: c.document_number || "",
+            nombre: c.first_name || c.business_name || "",
+            apellidos: c.last_name || "",
+            email: c.email || "",
+            celular: c.phone || "",
+            auditLog: [],
+          }));
+
+          // Actualizar estado y re-renderizar
+          S.productosFiltrados = [...PRODUCTOS_DB];
+          initFiltros();
+          renderProductos();
+          calcularTotales();
+        } catch (err) {
+          console.error("Error cargando datos de venta:", err);
+          toast("⚠️ Error al cargar productos del servidor", "warning");
+        }
+      }
       let numReclamo = 1;
 
       const TIPO_CAMBIO = {
@@ -4402,16 +4204,15 @@
       }
 
       function initFiltros() {
-        const cats = [...new Set(PRODUCTOS_DB.map((p) => p.categoria))];
-        const subs = [...new Set(PRODUCTOS_DB.map((p) => p.subcategoria))];
-        const sc = document.getElementById("searchCategoria"),
-          ss = document.getElementById("searchSubcat");
-        cats.forEach(
-          (c) => (sc.innerHTML += `<option value="${c}">${c}</option>`),
-        );
-        subs.forEach(
-          (s) => (ss.innerHTML += `<option value="${s}">${s}</option>`),
-        );
+        const cats = [...new Set(PRODUCTOS_DB.map((p) => p.categoria))].filter(Boolean);
+        const subs = [...new Set(PRODUCTOS_DB.map((p) => p.subcategoria))].filter(Boolean);
+        const sc = document.getElementById("searchCategoria");
+        const ss = document.getElementById("searchSubcat");
+        // Limpiar opciones anteriores manteniendo la primera (placeholder)
+        sc.innerHTML = '<option value="">Todas las categorías</option>';
+        ss.innerHTML = '<option value="">Todas las subcategorías</option>';
+        cats.forEach((c) => (sc.innerHTML += `<option value="${c}">${c}</option>`));
+        subs.forEach((s) => (ss.innerHTML += `<option value="${s}">${s}</option>`));
       }
 
       function filtrarProductos() {
@@ -4942,55 +4743,73 @@
               "",
             )}</tbody></table><div class="rv-totals"><div class="rv-tot-row"><span>Subtotal s/IGV</span><span>${fmt(t.subtotalSIGV)}</span></div><div class="rv-tot-row"><span>IGV (18%)</span><span>${fmt(t.igv)}</span></div><div class="rv-tot-row"><span>Descuentos</span><span style="color:var(--success)">- ${fmt(t.descProd + t.descuentoG)}</span></div><div class="rv-tot-row main"><span>TOTAL</span><span>${fmt(t.totalFinal)}</span></div></div><div style="margin-top:12px"><div class="rv-sec-title">Pagos</div>${v.pagos.map((p) => `<div class="rv-line"><span>${p.icon} ${p.nombre}</span><strong>${fmt(p.monto)}</strong></div>`).join("")}</div>`;
       }
-      function emitirComprobante() {
+      async function emitirComprobante() {
         const v = S._ventaTemp;
         if (!v) return;
+
+        // Actualizar stock local
         v.items.forEach((item) => {
           const p = PRODUCTOS_DB.find((x) => x.id === item.prodId);
           if (p) p.stock = Math.max(0, p.stock - item.cantidad);
         });
+
+        // Guardar venta en la base de datos
+        try {
+          const totalBase = v.totales?.totalFinal || 0;
+          const saleData = {
+            client_id: v.cliente._dbId || null,
+            sale_type: "venta",
+            subtotal: v.totales?.importeBase || totalBase,
+            discount: v.totales?.descProd || 0,
+            igv: v.totales?.igv || 0,
+            total: totalBase,
+            amount_paid: totalBase,
+            change_given: 0,
+            currency: "PEN",
+            exchange_rate: 1,
+            total_pen: totalBase,
+            amount_paid_pen: totalBase,
+            change_given_pen: 0,
+            invoice_type: v.tipoComprobante || null,
+            details: v.items.map((item) => ({
+              product_id: item.prodId,
+              product_code: item.codigo,
+              product_name: item.nombre,
+              quantity: item.cantidad,
+              unit_price: item.precio,
+              discount_pct: item.descuento || 0,
+              discount_amount: (item.precio * item.cantidad * (item.descuento || 0)) / 100,
+              igv_pct: 18,
+              igv_amount: 0,
+              subtotal: item.precio * item.cantidad,
+              total: item.precio * item.cantidad * (1 - (item.descuento || 0) / 100),
+            })),
+          };
+          await API.sales.create(saleData);
+        } catch (err) {
+          console.error("Error guardando venta:", err.message);
+          toast("⚠️ Venta emitida localmente, error al guardar en BD", "warning");
+        }
+
         v.auditLog = [];
-        v.auditLog.push(
-          crearEntrada(
-            AUDIT.EMITIR,
-            "Comprobante emitido",
-            `Cliente: ${v.cliente.nombre} · ${v.cliente.tipoDoc} ${v.cliente.numDoc}`,
-            [],
-          ),
-        );
-        v.auditLog.push(
-          crearEntrada(
-            AUDIT.PAGO,
-            "Pagos registrados",
-            v.pagos
-              .map((p) => `${p.icon} ${p.nombre}: ${fmt(p.monto)}`)
-              .join(" · "),
-            [],
-          ),
-        );
-        v.auditLog.push(
-          crearEntrada(
-            AUDIT.PRODUCTO_MOD,
-            `${v.items.length} producto(s) vendido(s)`,
-            v.items.map((i) => `${i.nombre} x${i.cantidad}`).join(", "),
-            [],
-          ),
-        );
+        v.auditLog.push(crearEntrada(AUDIT.EMITIR, "Comprobante emitido",
+          `Cliente: ${v.cliente.nombre} · ${v.cliente.tipoDoc} ${v.cliente.numDoc}`, []));
+        v.auditLog.push(crearEntrada(AUDIT.PAGO, "Pagos registrados",
+          v.pagos.map((p) => `${p.icon} ${p.nombre}: ${fmt(p.monto)}`).join(" · "), []));
+        v.auditLog.push(crearEntrada(AUDIT.PRODUCTO_MOD,
+          `${v.items.length} producto(s) vendido(s)`,
+          v.items.map((i) => `${i.nombre} x${i.cantidad}`).join(", "), []));
+
         S.comprobantes.unshift({ ...v });
         S.numComprobante++;
-        document.getElementById("badgeComprobantes").textContent =
-          S.comprobantes.length;
+        document.getElementById("badgeComprobantes").textContent = S.comprobantes.length;
         S.carrito = [];
         S.metodosSeleccionados.clear();
         S.montosPago = {};
         S._totales = null;
         S._ventaTemp = null;
-        [
-          "clienteTipoDoc",
-          "clienteNumDoc",
-          "clienteNombre",
-          "clienteEmail",
-        ].forEach((id) => (document.getElementById(id).value = ""));
+        ["clienteTipoDoc","clienteNumDoc","clienteNombre","clienteEmail"]
+          .forEach((id) => (document.getElementById(id).value = ""));
         document.getElementById("sinCorreo").checked = false;
         document.getElementById("clienteEmail").disabled = false;
         document.getElementById("clienteNombre").readOnly = false;
@@ -4998,8 +4817,7 @@
         ocultarAlertaCliente();
         document.getElementById("descuentoGeneral").value = "0";
         METODOS_PAGO.forEach((m) =>
-          document.getElementById(`chip-${m.id}`)?.classList.remove("selected"),
-        );
+          document.getElementById(`chip-${m.id}`)?.classList.remove("selected"));
         S.metodosSeleccionados.clear();
         renderMetodosMontos();
         renderProductos();
@@ -5007,10 +4825,7 @@
         calcularTotales();
         cerrarModal("modalResumenVenta");
         toast("✅ Comprobante emitido exitosamente", "success");
-        setTimeout(
-          () => toast(`${v.numero} guardado en comprobantes`, "info"),
-          700,
-        );
+        setTimeout(() => toast(`${v.numero} guardado en comprobantes`, "info"), 700);
       }
 
       function filtrarComprobantes() {
@@ -5679,22 +5494,13 @@
       }
       initDarkMode();
 
-      (function init() {
-        CLIENTES_DB.forEach((c) => {
-          if (!c.auditLog.length)
-            c.auditLog.push(
-              crearEntrada(
-                AUDIT.CREAR,
-                "Cliente registrado en el sistema",
-                `Doc: ${c.tipoDoc} ${c.numDoc}`,
-              ),
-            );
-        });
-        initFiltros();
+      (async function init() {
+        if (!API.requireAuth()) return;
         initMetodosPago();
         actualizarTipoCambio();
-        renderProductos();
+        renderProductos(); // muestra vacío mientras carga
         calcularTotales();
+        await cargarDatosVenta(); // carga productos y clientes desde la BD
 
         const ej = {
           id: genId(),
