@@ -1897,10 +1897,13 @@ async function init() {
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${cfg.cloud_name}/image/upload`,
-      { method: "POST", body: formData },
+      { method: "POST", body: formData }
     );
-    if (!res.ok) throw new Error("Error al subir imagen a Cloudinary");
     const data = await res.json();
+    if (!res.ok) {
+      const msg = data?.error?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
     return data.secure_url;
   }
 
@@ -1931,13 +1934,14 @@ async function init() {
       document.getElementById("imageUrl").value = cloudUrl;
       document.getElementById("imageUrl").disabled = false;
       document.getElementById("imagePreview").src = cloudUrl;
-      showToast("✅ Imagen subida a Cloudinary");
+      toast("Imagen subida correctamente", "success");
     } catch (err) {
+      console.error("Error Cloudinary:", err);
       document.getElementById("imageUrl").value = "";
       document.getElementById("imageUrl").disabled = false;
-      document.getElementById("imagePreview").style.display = "none";
-      document.getElementById("imagePlaceholder").style.display = "flex";
-      showToast("❌ Error al subir imagen: " + err.message);
+      // Mantener la preview en base64 para que el usuario la vea
+      toast("Error al subir a Cloudinary: " + err.message, "danger");
+      toast("Puedes pegar la URL de la imagen manualmente", "info");
     }
   });
 
