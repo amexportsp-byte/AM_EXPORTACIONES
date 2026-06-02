@@ -1,0 +1,2061 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>A&M Importaciones — Marcación de Asistencia</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --navy: #0b1c35;
+        --navy2: #132641;
+        --navy3: #1e3558;
+        --navy4: #0a1628;
+        --gold: #c49a2a;
+        --gold-l: #e8c55a;
+        --gold-pale: #fdf6e3;
+        --gold-d: #a07d1c;
+        --white: #ffffff;
+        --bg: #eceef2;
+        --surface: #ffffff;
+        --surface2: #f5f6fa;
+        --surface3: #eef0f5;
+        --text: #0b1c35;
+        --text2: #4a5568;
+        --text3: #8a95a3;
+        --border: #e0e3eb;
+        --border2: #c8d0dc;
+        --green: #157a3f;
+        --green-bg: #e8f5ee;
+        --green-bd: #4dab6a;
+        --red: #b91c1c;
+        --red-bg: #fef2f2;
+        --red-bd: #ef4444;
+        --blue: #1d4ed8;
+        --blue-bg: #eff6ff;
+        --blue-bd: #93c5fd;
+        --amber: #92400e;
+        --amber-bg: #fffbeb;
+        --amber-bd: #fcd34d;
+        --radius: 10px;
+        --radius-lg: 16px;
+        --radius-xl: 22px;
+        --shadow:
+          0 1px 3px rgba(11, 28, 53, 0.07), 0 4px 16px rgba(11, 28, 53, 0.05);
+        --shadow-lg: 0 4px 24px rgba(11, 28, 53, 0.12);
+        --shadow-xl: 0 8px 40px rgba(11, 28, 53, 0.2);
+      }
+      html,
+      body {
+        height: 100%;
+        font-family: "Outfit", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 4px;
+      }
+
+      /* ── TOPBAR ── */
+      .topbar {
+        background: var(--navy4);
+        border-bottom: 3px solid var(--gold);
+        padding: 0.9rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .topbar::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          rgba(196, 154, 42, 0.06) 0%,
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+      }
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+      }
+      .brand-text .b1 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 17px;
+        font-weight: 600;
+        color: #fff;
+        display: block;
+        letter-spacing: 0.03em;
+      }
+      .brand-text .b2 {
+        font-size: 9.5px;
+        color: var(--gold-l);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        opacity: 0.8;
+        display: block;
+        margin-top: 2px;
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        position: relative;
+      }
+      .clock-wrap {
+        text-align: right;
+      }
+      .clock-time {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 24px;
+        font-weight: 600;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.06em;
+      }
+      .clock-date {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.45);
+        margin-top: 1px;
+      }
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 3px rgba(21, 122, 63, 0.2);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
+
+      /* ── LAYOUT ── */
+      .page {
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        gap: 0;
+        min-height: calc(100vh - 66px);
+      }
+
+      /* ── LEFT PANEL ── */
+      .left-panel {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        padding: 1.75rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        overflow-y: auto;
+      }
+
+      /* ── RIGHT PANEL ── */
+      .right-panel {
+        background: var(--bg);
+        padding: 1.75rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        overflow-y: auto;
+      }
+
+      /* ── SECTION HEADING ── */
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+      }
+      .section-title {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .section-sub {
+        font-size: 12px;
+        color: var(--text3);
+        margin-top: 2px;
+      }
+
+      /* ── METHOD TABS ── */
+      .method-tabs {
+        display: flex;
+        gap: 3px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 3px;
+      }
+      .mtab {
+        flex: 1;
+        padding: 0.5rem 0.5rem;
+        border-radius: 7px;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--text2);
+        border: none;
+        background: transparent;
+        font-family: "Outfit", sans-serif;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .mtab:hover {
+        color: var(--text);
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .mtab.active {
+        background: var(--navy);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(11, 28, 53, 0.2);
+      }
+      .mtab svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+
+      /* ── CARD ── */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow);
+      }
+      .card-sm {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        box-shadow: var(--shadow);
+      }
+
+      /* ── PANEL CONTENT ── */
+      .mpanel {
+        display: none;
+      }
+      .mpanel.active {
+        display: block;
+      }
+
+      /* ── FORM ── */
+      .fgroup {
+        margin-bottom: 0.875rem;
+      }
+      .flabel {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text2);
+        margin-bottom: 6px;
+      }
+      .finput {
+        width: 100%;
+        padding: 0.65rem 0.875rem;
+        font-size: 14px;
+        font-family: "Outfit", sans-serif;
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .finput:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(11, 28, 53, 0.07);
+        background: var(--surface);
+      }
+      .pass-wrap {
+        position: relative;
+      }
+      .pass-wrap .finput {
+        padding-right: 2.5rem;
+      }
+      .pass-toggle {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text3);
+        padding: 3px;
+      }
+      .pass-toggle svg {
+        width: 17px;
+        height: 17px;
+      }
+
+      /* ── BTN GRID ── */
+      .btn-duo {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.625rem;
+        margin-top: 0.875rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0.7rem 1rem;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "Outfit", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .btn-ingreso {
+        background: linear-gradient(135deg, var(--navy), var(--navy3));
+        color: #fff;
+      }
+      .btn-ingreso:hover {
+        background: linear-gradient(135deg, var(--navy2), var(--navy));
+        box-shadow: 0 4px 14px rgba(11, 28, 53, 0.25);
+      }
+      .btn-salida {
+        background: linear-gradient(135deg, var(--gold), var(--gold-d));
+        color: #fff;
+      }
+      .btn-salida:hover {
+        opacity: 0.9;
+        box-shadow: 0 4px 14px rgba(196, 154, 42, 0.3);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      /* ── STATUS LINE ── */
+      .status {
+        border-radius: 7px;
+        padding: 9px 12px;
+        font-size: 12.5px;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        margin-top: 0.625rem;
+      }
+      .status.show {
+        display: flex;
+      }
+      .status.ok {
+        background: var(--green-bg);
+        border: 1px solid var(--green-bd);
+        color: var(--green);
+      }
+      .status.err {
+        background: var(--red-bg);
+        border: 1px solid var(--red-bd);
+        color: var(--red);
+      }
+      .status.warn {
+        background: var(--amber-bg);
+        border: 1px solid var(--amber-bd);
+        color: var(--amber);
+      }
+      .status.info {
+        background: var(--blue-bg);
+        border: 1px solid var(--blue-bd);
+        color: var(--blue);
+      }
+      .status svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+
+      /* ── BIOMETRIC ZONE ── */
+      .bio-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface2);
+        position: relative;
+        overflow: hidden;
+        user-select: none;
+      }
+      .bio-zone:hover {
+        border-color: var(--navy);
+        background: var(--surface);
+      }
+      .bio-zone.scanning {
+        border-color: var(--gold);
+        border-style: solid;
+        background: rgba(196, 154, 42, 0.03);
+        animation: bio-pulse 0.9s infinite alternate;
+      }
+      .bio-zone.ok {
+        border-color: var(--green);
+        border-style: solid;
+        background: var(--green-bg);
+      }
+      .bio-zone.fail {
+        border-color: var(--red);
+        border-style: solid;
+        background: var(--red-bg);
+      }
+      @keyframes bio-pulse {
+        from {
+          box-shadow: inset 0 0 0 0 rgba(196, 154, 42, 0);
+        }
+        to {
+          box-shadow: inset 0 0 24px 0 rgba(196, 154, 42, 0.07);
+        }
+      }
+      .bio-icon {
+        margin-bottom: 0.625rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .bio-icon svg {
+        width: 60px;
+        height: 60px;
+        transition: color 0.3s;
+      }
+      .bio-label {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 3px;
+      }
+      .bio-hint {
+        font-size: 11.5px;
+        color: var(--text3);
+      }
+      .scan-bar-wrap {
+        margin-top: 0.875rem;
+        height: 4px;
+        background: var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .scan-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: var(--gold);
+        transition: width 0.05s linear;
+      }
+
+      /* ── FACE CANVAS ── */
+      .face-outer {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid var(--border);
+        margin: 0 auto 0.875rem;
+        position: relative;
+        transition: border-color 0.3s;
+      }
+      .face-outer.scanning {
+        border-color: var(--gold);
+      }
+      .face-outer.ok {
+        border-color: var(--green);
+      }
+      .face-outer.fail {
+        border-color: var(--red);
+      }
+      #faceCanvas {
+        width: 140px;
+        height: 140px;
+        display: block;
+        border-radius: 50%;
+      }
+      .face-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        pointer-events: none;
+        transition: opacity 0.3s;
+        opacity: 0;
+      }
+      .face-overlay.show {
+        opacity: 1;
+      }
+      .face-grid-lines {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 17px,
+            rgba(196, 154, 42, 0.15) 18px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 17px,
+            rgba(196, 154, 42, 0.15) 18px
+          );
+        border-radius: 50%;
+      }
+      .face-corner {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-color: var(--gold);
+        border-style: solid;
+      }
+      .face-corner.tl {
+        top: 10px;
+        left: 10px;
+        border-width: 3px 0 0 3px;
+      }
+      .face-corner.tr {
+        top: 10px;
+        right: 10px;
+        border-width: 3px 3px 0 0;
+      }
+      .face-corner.bl {
+        bottom: 10px;
+        left: 10px;
+        border-width: 0 0 3px 3px;
+      }
+      .face-corner.br {
+        bottom: 10px;
+        right: 10px;
+        border-width: 0 3px 3px 0;
+      }
+      .face-scanline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(196, 154, 42, 0.7),
+          transparent
+        );
+        top: 0;
+        transition: top 0.05s linear;
+      }
+
+      /* ── STATS STRIP ── */
+      .stats-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+      }
+      .stat-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 0.875rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .stat-num {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--navy);
+        line-height: 1;
+      }
+      .stat-num.green {
+        color: var(--green);
+      }
+      .stat-num.amber {
+        color: var(--amber);
+      }
+      .stat-num.red {
+        color: var(--red);
+      }
+      .stat-lbl {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text3);
+        margin-top: 3px;
+      }
+
+      /* ── PRESENT STRIP ── */
+      .present-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.875rem;
+        background: var(--surface);
+        border: 1px solid var(--green-bd);
+        border-left: 3px solid var(--green);
+        border-radius: var(--radius);
+        margin-bottom: 0.375rem;
+        box-shadow: var(--shadow);
+        animation: slide-in 0.25s ease;
+      }
+      .present-item:last-child {
+        margin-bottom: 0;
+      }
+      .online-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 2px rgba(21, 122, 63, 0.18);
+        animation: pulse 2s infinite;
+        flex-shrink: 0;
+      }
+
+      /* ── LOG LIST ── */
+      .log-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.875rem;
+        padding: 0.75rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        animation: slide-in 0.25s ease;
+      }
+      @keyframes slide-in {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .log-av {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .log-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .log-name {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .log-meta {
+        font-size: 11px;
+        color: var(--text3);
+        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .log-dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: var(--text3);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .badge-in {
+        background: var(--green-bg);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+      }
+      .badge-out {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border: 1px solid var(--amber-bd);
+      }
+      .badge-deny {
+        background: var(--red-bg);
+        color: var(--red);
+        border: 1px solid var(--red-bd);
+      }
+      .badge svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      .log-method {
+        font-size: 9.5px;
+        background: var(--surface2);
+        color: var(--text3);
+        border: 1px solid var(--border);
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        align-self: flex-start;
+        margin-top: 3px;
+      }
+      .log-method svg {
+        width: 10px;
+        height: 10px;
+      }
+
+      /* ── EMPTY STATE ── */
+      .empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text3);
+        font-size: 13px;
+      }
+      .empty svg {
+        width: 36px;
+        height: 36px;
+        margin-bottom: 0.75rem;
+        opacity: 0.35;
+      }
+
+      /* ── TOAST ── */
+      #toastWrap {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--navy);
+        color: #fff;
+        padding: 0.875rem 1.1rem;
+        border-radius: var(--radius-lg);
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: var(--shadow-xl);
+        animation: toast-in 0.3s ease;
+        max-width: 300px;
+        min-width: 220px;
+        border-left: 3px solid var(--gold);
+      }
+      .toast.t-ok {
+        border-left-color: var(--green);
+      }
+      .toast.t-out {
+        border-left-color: var(--gold);
+      }
+      .toast.t-deny {
+        border-left-color: var(--red);
+      }
+      .toast-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .toast-body .t1 {
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .toast-body .t2 {
+        font-size: 11px;
+        opacity: 0.65;
+      }
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ── DIVIDER ── */
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 0.25rem 0;
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 900px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+        .right-panel {
+          border-top: 1px solid var(--border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="brand">
+        <img
+          class="brand-logo"
+          src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+          alt="A&M Logo"
+          onerror="this.style.display = 'none'"
+        />
+        <div class="brand-text">
+          <span class="b1">A&M Importaciones</span>
+          <span class="b2">Sistema de Marcación</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-dot"></div>
+        <div class="clock-wrap">
+          <div class="clock-time" id="clockTime">00:00:00</div>
+          <div class="clock-date" id="clockDate">—</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <!-- ══ LEFT ══ -->
+      <div class="left-panel">
+        <div>
+          <div class="section-head">
+            <div>
+              <div class="section-title">Marcar asistencia</div>
+              <div class="section-sub">Selecciona el método de marcación</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="method-tabs" id="methodTabs">
+          <button class="mtab active" onclick="switchMethod('cred', this)">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                d="M15 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7.5L15 3z"
+              />
+              <polyline points="15 3 15 8 20 8" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+              <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
+            Usuario / Contraseña
+          </button>
+          <button class="mtab" onclick="switchMethod('face', this)">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                d="M9 2H5a2 2 0 00-2 2v4m16-6h-4M3 14v4a2 2 0 002 2h4m6 0h4a2 2 0 002-2v-4M9 9v1m6-1v1m-7 4s1 2 3 2 3-2 3-2"
+              />
+            </svg>
+            Facial
+          </button>
+          <button class="mtab" onclick="switchMethod('finger', this)">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                d="M12 11c0 3.517-1.009 6.799-2.753 9.571M4.457 13.83A9 9 0 015.03 9.5m14.945 4.072A9 9 0 0012 3a9 9 0 00-4.5 1.19M12 11v-.01M8.5 16.5c.862-2.01 1.5-4.195 1.5-5.5m2 0c0 1.7.518 3.633 1.5 5.5"
+              />
+            </svg>
+            Huella
+          </button>
+        </div>
+
+        <!-- ── PANEL CREDENCIALES ── -->
+        <div class="card mpanel active" id="panel-cred">
+          <div class="fgroup">
+            <label class="flabel">
+              <svg
+                style="
+                  width: 12px;
+                  height: 12px;
+                  display: inline;
+                  vertical-align: middle;
+                  margin-right: 4px;
+                "
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Usuario
+            </label>
+            <input
+              class="finput"
+              id="credUser"
+              type="text"
+              placeholder="Ej: agarcia"
+              autocomplete="off"
+              onkeydown="if (event.key === 'Enter') marcacionCred('ingreso');"
+            />
+          </div>
+          <div class="fgroup">
+            <label class="flabel">
+              <svg
+                style="
+                  width: 12px;
+                  height: 12px;
+                  display: inline;
+                  vertical-align: middle;
+                  margin-right: 4px;
+                "
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              Contraseña
+            </label>
+            <div class="pass-wrap">
+              <input
+                class="finput"
+                id="credPass"
+                type="password"
+                placeholder="••••••••"
+                autocomplete="off"
+                onkeydown="if (event.key === 'Enter') marcacionCred('ingreso');"
+              />
+              <button
+                class="pass-toggle"
+                onclick="togglePass()"
+                id="eyeBtn"
+                type="button"
+              >
+                <svg
+                  id="eyeShow"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg
+                  id="eyeHide"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  style="display: none"
+                >
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="credStatus" class="status">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span id="credStatusMsg"></span>
+          </div>
+
+          <div class="btn-duo">
+            <button class="btn btn-ingreso" onclick="marcacionCred('ingreso')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Marcar Ingreso
+            </button>
+            <button class="btn btn-salida" onclick="marcacionCred('salida')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Marcar Salida
+            </button>
+          </div>
+
+          <div class="divider" style="margin-top: 1rem"></div>
+          <div
+            style="font-size: 11px; color: var(--text3); margin-top: 0.75rem"
+          >
+            <strong
+              style="
+                display: block;
+                margin-bottom: 5px;
+                font-size: 10px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+              "
+              >Credenciales de prueba</strong
+            >
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px"
+            >
+              <span>agarcia / Ana2024!</span><span>mruiz / Marco2024!</span>
+              <span>lmendoza / Lucia2024!</span
+              ><span>storres / Sofia2024!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PANEL FACIAL ── -->
+        <div class="card mpanel" id="panel-face">
+          <div class="fgroup">
+            <label class="flabel">Trabajador (simulación)</label>
+            <select class="finput" id="faceWorkerSel"></select>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 0.875rem">
+            <div class="face-outer" id="faceOuter">
+              <canvas id="faceCanvas" width="140" height="140"></canvas>
+              <div class="face-overlay" id="faceOverlay">
+                <div class="face-grid-lines"></div>
+                <div class="face-corner tl"></div>
+                <div class="face-corner tr"></div>
+                <div class="face-corner bl"></div>
+                <div class="face-corner br"></div>
+                <div class="face-scanline" id="faceScanline"></div>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text3)" id="faceHint">
+              Presiona un botón para escanear
+            </div>
+            <div class="scan-bar-wrap" style="margin-top: 0.5rem">
+              <div class="scan-bar" id="faceScanBar"></div>
+            </div>
+          </div>
+
+          <div id="faceStatus" class="status">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span id="faceStatusMsg"></span>
+          </div>
+
+          <div class="btn-duo">
+            <button class="btn btn-ingreso" onclick="startFaceScan('ingreso')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Escanear Ingreso
+            </button>
+            <button class="btn btn-salida" onclick="startFaceScan('salida')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Escanear Salida
+            </button>
+          </div>
+        </div>
+
+        <!-- ── PANEL HUELLA ── -->
+        <div class="card mpanel" id="panel-finger">
+          <div class="fgroup" style="margin-bottom: 0.875rem">
+            <label class="flabel">Trabajador (simulación)</label>
+            <select class="finput" id="fingerWorkerSel"></select>
+          </div>
+
+          <div class="bio-zone" id="fingerZone" onclick="startFingerScan()">
+            <div class="bio-icon">
+              <svg
+                id="fingerSvg"
+                viewBox="0 0 64 64"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                style="color: var(--text3)"
+              >
+                <path
+                  d="M32 8c-13.3 0-24 10.7-24 24 0 8.8 4.7 16.5 11.8 20.7"
+                />
+                <path d="M32 16c-8.8 0-16 7.2-16 16 0 5.3 2.6 10 6.5 12.9" />
+                <path d="M32 24c-4.4 0-8 3.6-8 8 0 2.9 1.5 5.4 3.8 6.9" />
+                <path d="M32 32v.01" />
+                <path d="M40 8.8A24 24 0 0156 32c0 4.4-1.2 8.6-3.3 12.2" />
+                <path d="M46.8 15.2A16 16 0 0148 32c0 2.7-.7 5.3-1.8 7.5" />
+                <path d="M42 22.7A8 8 0 0140 32c0 1.5-.3 2.8-.9 4" />
+              </svg>
+            </div>
+            <div class="bio-label" id="fingerLabel">
+              Apoya el dedo en el lector
+            </div>
+            <div class="bio-hint" id="fingerHint">
+              Toca el área para simular la lectura
+            </div>
+            <div class="scan-bar-wrap">
+              <div class="scan-bar" id="fingerScanBar"></div>
+            </div>
+          </div>
+
+          <div id="fingerStatus" class="status">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span id="fingerStatusMsg"></span>
+          </div>
+
+          <div class="btn-duo" style="margin-top: 0.875rem">
+            <button
+              class="btn btn-ingreso"
+              onclick="doFingerMark('ingreso')"
+              id="btnFingerIn"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Marcar Ingreso
+            </button>
+            <button
+              class="btn btn-salida"
+              onclick="doFingerMark('salida')"
+              id="btnFingerOut"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Marcar Salida
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /left -->
+
+      <!-- ══ RIGHT ══ -->
+      <div class="right-panel">
+        <!-- STATS -->
+        <div class="stats-strip">
+          <div class="stat-box">
+            <div class="stat-num" id="statTotal">0</div>
+            <div class="stat-lbl">Total</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num green" id="statIn">0</div>
+            <div class="stat-lbl">Ingresos</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num amber" id="statOut">0</div>
+            <div class="stat-lbl">Salidas</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num red" id="statDeny">0</div>
+            <div class="stat-lbl">Denegados</div>
+          </div>
+        </div>
+
+        <!-- PRESENTES -->
+        <div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 0.625rem;
+            "
+          >
+            <div
+              style="
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.09em;
+                color: var(--text3);
+              "
+            >
+              Presentes ahora
+            </div>
+            <span style="font-size: 11px; color: var(--text3)" id="presentCount"
+              >0 personas</span
+            >
+          </div>
+          <div id="presentList">
+            <div class="empty" style="padding: 1rem">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+              <div>Nadie ha marcado ingreso aún</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- LOG -->
+        <div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 0.625rem;
+            "
+          >
+            <div
+              style="
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.09em;
+                color: var(--text3);
+              "
+            >
+              Registro del día
+            </div>
+            <button
+              onclick="clearLog()"
+              style="
+                font-size: 11px;
+                color: var(--text3);
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              "
+            >
+              <svg
+                style="width: 12px; height: 12px"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6m4-6v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              Limpiar
+            </button>
+          </div>
+          <div id="logFeed">
+            <div class="empty">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M9 11l3 3L22 4" />
+                <path
+                  d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+                />
+              </svg>
+              <div>Sin registros hoy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /right -->
+    </div>
+    <!-- /page -->
+
+    <div id="toastWrap"></div>
+
+    <script>
+      "use strict";
+
+      /* ── DATA ── */
+      const WORKERS = [
+        {
+          id: "w1",
+          firstName: "Ana",
+          lastName: "García Torres",
+          username: "agarcia",
+          password: "Ana2024!",
+          role: "Vendedor",
+          color: "#0C447C",
+        },
+        {
+          id: "w2",
+          firstName: "Marco",
+          lastName: "Ruiz Salinas",
+          username: "mruiz",
+          password: "Marco2024!",
+          role: "Supervisor",
+          color: "#065f46",
+        },
+        {
+          id: "w3",
+          firstName: "Lucía",
+          lastName: "Mendoza Prado",
+          username: "lmendoza",
+          password: "Lucia2024!",
+          role: "Almacén",
+          color: "#53429e",
+        },
+        {
+          id: "w4",
+          firstName: "Sofía",
+          lastName: "Torres Ramos",
+          username: "storres",
+          password: "Sofia2024!",
+          role: "Soporte",
+          color: "#993556",
+        },
+        {
+          id: "w5",
+          firstName: "Diego",
+          lastName: "Vargas Castro",
+          username: "dvargas",
+          password: "Diego2024!",
+          role: "Contabilidad",
+          color: "#7a3c1d",
+        },
+      ];
+
+      const log = [];
+      const presentMap = {};
+      let fingerReady = false;
+      let fingerWorker = null;
+      let faceAnimId = null;
+
+      /* ── CLOCK ── */
+      function updateClock() {
+        const d = new Date();
+        document.getElementById("clockTime").textContent = d.toLocaleTimeString(
+          "es-PE",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          },
+        );
+        const ds = d.toLocaleDateString("es-PE", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+        document.getElementById("clockDate").textContent =
+          ds.charAt(0).toUpperCase() + ds.slice(1);
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      /* ── POPULATE SELECTS ── */
+      function populateSelects() {
+        ["faceWorkerSel", "fingerWorkerSel"].forEach((sid) => {
+          const el = document.getElementById(sid);
+          if (!el) return;
+          el.innerHTML = WORKERS.map(
+            (w) =>
+              `<option value="${w.id}">${w.firstName} ${w.lastName} — ${w.role}</option>`,
+          ).join("");
+        });
+      }
+      populateSelects();
+
+      /* ── TABS ── */
+      function switchMethod(m, btn) {
+        document
+          .querySelectorAll(".mtab")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document
+          .querySelectorAll(".mpanel")
+          .forEach((p) => p.classList.remove("active"));
+        document.getElementById("panel-" + m).classList.add("active");
+        resetAllStatus();
+      }
+
+      /* ── STATUS HELPERS ── */
+      function setStatus(id, msgId, type, msg) {
+        const el = document.getElementById(id),
+          mel = document.getElementById(msgId);
+        if (!el || !mel) return;
+        el.className = "status show " + type;
+        mel.textContent = msg;
+      }
+      function clearStatus(id) {
+        const el = document.getElementById(id);
+        if (el) el.className = "status";
+      }
+      function resetAllStatus() {
+        ["credStatus", "faceStatus", "fingerStatus"].forEach(clearStatus);
+        fingerReady = false;
+        fingerWorker = null;
+        resetFingerZone();
+        resetFaceCanvas();
+      }
+
+      /* ── PASSWORD TOGGLE ── */
+      function togglePass() {
+        const inp = document.getElementById("credPass");
+        const show = document.getElementById("eyeShow");
+        const hide = document.getElementById("eyeHide");
+        if (inp.type === "password") {
+          inp.type = "text";
+          show.style.display = "none";
+          hide.style.display = "block";
+        } else {
+          inp.type = "password";
+          show.style.display = "block";
+          hide.style.display = "none";
+        }
+      }
+
+      /* ── CREDENTIALS MARCACION ── */
+      function marcacionCred(tipo) {
+        const user = document.getElementById("credUser").value.trim();
+        const pass = document.getElementById("credPass").value;
+        clearStatus("credStatus");
+        if (!user || !pass) {
+          setStatus(
+            "credStatus",
+            "credStatusMsg",
+            "warn",
+            "Ingresa usuario y contraseña",
+          );
+          return;
+        }
+        const w = WORKERS.find(
+          (x) => x.username === user && x.password === pass,
+        );
+        if (!w) {
+          setStatus(
+            "credStatus",
+            "credStatusMsg",
+            "err",
+            "Usuario o contraseña incorrectos",
+          );
+          addLogEntry(null, tipo, "deny", "Credenciales", "Acceso denegado");
+          showToast("deny", "Acceso denegado", "Credenciales incorrectas");
+          document.getElementById("credPass").value = "";
+          return;
+        }
+        processMarkeo(w, tipo, "Credenciales", "credStatus", "credStatusMsg");
+        document.getElementById("credUser").value = "";
+        document.getElementById("credPass").value = "";
+      }
+
+      /* ── CORE MARKEO ── */
+      function processMarkeo(w, tipo, metodo, statusId, msgId) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString("es-PE", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+        if (tipo === "ingreso") {
+          if (presentMap[w.id]) {
+            setStatus(
+              statusId,
+              msgId,
+              "warn",
+              `${w.firstName} ya tiene ingreso registrado`,
+            );
+            return;
+          }
+          presentMap[w.id] = { w, time: timeStr, metodo };
+          setStatus(
+            statusId,
+            msgId,
+            "ok",
+            `✓ Ingreso registrado — ${w.firstName} ${w.lastName} · ${timeStr}`,
+          );
+          addLogEntry(w, "ingreso", "ok", metodo, timeStr);
+          showToast(
+            "ok",
+            `Ingreso — ${w.firstName} ${w.lastName}`,
+            `${metodo} · ${timeStr}`,
+          );
+        } else {
+          if (!presentMap[w.id]) {
+            setStatus(
+              statusId,
+              msgId,
+              "warn",
+              `${w.firstName} no tiene ingreso previo hoy`,
+            );
+            return;
+          }
+          const entrada = presentMap[w.id].time;
+          delete presentMap[w.id];
+          setStatus(
+            statusId,
+            msgId,
+            "ok",
+            `✓ Salida registrada — ${w.firstName} ${w.lastName} · ${timeStr}`,
+          );
+          addLogEntry(
+            w,
+            "salida",
+            "ok",
+            metodo,
+            `Entrada: ${entrada} · Salida: ${timeStr}`,
+          );
+          showToast(
+            "out",
+            `Salida — ${w.firstName} ${w.lastName}`,
+            `${metodo} · Entrada: ${entrada}`,
+          );
+        }
+        renderPresent();
+        updateStats();
+      }
+
+      /* ── LOG ── */
+      function addLogEntry(w, tipo, result, metodo, note) {
+        log.unshift({
+          w,
+          tipo,
+          result,
+          metodo,
+          note,
+          time: new Date().toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          }),
+        });
+        renderLog();
+        updateStats();
+      }
+
+      function ini(w) {
+        return ((w.firstName || "")[0] + (w.lastName || "")[0]).toUpperCase();
+      }
+
+      const METHOD_ICONS = {
+        Credenciales:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+        "Reconocimiento facial":
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M9 2H5a2 2 0 00-2 2v4m16-6h-4M3 14v4a2 2 0 002 2h4m6 0h4a2 2 0 002-2v-4M9 9v1m6-1v1m-7 4s1 2 3 2 3-2 3-2"/></svg>',
+        "Huella dactilar":
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571M5.03 9.5a9 9 0 0114.97 2.5M4.457 13.83A9 9 0 005 17"/></svg>',
+      };
+
+      function renderLog() {
+        const feed = document.getElementById("logFeed");
+        if (!log.length) {
+          feed.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><div>Sin registros hoy</div></div>`;
+          return;
+        }
+        feed.innerHTML = log
+          .slice(0, 40)
+          .map((e) => {
+            const bc =
+              e.result === "deny"
+                ? "badge-deny"
+                : e.tipo === "ingreso"
+                  ? "badge-in"
+                  : "badge-out";
+            const bl =
+              e.result === "deny"
+                ? "Denegado"
+                : e.tipo === "ingreso"
+                  ? "↑ Ingreso"
+                  : "↓ Salida";
+            const name = e.w
+              ? `${e.w.firstName} ${e.w.lastName}`
+              : "Desconocido";
+            const avBg = e.w ? e.w.color : "#8a95a3";
+            const avI = e.w ? ini(e.w) : "?";
+            const mi = METHOD_ICONS[e.metodo] || "";
+            return `<div class="log-item">
+      <div class="log-av" style="background:${avBg}">${avI}</div>
+      <div class="log-body">
+        <div class="log-name">${name}</div>
+        <div class="log-meta">
+          <span>${e.time}</span>
+          <span class="log-dot"></span>
+          <span>${e.note || ""}</span>
+        </div>
+        <span class="log-method">${mi} ${e.metodo}</span>
+      </div>
+      <span class="badge ${bc}">
+        ${e.tipo === "ingreso" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'}
+        ${bl}
+      </span>
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderPresent() {
+        const el = document.getElementById("presentList");
+        const arr = Object.values(presentMap);
+        document.getElementById("presentCount").textContent =
+          arr.length + " persona" + (arr.length !== 1 ? "s" : "");
+        if (!arr.length) {
+          el.innerHTML = `<div class="empty" style="padding:1rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><div>Nadie ha marcado ingreso aún</div></div>`;
+          return;
+        }
+        el.innerHTML = arr
+          .map(
+            ({ w, time, metodo }) => `
+    <div class="present-item">
+      <div style="width:34px;height:34px;border-radius:50%;background:${w.color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${ini(w)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13.5px;font-weight:500;color:var(--text)">${w.firstName} ${w.lastName}</div>
+        <div style="font-size:11px;color:var(--text3)">${w.role} · Entrada: ${time} · ${metodo}</div>
+      </div>
+      <div class="online-dot"></div>
+    </div>`,
+          )
+          .join("");
+      }
+
+      function updateStats() {
+        document.getElementById("statTotal").textContent = log.length;
+        document.getElementById("statIn").textContent = log.filter(
+          (l) => l.tipo === "ingreso" && l.result === "ok",
+        ).length;
+        document.getElementById("statOut").textContent = log.filter(
+          (l) => l.tipo === "salida" && l.result === "ok",
+        ).length;
+        document.getElementById("statDeny").textContent = log.filter(
+          (l) => l.result === "deny",
+        ).length;
+      }
+
+      function clearLog() {
+        log.length = 0;
+        Object.keys(presentMap).forEach((k) => delete presentMap[k]);
+        renderLog();
+        renderPresent();
+        updateStats();
+      }
+
+      /* ── TOAST ── */
+      function showToast(type, t1, t2) {
+        const wrap = document.getElementById("toastWrap");
+        const div = document.createElement("div");
+        div.className = "toast t-" + type;
+        const ico = type === "ok" ? "✅" : type === "out" ? "⏱️" : "⛔";
+        div.innerHTML = `<span class="toast-icon">${ico}</span><div class="toast-body"><div class="t1">${t1}</div><div class="t2">${t2}</div></div>`;
+        wrap.appendChild(div);
+        setTimeout(() => {
+          if (div.parentNode) div.parentNode.removeChild(div);
+        }, 3500);
+      }
+
+      /* ═══════════════════════════════════════
+   FACIAL SCAN
+═══════════════════════════════════════ */
+      const FACE_COLORS = ["#d4a88a", "#c99464", "#b37540", "#4a3728"];
+      function drawIdleFace(ctx) {
+        ctx.clearRect(0, 0, 140, 140);
+        ctx.fillStyle = "#f0f2f5";
+        ctx.fillRect(0, 0, 140, 140);
+        ctx.strokeStyle = "rgba(0,0,0,.13)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(70, 60, 26, 32, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(70, 110, 34, 20, 0, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(59, 55, 5, 6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(81, 55, 5, 6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      function drawScanFace(ctx, t, widx) {
+        const sc = ["#d4a88a", "#c49464", "#a0724a", "#6b3f2a"];
+        const skin = sc[widx % sc.length];
+        ctx.clearRect(0, 0, 140, 140);
+        const fade = Math.min(1, t * 2.2);
+        ctx.fillStyle = t > 0.75 ? skin + "33" : "#f4f2ef";
+        ctx.fillRect(0, 0, 140, 140);
+        ctx.save();
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = skin;
+        ctx.beginPath();
+        ctx.ellipse(70, 60, 26, 32, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = skin;
+        ctx.beginPath();
+        ctx.ellipse(70, 110, 34, 20, 0, 0, Math.PI, true);
+        ctx.fill();
+        ctx.fillStyle = "#2a1a0a";
+        ctx.beginPath();
+        ctx.ellipse(59, 55, 6, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(81, 55, 6, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        if (t > 0.7) {
+          ctx.strokeStyle = "rgba(196,154,42,.9)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(58, 76);
+          ctx.quadraticCurveTo(70, 86, 82, 76);
+          ctx.stroke();
+        }
+        ctx.restore();
+        const sY = Math.floor(t * 140);
+        const g = ctx.createLinearGradient(0, Math.max(0, sY - 18), 0, sY);
+        g.addColorStop(0, "rgba(196,154,42,0)");
+        g.addColorStop(1, "rgba(196,154,42,.4)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, Math.max(0, sY - 18), 140, 18);
+        ctx.fillStyle = "rgba(196,154,42,.65)";
+        ctx.fillRect(0, sY, 140, 2);
+      }
+
+      function resetFaceCanvas() {
+        if (faceAnimId) {
+          cancelAnimationFrame(faceAnimId);
+          faceAnimId = null;
+        }
+        const canvas = document.getElementById("faceCanvas");
+        const ctx = canvas.getContext("2d");
+        drawIdleFace(ctx);
+        document.getElementById("faceOuter").className = "face-outer";
+        document.getElementById("faceOverlay").className = "face-overlay";
+        document.getElementById("faceHint").textContent =
+          "Presiona un botón para escanear";
+        document.getElementById("faceScanBar").style.width = "0%";
+        document.getElementById("faceScanline").style.top = "0px";
+      }
+      resetFaceCanvas();
+
+      function startFaceScan(tipo) {
+        if (faceAnimId) {
+          cancelAnimationFrame(faceAnimId);
+          faceAnimId = null;
+        }
+        const wid = document.getElementById("faceWorkerSel").value;
+        const w = WORKERS.find((x) => x.id === wid);
+        if (!w) return;
+        const widx = WORKERS.indexOf(w);
+        clearStatus("faceStatus");
+        document.getElementById("faceOuter").className = "face-outer scanning";
+        document.getElementById("faceOverlay").className = "face-overlay show";
+        document.getElementById("faceHint").textContent =
+          "Escaneando rostro...";
+        setStatus(
+          "faceStatus",
+          "faceStatusMsg",
+          "info",
+          "Analizando biometría facial...",
+        );
+        const bar = document.getElementById("faceScanBar");
+        bar.style.background = "var(--gold)";
+        bar.style.width = "0%";
+        const scanline = document.getElementById("faceScanline");
+        const canvas = document.getElementById("faceCanvas");
+        const ctx = canvas.getContext("2d");
+        const start = performance.now();
+        const dur = 2400;
+        function frame(now) {
+          const t = Math.min(1, (now - start) / dur);
+          const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          drawScanFace(ctx, ease, widx);
+          bar.style.width = ease * 100 + "%";
+          scanline.style.top = Math.floor(ease * 140) + "px";
+          if (t < 1) {
+            faceAnimId = requestAnimationFrame(frame);
+          } else {
+            faceAnimId = null;
+            document.getElementById("faceOuter").className = "face-outer ok";
+            bar.style.background = "var(--green)";
+            document.getElementById("faceOverlay").className = "face-overlay";
+            document.getElementById("faceHint").textContent =
+              "Rostro verificado — " + w.firstName;
+            processMarkeo(
+              w,
+              tipo,
+              "Reconocimiento facial",
+              "faceStatus",
+              "faceStatusMsg",
+            );
+            setTimeout(() => {
+              if (
+                document
+                  .getElementById("panel-face")
+                  .classList.contains("active")
+              )
+                resetFaceCanvas();
+            }, 2800);
+          }
+        }
+        faceAnimId = requestAnimationFrame(frame);
+      }
+
+      /* ═══════════════════════════════════════
+   FINGER SCAN
+═══════════════════════════════════════ */
+      function resetFingerZone() {
+        const zone = document.getElementById("fingerZone");
+        zone.className = "bio-zone";
+        document.getElementById("fingerLabel").textContent =
+          "Apoya el dedo en el lector";
+        document.getElementById("fingerHint").textContent =
+          "Toca el área para simular la lectura";
+        document.getElementById("fingerScanBar").style.width = "0%";
+        document.getElementById("fingerSvg").style.color = "var(--text3)";
+        fingerReady = false;
+        fingerWorker = null;
+        clearStatus("fingerStatus");
+      }
+
+      function startFingerScan() {
+        const zone = document.getElementById("fingerZone");
+        if (zone.classList.contains("scanning")) return;
+        const wid = document.getElementById("fingerWorkerSel").value;
+        const w = WORKERS.find((x) => x.id === wid);
+        if (!w) return;
+        fingerWorker = w;
+        fingerReady = false;
+        zone.className = "bio-zone scanning";
+        document.getElementById("fingerLabel").textContent =
+          "Leyendo huella...";
+        document.getElementById("fingerHint").textContent = "No muevas el dedo";
+        document.getElementById("fingerSvg").style.color = "var(--gold)";
+        setStatus(
+          "fingerStatus",
+          "fingerStatusMsg",
+          "info",
+          "Analizando huella dactilar...",
+        );
+        const bar = document.getElementById("fingerScanBar");
+        bar.style.background = "var(--gold)";
+        bar.style.width = "0%";
+        let prog = 0;
+        const iv = setInterval(() => {
+          prog += Math.random() * 6 + 3;
+          bar.style.width = Math.min(100, prog) + "%";
+          if (prog >= 100) {
+            clearInterval(iv);
+            const ok = Math.random() > 0.12;
+            if (ok) {
+              zone.className = "bio-zone ok";
+              document.getElementById("fingerSvg").style.color = "var(--green)";
+              document.getElementById("fingerLabel").textContent =
+                "Huella reconocida";
+              document.getElementById("fingerHint").textContent =
+                "✓ " + w.firstName + " " + w.lastName;
+              bar.style.background = "var(--green)";
+              setStatus(
+                "fingerStatus",
+                "fingerStatusMsg",
+                "ok",
+                "Huella verificada — elige ingreso o salida",
+              );
+              fingerReady = true;
+            } else {
+              zone.className = "bio-zone fail";
+              document.getElementById("fingerSvg").style.color = "var(--red)";
+              document.getElementById("fingerLabel").textContent =
+                "Huella no reconocida";
+              document.getElementById("fingerHint").textContent =
+                "Intenta de nuevo";
+              bar.style.background = "var(--red)";
+              setStatus(
+                "fingerStatus",
+                "fingerStatusMsg",
+                "err",
+                "No se pudo verificar la huella",
+              );
+              fingerReady = false;
+              fingerWorker = null;
+              setTimeout(() => {
+                if (
+                  document
+                    .getElementById("panel-finger")
+                    .classList.contains("active")
+                )
+                  resetFingerZone();
+              }, 2200);
+            }
+          }
+        }, 55);
+      }
+
+      function doFingerMark(tipo) {
+        if (!fingerReady || !fingerWorker) {
+          setStatus(
+            "fingerStatus",
+            "fingerStatusMsg",
+            "warn",
+            "Primero escanea tu huella",
+          );
+          return;
+        }
+        processMarkeo(
+          fingerWorker,
+          tipo,
+          "Huella dactilar",
+          "fingerStatus",
+          "fingerStatusMsg",
+        );
+        fingerReady = false;
+        const fw = fingerWorker;
+        fingerWorker = null;
+        setTimeout(() => {
+          if (
+            document.getElementById("panel-finger").classList.contains("active")
+          )
+            resetFingerZone();
+        }, 1800);
+      }
+    </script>
+  </body>
+</html>

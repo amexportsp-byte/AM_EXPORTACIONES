@@ -1,0 +1,3261 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>A&M Exportaciones — Centro de Cambio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --navy: #0b1c35;
+        --navy2: #132641;
+        --navy3: #1e3558;
+        --gold: #c49a2a;
+        --gold-l: #e8c55a;
+        --gold-pale: #fdf6e3;
+        --bg: #f0f2f5;
+        --surface: #ffffff;
+        --surface2: #f7f8fa;
+        --text: #0b1c35;
+        --text2: #4a5568;
+        --text3: #8a95a3;
+        --border: #e2e5eb;
+        --border2: #cbd2dc;
+        --green: #1a7a4a;
+        --green-bg: #eaf5ee;
+        --green-bd: #52a96b;
+        --red: #b91c1c;
+        --red-bg: #fef2f2;
+        --red-bd: #ef4444;
+        --blue: #1d4ed8;
+        --blue-bg: #eff6ff;
+        --blue-bd: #93c5fd;
+        --amber: #92400e;
+        --amber-bg: #fffbeb;
+        --amber-bd: #fcd34d;
+        --radius: 10px;
+        --radius-lg: 16px;
+        --shadow:
+          0 1px 3px rgba(11, 28, 53, 0.08), 0 4px 16px rgba(11, 28, 53, 0.06);
+        --shadow-lg: 0 4px 24px rgba(11, 28, 53, 0.12);
+      }
+      body {
+        font-family: "Outfit", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 240px;
+        height: 100vh;
+        background: var(--navy);
+        display: flex;
+        flex-direction: column;
+        z-index: 100;
+        overflow-y: auto;
+      }
+      .sidebar-logo {
+        padding: 1.5rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-logo img {
+        height: 34px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+      }
+      .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+      }
+      .sidebar-brand .b1 {
+        font-family: "Instrument Serif", serif;
+        font-size: 14px;
+        color: #fff;
+        letter-spacing: 0.02em;
+      }
+      .sidebar-brand .b2 {
+        font-size: 10px;
+        color: var(--gold-l);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .sidebar-nav {
+        padding: 1rem 0;
+        flex: 1;
+      }
+      .nav-section {
+        padding: 0.25rem 1rem 0.5rem;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 0.75rem;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.65rem 1.25rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        font-size: 13.5px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.65);
+        border-left: 3px solid transparent;
+        text-decoration: none;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+      }
+      .nav-item.active {
+        background: rgba(196, 154, 42, 0.12);
+        color: var(--gold-l);
+        border-left-color: var(--gold);
+      }
+      .nav-item svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active svg {
+        opacity: 1;
+      }
+      .sidebar-footer {
+        padding: 0.875rem 1.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* LOGOUT BUTTON IN SIDEBAR */
+      .sidebar-logout {
+        margin: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(220, 38, 38, 0.12);
+        border: 1px solid rgba(220, 38, 38, 0.25);
+        border-radius: 10px;
+        color: #f87171;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        width: calc(100% - 2rem);
+      }
+      .sidebar-logout:hover {
+        background: #dc2626;
+        color: #fff;
+        border-color: #dc2626;
+      }
+      .sidebar-logout svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* MAIN */
+      .main {
+        margin-left: 240px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.875rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 20px;
+        color: var(--navy);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .topbar-date {
+        font-size: 12px;
+        color: var(--text3);
+        background: var(--surface2);
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+      }
+      .badge-live {
+        background: #eaf5ee;
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .dot-live {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.85);
+        }
+      }
+      /* TOPBAR LOGOUT BUTTON */
+      .topbar-logout {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--red-bg);
+        border: 1px solid var(--red-bd);
+        border-radius: 20px;
+        padding: 5px 13px;
+        color: var(--red);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .topbar-logout:hover {
+        background: var(--red);
+        color: #fff;
+        border-color: var(--red);
+      }
+      .topbar-logout svg {
+        width: 14px;
+        height: 14px;
+      }
+      .content {
+        padding: 1.75rem 2rem;
+        flex: 1;
+      }
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow);
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card-title svg {
+        width: 16px;
+        height: 16px;
+        color: var(--gold);
+      }
+      .section-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 22px;
+        color: var(--navy);
+        margin-bottom: 0.25rem;
+      }
+      .section-sub {
+        font-size: 13px;
+        color: var(--text3);
+        margin-bottom: 1.5rem;
+      }
+      .metric-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .metric-card.mc-gold::before {
+        background: var(--gold);
+      }
+      .metric-card.mc-green::before {
+        background: var(--green);
+      }
+      .metric-card.mc-blue::before {
+        background: var(--blue);
+      }
+      .metric-card.mc-red::before {
+        background: var(--red);
+      }
+      .metric-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text3);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+      .metric-value {
+        font-family: "Instrument Serif", serif;
+        font-size: 28px;
+        color: var(--navy);
+        line-height: 1;
+        margin-bottom: 0.35rem;
+      }
+      .metric-sub {
+        font-size: 12px;
+        color: var(--text3);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .metric-up {
+        color: var(--green);
+      }
+      .metric-down {
+        color: var(--red);
+      }
+      .metric-flag {
+        font-size: 20px;
+        position: absolute;
+        top: 1.1rem;
+        right: 1.25rem;
+        opacity: 0.7;
+      }
+      .rate-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .rate-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        transition:
+          box-shadow 0.2s,
+          transform 0.15s;
+      }
+      .rate-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+      .rate-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+      }
+      .rate-flag {
+        font-size: 24px;
+      }
+      .rate-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
+      .rate-badge.up {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .rate-badge.dn {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .rate-badge.eq {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .rate-code {
+        font-size: 12px;
+        color: var(--text3);
+        font-weight: 500;
+        margin-bottom: 3px;
+      }
+      .rate-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .rate-val {
+        font-family: "Instrument Serif", serif;
+        font-size: 26px;
+        color: var(--navy);
+        margin: 0.5rem 0 0.25rem;
+      }
+      .rate-change {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      thead {
+        background: var(--navy);
+      }
+      thead th {
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.12s;
+      }
+      tbody tr:hover {
+        background: var(--surface2);
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+      tbody td {
+        padding: 0.7rem 1rem;
+        color: var(--text2);
+        vertical-align: middle;
+      }
+      tbody td.mono {
+        font-family: "Outfit", monospace;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .tag-green {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .tag-red {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .tag-amber {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .tag-blue {
+        background: var(--blue-bg);
+        color: var(--blue);
+      }
+      .tag-navy {
+        background: #eef2f8;
+        color: var(--navy);
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .form-grid.cols3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-group.full {
+        grid-column: 1/-1;
+      }
+      label.lbl {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text2);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      input.inp,
+      select.inp,
+      textarea.inp {
+        padding: 0.65rem 0.9rem;
+        font-size: 14px;
+        font-family: "Outfit", sans-serif;
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        width: 100%;
+      }
+      input.inp:focus,
+      select.inp:focus,
+      textarea.inp:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(11, 28, 53, 0.07);
+        background: #fff;
+      }
+      textarea.inp {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0.65rem 1.25rem;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "Outfit", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .btn-primary {
+        background: var(--navy);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--navy2);
+      }
+      .btn-gold {
+        background: var(--gold);
+        color: var(--navy);
+      }
+      .btn-gold:hover {
+        background: var(--gold-l);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text2);
+        border: 1.5px solid var(--border2);
+      }
+      .btn-outline:hover {
+        background: var(--surface2);
+      }
+      .btn-danger {
+        background: var(--red-bg);
+        color: var(--red);
+        border: 1.5px solid var(--red-bd);
+      }
+      .btn-danger:hover {
+        background: var(--red);
+        color: #fff;
+      }
+      .btn-sm {
+        padding: 0.4rem 0.85rem;
+        font-size: 12px;
+      }
+      .btn-icon {
+        padding: 0.5rem;
+        border-radius: 7px;
+      }
+      .alert {
+        padding: 0.85rem 1rem;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .alert-success {
+        background: var(--green-bg);
+        border: 1px solid var(--green-bd);
+        color: var(--green);
+      }
+      .alert-error {
+        background: var(--red-bg);
+        border: 1px solid var(--red-bd);
+        color: var(--red);
+      }
+      .flash {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 999;
+        min-width: 280px;
+        padding: 1rem 1.25rem;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: var(--shadow-lg);
+        animation: slideUp 0.3s ease;
+        display: none;
+      }
+      .flash.show {
+        display: flex;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 28, 53, 0.55);
+        z-index: 200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-bg.open {
+        display: flex;
+      }
+      .modal {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        width: 100%;
+        max-width: 540px;
+        box-shadow: var(--shadow-lg);
+        animation: fadeIn 0.25s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+      .modal-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 20px;
+        color: var(--navy);
+      }
+      .modal-close {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text3);
+        font-size: 18px;
+        transition: all 0.15s;
+      }
+      .modal-close:hover {
+        background: var(--red-bg);
+        color: var(--red);
+        border-color: var(--red-bd);
+      }
+      .modal-footer {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 1.5rem 0;
+      }
+      .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+      }
+      .chart-container-sm {
+        position: relative;
+        height: 180px;
+        width: 100%;
+      }
+      .bank-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: var(--shadow);
+        transition: box-shadow 0.15s;
+      }
+      .bank-card:hover {
+        box-shadow: var(--shadow-lg);
+      }
+      .bank-logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .bank-info {
+        flex: 1;
+      }
+      .bank-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .bank-acct {
+        font-size: 12px;
+        color: var(--text3);
+        font-family: monospace;
+      }
+      .bank-currency {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: var(--navy);
+        color: #fff;
+        font-weight: 600;
+      }
+      .bank-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .tabs {
+        display: flex;
+        gap: 0.25rem;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 3px;
+        margin-bottom: 1.5rem;
+        width: fit-content;
+      }
+      .tab {
+        padding: 0.5rem 1.1rem;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--text3);
+        border: none;
+        background: transparent;
+        font-family: "Outfit", sans-serif;
+      }
+      .tab.active {
+        background: var(--navy);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(11, 28, 53, 0.18);
+      }
+      .converter-box {
+        background: var(--navy);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem;
+        color: #fff;
+        margin-bottom: 1.5rem;
+      }
+      .converter-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 18px;
+        color: var(--gold-l);
+        margin-bottom: 1.25rem;
+      }
+      .conv-row {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: end;
+      }
+      .conv-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .conv-label {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .conv-input {
+        padding: 0.75rem 1rem;
+        font-size: 20px;
+        font-family: "Instrument Serif", serif;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #fff;
+        outline: none;
+        width: 100%;
+        transition: border-color 0.2s;
+      }
+      .conv-input:focus {
+        border-color: var(--gold);
+      }
+      .conv-select {
+        padding: 0.75rem 1rem;
+        font-size: 14px;
+        font-family: "Outfit", sans-serif;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #fff;
+        outline: none;
+        width: 100%;
+        cursor: pointer;
+      }
+      .conv-select option {
+        background: var(--navy);
+        color: #fff;
+      }
+      .conv-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: rgba(196, 154, 42, 0.2);
+        border-radius: 50%;
+        border: 1px solid var(--gold);
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .conv-arrow:hover {
+        background: var(--gold);
+        color: var(--navy);
+      }
+      .conv-result {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .conv-result-val {
+        font-family: "Instrument Serif", serif;
+        font-size: 28px;
+        color: #fff;
+      }
+      .conv-rate-detail {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.35rem;
+      }
+      .obs-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        margin: 2px;
+        cursor: default;
+      }
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+
+      /* ── LOGOUT MODAL ── */
+      .logout-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 28, 53, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .logout-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .logout-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        max-width: 380px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(11, 28, 53, 0.25);
+        transform: scale(0.96) translateY(12px);
+        transition: transform 0.22s;
+        overflow: hidden;
+      }
+      .logout-overlay.open .logout-box {
+        transform: none;
+      }
+      .logout-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface2);
+      }
+      .logout-head h3 {
+        font-family: "Instrument Serif", serif;
+        font-size: 17px;
+        color: var(--navy);
+      }
+      .logout-close-x {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text3);
+      }
+      .logout-close-x:hover {
+        background: var(--red-bg);
+        color: var(--red);
+        border-color: var(--red-bd);
+      }
+      .logout-body {
+        padding: 1.75rem 1.5rem;
+        text-align: center;
+      }
+      .logout-body .logout-icon {
+        font-size: 44px;
+        display: block;
+        margin-bottom: 1rem;
+      }
+      .logout-body p {
+        font-size: 13.5px;
+        color: var(--text2);
+        line-height: 1.6;
+      }
+      .logout-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.625rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--surface2);
+      }
+      .btn-do-logout {
+        background: var(--red);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "Outfit", sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      .btn-do-logout:hover {
+        opacity: 0.88;
+        transform: translateY(-1px);
+      }
+      .btn-do-logout svg {
+        width: 14px;
+        height: 14px;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @media (max-width: 1024px) {
+        .grid-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 200px;
+        }
+        .main {
+          margin-left: 200px;
+        }
+        .grid-4,
+        .grid-3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .conv-row {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+        .content {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img
+          src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+          alt="Logo"
+        />
+        <div class="sidebar-brand">
+          <span class="b1">A&amp;M Exportaciones</span>
+          <span class="b2">Centro de Cambio</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a class="nav-item active" onclick="showSection('dashboard', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" /></svg
+          >Dashboard</a
+        >
+        <a class="nav-item" onclick="showSection('tasas', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M8 12h8M12 8v8" /></svg
+          >Tipo de Cambio</a
+        >
+        <a class="nav-item" onclick="showSection('historial', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M3 3v18h18" />
+            <path d="M7 16l4-4 4 4 4-6" /></svg
+          >Historial</a
+        >
+        <a class="nav-item" onclick="showSection('graficos', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M3 3v18h18" />
+            <rect x="7" y="12" width="3" height="6" />
+            <rect x="12" y="8" width="3" height="10" />
+            <rect x="17" y="5" width="3" height="13" /></svg
+          >Gráficos</a
+        >
+        <div class="nav-section">Gestión</div>
+        <a class="nav-item" onclick="showSection('bancos', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"
+            /></svg
+          >Bancos</a
+        >
+        <a class="nav-item" onclick="showSection('monedas', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path
+              d="M15 8.5A2.5 2.5 0 0012.5 6h-1A2.5 2.5 0 009 8.5v1A2.5 2.5 0 0011.5 12h1a2.5 2.5 0 012.5 2.5v1A2.5 2.5 0 0112.5 18h-1A2.5 2.5 0 019 15.5M12 5v14"
+            /></svg
+          >Monedas</a
+        >
+        <a class="nav-item" onclick="showSection('observaciones', this)"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              d="M9 12h6M9 16h6M7 8h10M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"
+            /></svg
+          >Observaciones</a
+        >
+      </nav>
+      <button class="sidebar-logout" onclick="confirmLogout()">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Cerrar sesión
+      </button>
+      <div class="sidebar-footer">v2.0 &copy; 2025 A&amp;M</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-title" id="topbarTitle">Dashboard Principal</div>
+        <div class="topbar-right">
+          <span class="topbar-date" id="currentDate"></span>
+          <div class="badge-live">
+            <span class="dot-live"></span>Sistema activo
+          </div>
+          <button class="topbar-logout" onclick="confirmLogout()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Salir
+          </button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- DASHBOARD -->
+        <section class="section active" id="s-dashboard">
+          <div class="section-title">Resumen General</div>
+          <div class="section-sub">
+            Vista en tiempo real del tipo de cambio empresarial A&amp;M
+            Exportaciones
+          </div>
+          <div class="grid-4" id="metricCards"></div>
+          <div class="grid-2">
+            <div>
+              <div class="converter-box">
+                <div class="converter-title">Conversor de Divisas</div>
+                <div class="conv-row">
+                  <div class="conv-group">
+                    <span class="conv-label">Monto</span
+                    ><input
+                      type="number"
+                      class="conv-input"
+                      id="convAmount"
+                      value="1000"
+                      oninput="calcConv()"
+                    />
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      gap: 6px;
+                      padding-bottom: 2px;
+                    "
+                  >
+                    <span class="conv-label" style="visibility: hidden">x</span>
+                    <div class="conv-arrow" onclick="swapConv()">&#8644;</div>
+                  </div>
+                  <div class="conv-group">
+                    <span class="conv-label">Moneda</span
+                    ><select
+                      class="conv-select"
+                      id="convCurrency"
+                      onchange="calcConv()"
+                    ></select>
+                  </div>
+                </div>
+                <div style="margin-top: 1rem">
+                  <span class="conv-label">Desde</span
+                  ><select
+                    class="conv-select"
+                    style="margin-top: 6px"
+                    id="convFrom"
+                    onchange="calcConv()"
+                  >
+                    <option value="PEN">
+                      &#127477;&#127466; PEN — Sol peruano
+                    </option>
+                  </select>
+                </div>
+                <div class="conv-result">
+                  <div class="conv-result-val" id="convResult">—</div>
+                  <div class="conv-rate-detail" id="convDetail"></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">&#9889; Actividad reciente</span>
+                </div>
+                <div
+                  id="recentActivity"
+                  style="display: flex; flex-direction: column; gap: 0.6rem"
+                ></div>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="height: 100%">
+                <div class="card-header">
+                  <span class="card-title">Tendencia — Últimos 14 días</span>
+                  <select
+                    class="inp"
+                    style="
+                      width: 120px;
+                      padding: 0.35rem 0.6rem;
+                      font-size: 12px;
+                    "
+                    id="dashChartCurrency"
+                    onchange="renderDashChart()"
+                  ></select>
+                </div>
+                <div class="chart-container">
+                  <canvas id="dashChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-header" style="margin-bottom: 0.75rem">
+            <span
+              class="card-title"
+              style="font-size: 15px; font-weight: 700; color: var(--navy)"
+              >Tipos de cambio activos</span
+            >
+          </div>
+          <div class="rate-grid" id="rateCards"></div>
+        </section>
+
+        <!-- TASAS -->
+        <section class="section" id="s-tasas">
+          <div class="section-title">Configuración de Tipo de Cambio</div>
+          <div class="section-sub">
+            Define el tipo de cambio oficial de la empresa.
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Actualizar tipo de cambio</span>
+              </div>
+              <div id="updateRateForm"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Últimas actualizaciones</span>
+              </div>
+              <div
+                id="lastUpdates"
+                style="display: flex; flex-direction: column; gap: 0.75rem"
+              ></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- HISTORIAL -->
+        <section class="section" id="s-historial">
+          <div class="section-title">Historial de Tipo de Cambio</div>
+          <div class="section-sub">
+            Registro completo de todos los movimientos.
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 1rem;
+              margin-bottom: 1.25rem;
+              flex-wrap: wrap;
+            "
+          >
+            <div class="tabs" id="histTabs">
+              <button class="tab active" onclick="filterHist('ALL', this)">
+                Todos
+              </button>
+            </div>
+            <div
+              style="
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                margin-left: auto;
+              "
+            >
+              <input
+                type="date"
+                class="inp"
+                id="histFrom"
+                style="width: 145px; padding: 0.45rem 0.7rem; font-size: 12px"
+                onchange="renderHistTable()"
+              />
+              <span style="font-size: 12px; color: var(--text3)">—</span>
+              <input
+                type="date"
+                class="inp"
+                id="histTo"
+                style="width: 145px; padding: 0.45rem 0.7rem; font-size: 12px"
+                onchange="renderHistTable()"
+              />
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="clearDateFilter()"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+          <div class="card" style="padding: 0">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Moneda</th>
+                    <th>Tasa anterior</th>
+                    <th>Tasa nueva</th>
+                    <th>Variación</th>
+                    <th>Banco ref.</th>
+                    <th>Motivo</th>
+                    <th>Registrado por</th>
+                  </tr>
+                </thead>
+                <tbody id="histTableBody"></tbody>
+              </table>
+            </div>
+            <div
+              style="
+                padding: 0.75rem 1rem;
+                border-top: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span
+                style="font-size: 12px; color: var(--text3)"
+                id="histCount"
+              ></span>
+              <button class="btn btn-outline btn-sm" onclick="exportCSV()">
+                &#8595; Exportar CSV
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- GRAFICOS -->
+        <section class="section" id="s-graficos">
+          <div class="section-title">Gráficos Históricos</div>
+          <div class="section-sub">
+            Visualización de la evolución de tipos de cambio.
+          </div>
+          <div
+            style="
+              display: flex;
+              gap: 1rem;
+              margin-bottom: 1.5rem;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <div class="tabs" id="chartCurrencyTabs"></div>
+            <div class="tabs" style="margin-left: auto" id="chartRangeTabs">
+              <button class="tab active" onclick="setChartRange(14, this)">
+                14 días
+              </button>
+              <button class="tab" onclick="setChartRange(30, this)">
+                30 días
+              </button>
+              <button class="tab" onclick="setChartRange(90, this)">
+                90 días
+              </button>
+              <button class="tab" onclick="setChartRange(365, this)">
+                1 año
+              </button>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card" style="grid-column: 1/-1">
+              <div class="card-header">
+                <span class="card-title" id="mainChartTitle"
+                  >Evolución de tipo de cambio</span
+                >
+              </div>
+              <div class="chart-container" style="height: 340px">
+                <canvas id="mainChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Distribución de variaciones</span>
+              </div>
+              <div class="chart-container-sm">
+                <canvas id="distChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title"
+                  >Comparación de monedas (índice base 100)</span
+                >
+              </div>
+              <div class="chart-container-sm">
+                <canvas id="compareChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BANCOS -->
+        <section class="section" id="s-bancos">
+          <div class="section-title">Gestión de Bancos</div>
+          <div class="section-sub">Administra los bancos de referencia.</div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Agregar banco</span>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="lbl">Nombre del banco</label
+                  ><input
+                    class="inp"
+                    id="bankName"
+                    placeholder="Ej: BCP, BBVA..."
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Código</label
+                  ><input
+                    class="inp"
+                    id="bankCode"
+                    placeholder="Ej: BCP"
+                    maxlength="6"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">N° cuenta / referencia</label
+                  ><input
+                    class="inp"
+                    id="bankAcct"
+                    placeholder="**** **** **** 1234"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Moneda principal</label
+                  ><select class="inp" id="bankCurrency"></select>
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Color identificador</label
+                  ><input
+                    type="color"
+                    class="inp"
+                    id="bankColor"
+                    value="#0B1C35"
+                    style="height: 42px; cursor: pointer"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Tipo</label
+                  ><select class="inp" id="bankType">
+                    <option value="comercial">Comercial</option>
+                    <option value="central">Banco Central</option>
+                    <option value="internacional">Internacional</option>
+                    <option value="corresponsal">Corresponsal</option>
+                  </select>
+                </div>
+                <div class="form-group full">
+                  <label class="lbl">Notas</label
+                  ><textarea
+                    class="inp"
+                    id="bankNotes"
+                    placeholder="Observaciones del banco..."
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+              <div style="margin-top: 1rem; display: flex; gap: 0.75rem">
+                <button class="btn btn-primary" onclick="saveBank()">
+                  Guardar banco</button
+                ><button class="btn btn-outline" onclick="clearBankForm()">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Bancos registrados</span
+                ><span
+                  id="bankCount"
+                  style="
+                    font-size: 12px;
+                    background: var(--navy);
+                    color: #fff;
+                    padding: 3px 10px;
+                    border-radius: 20px;
+                  "
+                ></span>
+              </div>
+              <div
+                id="bankList"
+                style="display: flex; flex-direction: column; gap: 0.75rem"
+              ></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MONEDAS -->
+        <section class="section" id="s-monedas">
+          <div class="section-title">Gestión de Monedas</div>
+          <div class="section-sub">
+            Administra las monedas activas y su tipo de cambio.
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title"
+                  ><span id="currFormTitle">Agregar moneda</span></span
+                >
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="lbl">Código ISO</label
+                  ><input
+                    class="inp"
+                    id="currCode"
+                    placeholder="Ej: CNY"
+                    maxlength="4"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Nombre</label
+                  ><input class="inp" id="currName" placeholder="Yuan chino" />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Símbolo</label
+                  ><input
+                    class="inp"
+                    id="currSymbol"
+                    placeholder="¥"
+                    maxlength="5"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Emoji bandera</label
+                  ><input
+                    class="inp"
+                    id="currFlag"
+                    placeholder="🇨🇳"
+                    maxlength="4"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Tasa vs PEN</label
+                  ><input
+                    class="inp"
+                    type="number"
+                    id="currRate"
+                    placeholder="0.00"
+                    step="0.0001"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Banco de referencia</label
+                  ><select class="inp" id="currBank"></select>
+                </div>
+                <div class="form-group full">
+                  <label class="lbl">País / Región</label
+                  ><input
+                    class="inp"
+                    id="currCountry"
+                    placeholder="China, Asia Pacífico..."
+                  />
+                </div>
+              </div>
+              <div style="margin-top: 1rem; display: flex; gap: 0.75rem">
+                <button
+                  class="btn btn-primary"
+                  id="saveCurrBtn"
+                  onclick="saveCurrency()"
+                >
+                  Guardar moneda</button
+                ><button class="btn btn-outline" onclick="cancelEditCurr()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Monedas activas</span
+                ><span
+                  id="currCount"
+                  style="
+                    font-size: 12px;
+                    background: var(--navy);
+                    color: #fff;
+                    padding: 3px 10px;
+                    border-radius: 20px;
+                  "
+                ></span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Moneda</th>
+                      <th>Tasa PEN</th>
+                      <th>Banco ref.</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="currTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OBSERVACIONES -->
+        <section class="section" id="s-observaciones">
+          <div class="section-title">Observaciones de Cambio</div>
+          <div class="section-sub">
+            Registra los motivos que generaron variaciones.
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Nueva observación</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 1rem">
+                <div class="form-group">
+                  <label class="lbl">Fecha</label
+                  ><input type="datetime-local" class="inp" id="obsDate" />
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Moneda afectada</label
+                  ><select class="inp" id="obsCurrency"></select>
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Categoría del motivo</label>
+                  <select class="inp" id="obsCategory">
+                    <option value="petróleo">🛢️ Alza/Baja del petróleo</option>
+                    <option value="guerra">⚔️ Conflicto bélico</option>
+                    <option value="política">🏛️ Decisión política</option>
+                    <option value="banco_central">🏦 Banco central</option>
+                    <option value="exportación">
+                      📦 Variación exportaciones
+                    </option>
+                    <option value="retraso">⏱️ Retraso en operaciones</option>
+                    <option value="pandemia">🦠 Pandemia / emergencia</option>
+                    <option value="inflación">
+                      📈 Inflación / devaluación
+                    </option>
+                    <option value="tecnología">💻 Cambios tecnológicos</option>
+                    <option value="clima">🌪️ Fenómeno climático</option>
+                    <option value="otro">📝 Otro motivo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Descripción detallada</label
+                  ><textarea
+                    class="inp"
+                    id="obsDesc"
+                    placeholder="Describe el contexto..."
+                    rows="4"
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Impacto estimado</label
+                  ><select class="inp" id="obsImpact">
+                    <option value="bajo">🟡 Bajo (&lt; 1%)</option>
+                    <option value="medio">🟠 Medio (1-3%)</option>
+                    <option value="alto">🔴 Alto (&gt; 3%)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="lbl">Fuente / referencia</label
+                  ><input
+                    class="inp"
+                    id="obsSource"
+                    placeholder="Reuters, BCR, Bloomberg..."
+                  />
+                </div>
+                <button
+                  class="btn btn-primary"
+                  onclick="saveObservation()"
+                  style="width: fit-content"
+                >
+                  Guardar observación
+                </button>
+              </div>
+            </div>
+            <div class="card" style="padding: 0">
+              <div
+                style="
+                  padding: 1.25rem 1.5rem;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                <span
+                  class="card-title"
+                  style="font-size: 14px; font-weight: 600"
+                  >Observaciones registradas</span
+                >
+              </div>
+              <div
+                id="obsList"
+                style="
+                  max-height: 600px;
+                  overflow-y: auto;
+                  padding: 0.75rem 1rem;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 0.75rem;
+                "
+              ></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- MODAL editar moneda -->
+    <div class="modal-bg" id="modalBg">
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-title" id="modalTitle">Editar</span
+          ><button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+      </div>
+    </div>
+
+    <!-- FLASH -->
+    <div class="flash" id="flash">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        style="width: 18px; height: 18px; flex-shrink: 0"
+        id="flashIcon"
+      >
+        <path d="M5 13l4 4L19 7" /></svg
+      ><span id="flashMsg"></span>
+    </div>
+
+    <!-- ===== LOGOUT MODAL ===== -->
+    <div class="logout-overlay" id="logoutModal">
+      <div class="logout-box">
+        <div class="logout-head">
+          <h3>Cerrar sesión</h3>
+          <button class="logout-close-x" onclick="closeLogoutModal()">✕</button>
+        </div>
+        <div class="logout-body">
+          <span class="logout-icon">🔓</span>
+          <p>
+            <strong>¿Deseas cerrar tu sesión?</strong><br />Serás redirigido a
+            la pantalla de inicio de sesión.
+          </p>
+        </div>
+        <div class="logout-footer">
+          <button class="btn btn-outline" onclick="closeLogoutModal()">
+            Cancelar
+          </button>
+          <button class="btn-do-logout" onclick="doLogout()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ======= LOGOUT SYSTEM ======= */
+      function confirmLogout() {
+        document.getElementById("logoutModal").classList.add("open");
+      }
+      function closeLogoutModal() {
+        document.getElementById("logoutModal").classList.remove("open");
+      }
+      function doLogout() {
+        closeLogoutModal();
+        var t = document.createElement("div");
+        t.style.cssText =
+          "position:fixed;bottom:20px;right:20px;z-index:99999;background:#dc2626;color:#fff;padding:12px 20px;border-radius:12px;font-family:Outfit,sans-serif;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:fadeInUp .3s ease";
+        t.innerHTML = "🔓 Cerrando sesión...";
+        document.body.appendChild(t);
+        setTimeout(function () {
+          window.location.href = "login.html";
+        }, 900);
+      }
+      document
+        .getElementById("logoutModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeLogoutModal();
+        });
+
+      /* ======= ALL ORIGINAL cambio.html LOGIC ======= */
+      var store = {
+        currencies: [
+          {
+            code: "USD",
+            name: "Dólar estadounidense",
+            symbol: "$",
+            flag: "🇺🇸",
+            rate: 3.72,
+            bank: "BCP",
+            country: "Estados Unidos",
+            active: true,
+          },
+          {
+            code: "EUR",
+            name: "Euro",
+            symbol: "€",
+            flag: "🇪🇺",
+            rate: 4.05,
+            bank: "BBVA",
+            country: "Unión Europea",
+            active: true,
+          },
+          {
+            code: "JPY",
+            name: "Yen japonés",
+            symbol: "¥",
+            flag: "🇯🇵",
+            rate: 0.0248,
+            bank: "Interbank",
+            country: "Japón",
+            active: true,
+          },
+          {
+            code: "GBP",
+            name: "Libra esterlina",
+            symbol: "£",
+            flag: "🇬🇧",
+            rate: 4.72,
+            bank: "BCP",
+            country: "Reino Unido",
+            active: true,
+          },
+        ],
+        banks: [
+          {
+            id: 1,
+            name: "BCP",
+            code: "BCP",
+            acct: "**** 1234",
+            currency: "USD",
+            color: "#003B6F",
+            type: "comercial",
+            notes: "Banco principal para operaciones en dólares",
+          },
+          {
+            id: 2,
+            name: "BBVA Continental",
+            code: "BBVA",
+            acct: "**** 5678",
+            currency: "EUR",
+            color: "#004A97",
+            type: "comercial",
+            notes: "Operaciones en euros y Europe",
+          },
+          {
+            id: 3,
+            name: "Interbank",
+            code: "IBK",
+            acct: "**** 9012",
+            currency: "JPY",
+            color: "#00A651",
+            type: "comercial",
+            notes: "Operaciones asiáticas",
+          },
+          {
+            id: 4,
+            name: "Banco Central de Reserva",
+            code: "BCR",
+            acct: "—",
+            currency: "USD",
+            color: "#7B1113",
+            type: "central",
+            notes: "Tasa de referencia oficial Perú",
+          },
+        ],
+        history: [],
+        observations: [],
+        editingCurrCode: null,
+        chartRange: 14,
+        chartCurrency: "USD",
+        dashChartCurrency: "USD",
+      };
+      var chartInstances = {};
+
+      (function generateHistory() {
+        var baseRates = { USD: 3.65, EUR: 3.95, JPY: 0.024, GBP: 4.6 };
+        var reasons = [
+          { cat: "petróleo", msg: "Alza del precio del petróleo WTI" },
+          { cat: "banco_central", msg: "FED mantiene tasas sin cambios" },
+          { cat: "exportación", msg: "Incremento de exportaciones de cobre" },
+          { cat: "política", msg: "Incertidumbre política preelectoral" },
+          { cat: "inflación", msg: "Inflación mensual supera expectativas" },
+          {
+            cat: "guerra",
+            msg: "Conflicto en Europa del Este genera volatilidad",
+          },
+          { cat: "clima", msg: "Fenómeno de El Niño impacta exportaciones" },
+          {
+            cat: "banco_central",
+            msg: "BCR sube tasa de referencia 25 puntos",
+          },
+          { cat: "petróleo", msg: "OPEP recorta producción de crudo" },
+          {
+            cat: "exportación",
+            msg: "Caída en demanda asiática de productos peruanos",
+          },
+        ];
+        var banks = ["BCP", "BBVA", "IBK", "BCR", "Referencial"];
+        var users = ["J. Torres", "M. Quispe", "L. Aranda", "Sistema"];
+        var now = new Date();
+        var id = 1;
+        ["USD", "EUR", "JPY", "GBP"].forEach(function (code) {
+          var rate = baseRates[code];
+          for (var i = 365; i >= 0; i--) {
+            var d = new Date(now);
+            d.setDate(d.getDate() - i);
+            var prev = rate;
+            var change =
+              (Math.random() - 0.48) * (code === "JPY" ? 0.0004 : 0.018);
+            rate = Math.max(code === "JPY" ? 0.019 : 0.5, rate + change);
+            if (Math.random() > 0.72) {
+              var r = reasons[Math.floor(Math.random() * reasons.length)];
+              store.history.push({
+                id: id++,
+                date: d.toISOString(),
+                currency: code,
+                prev: prev,
+                rate: rate,
+                bank: banks[Math.floor(Math.random() * banks.length)],
+                category: r.cat,
+                reason: r.msg,
+                user: users[Math.floor(Math.random() * users.length)],
+              });
+            }
+            if (i === 0) {
+              var c = store.currencies.find(function (x) {
+                return x.code === code;
+              });
+              if (c) c.rate = parseFloat(rate.toFixed(code === "JPY" ? 5 : 4));
+            }
+          }
+        });
+        store.history.sort(function (a, b) {
+          return new Date(b.date) - new Date(a.date);
+        });
+      })();
+
+      store.observations = [
+        {
+          id: 1,
+          date: "2025-04-15T09:00",
+          currency: "USD",
+          category: "petróleo",
+          desc: "La OPEP+ anunció recorte adicional de producción elevando el precio del crudo WTI a $92/barril. Esto presionó las reservas internacionales y depreció el sol peruano frente al dólar.",
+          impact: "alto",
+          source: "Reuters, Bloomberg",
+        },
+        {
+          id: 2,
+          date: "2025-03-20T14:30",
+          currency: "EUR",
+          category: "política",
+          desc: "Elecciones generales en Francia generaron incertidumbre en los mercados europeos.",
+          impact: "medio",
+          source: "El Financiero, FT",
+        },
+        {
+          id: 3,
+          date: "2025-02-10T11:00",
+          currency: "JPY",
+          category: "banco_central",
+          desc: "Banco de Japón mantuvo tasas en -0.1%, debilitó el yen y generó ajuste en nuestra tasa empresarial.",
+          impact: "bajo",
+          source: "BOJ, Nikkei",
+        },
+      ];
+
+      function fmtRate(v, code) {
+        return code === "JPY" ? v.toFixed(5) : v.toFixed(4);
+      }
+      function fmtDate(iso) {
+        var d = new Date(iso);
+        return (
+          d.toLocaleDateString("es-PE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }) +
+          " " +
+          d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })
+        );
+      }
+      function fmtDateShort(iso) {
+        var d = new Date(iso);
+        return d.toLocaleDateString("es-PE", {
+          day: "2-digit",
+          month: "short",
+        });
+      }
+      function varPct(prev, curr) {
+        return ((curr - prev) / prev) * 100;
+      }
+      function flashMsg(msg, type) {
+        var el = document.getElementById("flash"),
+          ic = document.getElementById("flashIcon"),
+          m = document.getElementById("flashMsg");
+        m.textContent = msg;
+        el.style.background =
+          type === "error"
+            ? "var(--red-bg)"
+            : type === "warning"
+              ? "var(--amber-bg)"
+              : "var(--green-bg)";
+        el.style.border =
+          "1px solid " +
+          (type === "error"
+            ? "var(--red-bd)"
+            : type === "warning"
+              ? "var(--amber-bd)"
+              : "var(--green-bd)");
+        el.style.color =
+          type === "error"
+            ? "var(--red)"
+            : type === "warning"
+              ? "var(--amber)"
+              : "var(--green)";
+        el.classList.add("show");
+        setTimeout(function () {
+          el.classList.remove("show");
+        }, 3200);
+      }
+      var titles = {
+        dashboard: "Dashboard Principal",
+        tasas: "Tipo de Cambio",
+        historial: "Historial de Cambios",
+        graficos: "Gráficos Históricos",
+        bancos: "Gestión de Bancos",
+        monedas: "Gestión de Monedas",
+        observaciones: "Observaciones de Cambio",
+      };
+      function showSection(id, el) {
+        document.querySelectorAll(".section").forEach(function (s) {
+          s.classList.remove("active");
+        });
+        document.getElementById("s-" + id).classList.add("active");
+        document.querySelectorAll(".nav-item").forEach(function (n) {
+          n.classList.remove("active");
+        });
+        el.classList.add("active");
+        document.getElementById("topbarTitle").textContent = titles[id] || id;
+        if (id === "historial") renderHistTable();
+        if (id === "graficos") {
+          renderMainChart();
+          renderDistChart();
+          renderCompareChart();
+        }
+        if (id === "dashboard") {
+          renderDashMetrics();
+          renderRateCards();
+          renderDashChart();
+          renderActivity();
+        }
+      }
+      window.onload = function () {
+        setDate();
+        buildConvSelects();
+        buildBankCurrencySelect();
+        buildObsCurrencySelect();
+        buildHistTabs();
+        buildChartCurrencyTabs();
+        renderBankList();
+        renderCurrTable();
+        renderUpdateRateForm();
+        renderDashMetrics();
+        renderRateCards();
+        renderDashChart();
+        renderActivity();
+        renderLastUpdates();
+        renderObsList();
+        var to = new Date();
+        var from = new Date();
+        from.setDate(from.getDate() - 30);
+        document.getElementById("histFrom").value = from
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("histTo").value = to
+          .toISOString()
+          .split("T")[0];
+      };
+      function setDate() {
+        document.getElementById("currentDate").textContent =
+          new Date().toLocaleDateString("es-PE", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          });
+      }
+      function buildConvSelects() {
+        var sel = document.getElementById("convCurrency");
+        var dsel = document.getElementById("dashChartCurrency");
+        sel.innerHTML = "";
+        store.currencies.forEach(function (c) {
+          var o = document.createElement("option");
+          o.value = c.code;
+          o.textContent = c.flag + " " + c.code + " — " + c.name;
+          sel.appendChild(o);
+          var o2 = o.cloneNode(true);
+          dsel.appendChild(o2);
+        });
+        calcConv();
+      }
+      function calcConv() {
+        var amt = parseFloat(document.getElementById("convAmount").value) || 0;
+        var code = document.getElementById("convCurrency").value;
+        var from = document.getElementById("convFrom").value || "PEN";
+        var c = store.currencies.find(function (x) {
+          return x.code === code;
+        });
+        if (!c) return;
+        var result;
+        if (from === "PEN") {
+          result = amt / c.rate;
+        } else {
+          result = amt * c.rate;
+        }
+        document.getElementById("convResult").textContent =
+          c.symbol +
+          " " +
+          result.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: code === "JPY" ? 2 : 4,
+          }) +
+          " " +
+          code;
+        document.getElementById("convDetail").textContent =
+          "1 " +
+          code +
+          " = S/ " +
+          fmtRate(c.rate, code) +
+          " | Banco ref.: " +
+          c.bank;
+      }
+      function swapConv() {
+        calcConv();
+      }
+      function renderDashMetrics() {
+        var el = document.getElementById("metricCards");
+        el.innerHTML = "";
+        var classes = ["mc-gold", "mc-green", "mc-blue", "mc-red"];
+        store.currencies.forEach(function (c, i) {
+          var hist = store.history.filter(function (h) {
+            return h.currency === c.code;
+          });
+          var prev = hist.length > 0 ? hist[0].prev : c.rate;
+          var chg = varPct(prev, c.rate);
+          var isUp = chg >= 0;
+          var card = document.createElement("div");
+          card.className = "metric-card " + classes[i % 4];
+          card.innerHTML =
+            '<div class="metric-label">' +
+            c.code +
+            ' / PEN</div><div class="metric-value">S/ ' +
+            fmtRate(c.rate, c.code) +
+            '</div><div class="metric-sub"><span class="' +
+            (isUp ? "metric-up" : "metric-down") +
+            '">' +
+            (isUp ? "↑" : "↓") +
+            Math.abs(chg).toFixed(2) +
+            '%</span><span style="color:var(--text3)">vs ayer</span></div><div class="metric-flag">' +
+            c.flag +
+            "</div>";
+          el.appendChild(card);
+        });
+      }
+      function renderRateCards() {
+        var el = document.getElementById("rateCards");
+        el.innerHTML = "";
+        store.currencies.forEach(function (c) {
+          var hist = store.history.filter(function (h) {
+            return h.currency === c.code;
+          });
+          var prev = hist.length > 0 ? hist[0].prev : c.rate;
+          var chg = varPct(prev, c.rate);
+          var isUp = chg >= 0;
+          var card = document.createElement("div");
+          card.className = "rate-card";
+          card.innerHTML =
+            '<div class="rate-card-top"><span class="rate-flag">' +
+            c.flag +
+            '</span><span class="rate-badge ' +
+            (Math.abs(chg) < 0.01 ? "eq" : isUp ? "up" : "dn") +
+            '">' +
+            (isUp ? "▲" : "▼") +
+            Math.abs(chg).toFixed(2) +
+            '%</span></div><div class="rate-code">' +
+            c.code +
+            '</div><div class="rate-name">' +
+            c.name +
+            '</div><div class="rate-val">S/ ' +
+            fmtRate(c.rate, c.code) +
+            '</div><div class="rate-change" style="color:' +
+            (isUp ? "var(--green)" : "var(--red)") +
+            '">' +
+            (isUp ? "↑" : "↓") +
+            Math.abs(c.rate - prev).toFixed(4) +
+            " hoy</div>";
+          el.appendChild(card);
+        });
+      }
+      function renderActivity() {
+        var el = document.getElementById("recentActivity");
+        el.innerHTML = "";
+        store.history.slice(0, 6).forEach(function (h) {
+          var c = store.currencies.find(function (x) {
+            return x.code === h.currency;
+          }) || { flag: "💱", symbol: "S/" };
+          var isUp = h.rate > h.prev;
+          var div = document.createElement("div");
+          div.style.cssText =
+            "display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--border)";
+          div.innerHTML =
+            '<span style="font-size:18px">' +
+            c.flag +
+            '</span><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">' +
+            h.currency +
+            ' actualizado</div><div style="font-size:11px;color:var(--text3)">' +
+            fmtDate(h.date) +
+            '</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--navy)">S/ ' +
+            fmtRate(h.rate, h.currency) +
+            '</div><div style="font-size:11px;color:' +
+            (isUp ? "var(--green)" : "var(--red)") +
+            '">' +
+            (isUp ? "+" : "") +
+            varPct(h.prev, h.rate).toFixed(2) +
+            "%</div></div>";
+          el.appendChild(div);
+        });
+      }
+      function renderDashChart() {
+        var code = document.getElementById("dashChartCurrency").value || "USD";
+        var days = 14;
+        var labels = [],
+          data = [];
+        var now = new Date();
+        for (var i = days; i >= 0; i--) {
+          var d = new Date(now);
+          d.setDate(d.getDate() - i);
+          labels.push(fmtDateShort(d.toISOString()));
+          var hist = store.history.filter(function (h) {
+            var hd = new Date(h.date);
+            return (
+              h.currency === code && hd.toDateString() === d.toDateString()
+            );
+          });
+          var rate = hist.length > 0 ? hist[hist.length - 1].rate : null;
+          data.push(rate);
+        }
+        var last = null;
+        for (var j = 0; j < data.length; j++) {
+          if (data[j] !== null) last = data[j];
+          if (data[j] === null && last) data[j] = last;
+        }
+        if (chartInstances.dash) chartInstances.dash.destroy();
+        var ctx = document.getElementById("dashChart").getContext("2d");
+        chartInstances.dash = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "S/ " + code,
+                data: data,
+                borderColor: "#C49A2A",
+                backgroundColor: "rgba(196,154,42,.08)",
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 3,
+                pointBackgroundColor: "#C49A2A",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { font: { size: 10 } },
+              },
+              y: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { font: { size: 10 } },
+              },
+            },
+          },
+        });
+      }
+      function renderLastUpdates() {
+        var el = document.getElementById("lastUpdates");
+        if (!el) return;
+        el.innerHTML = "";
+        store.history.slice(0, 5).forEach(function (h) {
+          var c = store.currencies.find(function (x) {
+            return x.code === h.currency;
+          }) || { flag: "💱" };
+          var isUp = h.rate > h.prev;
+          var div = document.createElement("div");
+          div.style.cssText =
+            "display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border)";
+          div.innerHTML =
+            '<span style="font-size:22px">' +
+            c.flag +
+            '</span><div style="flex:1"><div style="font-size:13px;font-weight:600">' +
+            h.currency +
+            '</div><div style="font-size:11px;color:var(--text3)">' +
+            fmtDate(h.date) +
+            '</div></div><div style="text-align:right"><div class="tag ' +
+            (isUp ? "tag-green" : "tag-red") +
+            '">S/ ' +
+            fmtRate(h.rate, h.currency) +
+            '</div><div style="font-size:11px;color:var(--text3);margin-top:3px">' +
+            h.bank +
+            "</div></div>";
+          el.appendChild(div);
+        });
+      }
+      function renderUpdateRateForm() {
+        var el = document.getElementById("updateRateForm");
+        el.innerHTML = "";
+        var wrap = document.createElement("div");
+        wrap.style.cssText = "display:flex;flex-direction:column;gap:1rem";
+        wrap.innerHTML =
+          '<div class="form-group"><label class="lbl">Moneda</label><select class="inp" id="rateSelCurr" onchange="prefillRate()"></select></div><div class="form-grid" style="gap:.75rem"><div class="form-group"><label class="lbl">Tasa anterior</label><input class="inp" id="rateOld" readonly style="background:var(--surface2)"/></div><div class="form-group"><label class="lbl">Nueva tasa (1 moneda = ? PEN)</label><input type="number" class="inp" id="rateNew" placeholder="0.0000" step="0.0001"/></div></div><div class="form-group"><label class="lbl">Banco de referencia</label><select class="inp" id="rateBank"></select></div><div class="form-group"><label class="lbl">Categoría del motivo</label><select class="inp" id="rateCategory"><option value="petróleo">🛢️ Alza/Baja del petróleo</option><option value="banco_central">🏦 Decisión de banco central</option><option value="política">🏛️ Decisión política</option><option value="exportación">📦 Variación exportaciones</option><option value="guerra">⚔️ Conflicto bélico</option><option value="inflación">📈 Inflación/devaluación</option><option value="clima">🌪️ Fenómeno climático</option><option value="otro">📝 Otro</option></select></div><div class="form-group"><label class="lbl">Observación / motivo</label><textarea class="inp" id="rateReason" placeholder="Detalla el motivo..." rows="3"></textarea></div><div class="form-group"><label class="lbl">Registrado por</label><input class="inp" id="rateUser" value="J. Torres"/></div><button class="btn btn-gold" onclick="applyRate()">✓ Aplicar cambio de tasa</button>';
+        el.appendChild(wrap);
+        var sel = document.getElementById("rateSelCurr");
+        var bsel = document.getElementById("rateBank");
+        store.currencies.forEach(function (c) {
+          var o = document.createElement("option");
+          o.value = c.code;
+          o.textContent = c.flag + " " + c.code;
+          sel.appendChild(o);
+        });
+        store.banks.forEach(function (b) {
+          var o = document.createElement("option");
+          o.value = b.name;
+          o.textContent = b.name;
+          bsel.appendChild(o);
+        });
+        prefillRate();
+      }
+      function prefillRate() {
+        var code = document.getElementById("rateSelCurr").value;
+        var c = store.currencies.find(function (x) {
+          return x.code === code;
+        });
+        if (c)
+          document.getElementById("rateOld").value =
+            "S/ " + fmtRate(c.rate, code);
+      }
+      function applyRate() {
+        var code = document.getElementById("rateSelCurr").value;
+        var newR = parseFloat(document.getElementById("rateNew").value);
+        var reason = document.getElementById("rateReason").value.trim();
+        var bank = document.getElementById("rateBank").value;
+        var cat = document.getElementById("rateCategory").value;
+        var user = document.getElementById("rateUser").value || "Sistema";
+        if (!newR || newR <= 0) {
+          flashMsg("Ingresa una tasa válida", "error");
+          return;
+        }
+        if (!reason) {
+          flashMsg("Ingresa el motivo del cambio", "error");
+          return;
+        }
+        var c = store.currencies.find(function (x) {
+          return x.code === code;
+        });
+        var prevR = c.rate;
+        c.rate = newR;
+        c.bank = bank;
+        store.history.unshift({
+          id: Date.now(),
+          date: new Date().toISOString(),
+          currency: code,
+          prev: prevR,
+          rate: newR,
+          bank: bank,
+          category: cat,
+          reason: reason,
+          user: user,
+        });
+        flashMsg(
+          "Tasa de " + code + " actualizada a S/ " + fmtRate(newR, code),
+          "success",
+        );
+        renderUpdateRateForm();
+        renderLastUpdates();
+        renderDashMetrics();
+        renderRateCards();
+        renderDashChart();
+        renderActivity();
+        renderHistTable();
+      }
+      function buildHistTabs() {
+        var el = document.getElementById("histTabs");
+        store.currencies.forEach(function (c) {
+          var btn = document.createElement("button");
+          btn.className = "tab";
+          btn.textContent = c.flag + " " + c.code;
+          btn.onclick = function () {
+            filterHist(c.code, btn);
+          };
+          el.appendChild(btn);
+        });
+      }
+      var histFilter = "ALL";
+      function filterHist(code, btn) {
+        histFilter = code;
+        document.querySelectorAll("#histTabs .tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        btn.classList.add("active");
+        renderHistTable();
+      }
+      function renderHistTable() {
+        var rows = store.history;
+        var from =
+          document.getElementById("histFrom") &&
+          document.getElementById("histFrom").value;
+        var to =
+          document.getElementById("histTo") &&
+          document.getElementById("histTo").value;
+        if (histFilter !== "ALL")
+          rows = rows.filter(function (h) {
+            return h.currency === histFilter;
+          });
+        if (from)
+          rows = rows.filter(function (h) {
+            return new Date(h.date) >= new Date(from);
+          });
+        if (to)
+          rows = rows.filter(function (h) {
+            return new Date(h.date) <= new Date(to + " 23:59:59");
+          });
+        var tbody = document.getElementById("histTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        rows.forEach(function (h) {
+          var c = store.currencies.find(function (x) {
+            return x.code === h.currency;
+          }) || { flag: "💱" };
+          var chg = varPct(h.prev, h.rate);
+          var isUp = chg >= 0;
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            '<td style="font-size:12px;white-space:nowrap">' +
+            fmtDate(h.date) +
+            '</td><td><span style="font-size:16px">' +
+            c.flag +
+            "</span> <strong>" +
+            h.currency +
+            '</strong></td><td class="mono">S/ ' +
+            fmtRate(h.prev, h.currency) +
+            '</td><td class="mono">S/ ' +
+            fmtRate(h.rate, h.currency) +
+            '</td><td><span class="tag ' +
+            (isUp ? "tag-green" : "tag-red") +
+            '">' +
+            (isUp ? "▲" : "▼") +
+            Math.abs(chg).toFixed(3) +
+            '%</span></td><td><span class="tag tag-navy">' +
+            h.bank +
+            '</span></td><td style="max-width:200px;font-size:12px">' +
+            h.reason.substring(0, 40) +
+            (h.reason.length > 40 ? "…" : "") +
+            '</td><td style="font-size:12px;color:var(--text3)">' +
+            h.user +
+            "</td>";
+          tbody.appendChild(tr);
+        });
+        var cnt = document.getElementById("histCount");
+        if (cnt) cnt.textContent = rows.length + " registros";
+      }
+      function clearDateFilter() {
+        document.getElementById("histFrom").value = "";
+        document.getElementById("histTo").value = "";
+        renderHistTable();
+      }
+      function catEmoji(cat) {
+        var m = {
+          petróleo: "🛢️",
+          guerra: "⚔️",
+          política: "🏛️",
+          banco_central: "🏦",
+          exportación: "📦",
+          retraso: "⏱️",
+          pandemia: "🦠",
+          inflación: "📈",
+          tecnología: "💻",
+          clima: "🌪️",
+          otro: "📝",
+        };
+        return m[cat] || "📝";
+      }
+      function exportCSV() {
+        var rows = store.history;
+        if (histFilter !== "ALL")
+          rows = rows.filter(function (h) {
+            return h.currency === histFilter;
+          });
+        var csv =
+          "Fecha,Moneda,Tasa Anterior,Tasa Nueva,Variacion %,Banco,Categoria,Razon,Usuario\n";
+        rows.forEach(function (h) {
+          csv +=
+            '"' +
+            fmtDate(h.date) +
+            '","' +
+            h.currency +
+            '",' +
+            fmtRate(h.prev, h.currency) +
+            "," +
+            fmtRate(h.rate, h.currency) +
+            "," +
+            varPct(h.prev, h.rate).toFixed(3) +
+            ',"' +
+            h.bank +
+            '","' +
+            h.category +
+            '","' +
+            h.reason +
+            '","' +
+            h.user +
+            '"\n';
+        });
+        var a = document.createElement("a");
+        a.href = "data:text/csv;charset=utf-8,\uFEFF" + encodeURIComponent(csv);
+        a.download = "historial_cambio_am.csv";
+        a.click();
+        flashMsg("CSV exportado correctamente", "success");
+      }
+      var chartCurrFilter = "USD";
+      function buildChartCurrencyTabs() {
+        var el = document.getElementById("chartCurrencyTabs");
+        el.innerHTML = "";
+        store.currencies.forEach(function (c, i) {
+          var btn = document.createElement("button");
+          btn.className = "tab" + (i === 0 ? " active" : "");
+          btn.textContent = c.flag + " " + c.code;
+          btn.onclick = function () {
+            chartCurrFilter = c.code;
+            document
+              .querySelectorAll("#chartCurrencyTabs .tab")
+              .forEach(function (t) {
+                t.classList.remove("active");
+              });
+            btn.classList.add("active");
+            renderMainChart();
+          };
+          el.appendChild(btn);
+        });
+      }
+      function setChartRange(d, btn) {
+        store.chartRange = d;
+        document.querySelectorAll("#chartRangeTabs .tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        btn.classList.add("active");
+        renderMainChart();
+      }
+      function getChartData(code, days) {
+        var labels = [],
+          data = [];
+        var now = new Date();
+        for (var i = days; i >= 0; i--) {
+          var d = new Date(now);
+          d.setDate(d.getDate() - i);
+          labels.push(fmtDateShort(d.toISOString()));
+          var hist = store.history.filter(function (h) {
+            var hd = new Date(h.date);
+            return (
+              h.currency === code && hd.toDateString() === d.toDateString()
+            );
+          });
+          data.push(hist.length > 0 ? hist[hist.length - 1].rate : null);
+        }
+        var last = null;
+        for (var j = 0; j < data.length; j++) {
+          if (data[j] !== null) last = data[j];
+          if (data[j] === null && last) data[j] = last;
+        }
+        return { labels: labels, data: data };
+      }
+      function renderMainChart() {
+        var cd = getChartData(chartCurrFilter, store.chartRange);
+        document.getElementById("mainChartTitle").textContent =
+          "Evolución " +
+          chartCurrFilter +
+          "/PEN — últimos " +
+          store.chartRange +
+          " días";
+        if (chartInstances.main) chartInstances.main.destroy();
+        var ctx = document.getElementById("mainChart").getContext("2d");
+        chartInstances.main = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: cd.labels,
+            datasets: [
+              {
+                label: "S/ " + chartCurrFilter,
+                data: cd.data,
+                borderColor: "#C49A2A",
+                backgroundColor: "rgba(196,154,42,.1)",
+                borderWidth: 2.5,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                labels: { font: { size: 12 }, color: "#0B1C35" },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return "S/ " + ctx.parsed.y.toFixed(5);
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { maxTicksLimit: 12, font: { size: 10 } },
+              },
+              y: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { font: { size: 10 } },
+              },
+            },
+          },
+        });
+      }
+      function renderDistChart() {
+        var counts = { alza: 0, baja: 0, neutral: 0 };
+        store.history.forEach(function (h) {
+          var chg = varPct(h.prev, h.rate);
+          if (chg > 0.1) counts.alza++;
+          else if (chg < -0.1) counts.baja++;
+          else counts.neutral++;
+        });
+        if (chartInstances.dist) chartInstances.dist.destroy();
+        var ctx = document.getElementById("distChart").getContext("2d");
+        chartInstances.dist = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Alza", "Baja", "Estable"],
+            datasets: [
+              {
+                data: [counts.alza, counts.baja, counts.neutral],
+                backgroundColor: ["#1A7A4A", "#B91C1C", "#C49A2A"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "bottom", labels: { font: { size: 11 } } },
+            },
+          },
+        });
+      }
+      function renderCompareChart() {
+        var days = store.chartRange;
+        var datasets = [];
+        var colors = ["#C49A2A", "#1D4ED8", "#1A7A4A", "#B91C1C"];
+        store.currencies.forEach(function (c, i) {
+          var cd = getChartData(c.code, days);
+          var base =
+            cd.data.find(function (v) {
+              return v !== null;
+            }) || 1;
+          var indexed = cd.data.map(function (v) {
+            return v ? parseFloat(((v / base) * 100).toFixed(2)) : null;
+          });
+          datasets.push({
+            label: c.code,
+            data: indexed,
+            borderColor: colors[i],
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 1,
+          });
+        });
+        var labels = getChartData("USD", days).labels;
+        if (chartInstances.compare) chartInstances.compare.destroy();
+        var ctx = document.getElementById("compareChart").getContext("2d");
+        chartInstances.compare = new Chart(ctx, {
+          type: "line",
+          data: { labels: labels, datasets: datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { font: { size: 11 } } } },
+            scales: {
+              x: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { maxTicksLimit: 8, font: { size: 10 } },
+              },
+              y: {
+                grid: { color: "rgba(0,0,0,.04)" },
+                ticks: { font: { size: 10 } },
+              },
+            },
+          },
+        });
+      }
+      function buildBankCurrencySelect() {
+        var sel = document.getElementById("bankCurrency");
+        sel.innerHTML = '<option value="PEN">🇵🇪 PEN</option>';
+        store.currencies.forEach(function (c) {
+          var o = document.createElement("option");
+          o.value = c.code;
+          o.textContent = c.flag + " " + c.code;
+          sel.appendChild(o);
+        });
+      }
+      function saveBank() {
+        var name = document.getElementById("bankName").value.trim();
+        var code = document
+          .getElementById("bankCode")
+          .value.trim()
+          .toUpperCase();
+        var acct = document.getElementById("bankAcct").value.trim();
+        var cur = document.getElementById("bankCurrency").value;
+        var color = document.getElementById("bankColor").value;
+        var type = document.getElementById("bankType").value;
+        var notes = document.getElementById("bankNotes").value.trim();
+        if (!name || !code) {
+          flashMsg("Nombre y código son obligatorios", "error");
+          return;
+        }
+        store.banks.push({
+          id: Date.now(),
+          name: name,
+          code: code,
+          acct: acct,
+          currency: cur,
+          color: color,
+          type: type,
+          notes: notes,
+        });
+        renderBankList();
+        clearBankForm();
+        buildBankCurrencySelect();
+        flashMsg('Banco "' + name + '" agregado correctamente', "success");
+      }
+      function clearBankForm() {
+        ["bankName", "bankCode", "bankAcct", "bankNotes"].forEach(
+          function (id) {
+            document.getElementById(id).value = "";
+          },
+        );
+        document.getElementById("bankColor").value = "#0B1C35";
+      }
+      function deleteBank(id) {
+        store.banks = store.banks.filter(function (b) {
+          return b.id !== id;
+        });
+        renderBankList();
+        flashMsg("Banco eliminado", "warning");
+      }
+      function renderBankList() {
+        var el = document.getElementById("bankList");
+        el.innerHTML = "";
+        document.getElementById("bankCount").textContent = store.banks.length;
+        store.banks.forEach(function (b) {
+          var div = document.createElement("div");
+          div.className = "bank-card";
+          var initials = b.name
+            .split(" ")
+            .map(function (w) {
+              return w[0];
+            })
+            .join("")
+            .substring(0, 2)
+            .toUpperCase();
+          div.innerHTML =
+            '<div class="bank-logo" style="background:' +
+            b.color +
+            ';color:#fff">' +
+            initials +
+            '</div><div class="bank-info"><div style="display:flex;align-items:center;gap:.5rem"><span class="bank-name">' +
+            b.name +
+            '</span><span class="tag tag-navy" style="font-size:10px">' +
+            b.type +
+            '</span></div><div class="bank-acct">' +
+            b.acct +
+            '</div><div style="margin-top:4px"><span class="bank-currency">' +
+            b.currency +
+            '</span></div></div><div class="bank-actions"><button class="btn btn-outline btn-sm btn-icon" onclick="editBank(' +
+            b.id +
+            ')">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="deleteBank(' +
+            b.id +
+            ')">🗑️</button></div>';
+          el.appendChild(div);
+        });
+      }
+      function editBank(id) {
+        var b = store.banks.find(function (x) {
+          return x.id === id;
+        });
+        if (!b) return;
+        document.getElementById("bankName").value = b.name;
+        document.getElementById("bankCode").value = b.code;
+        document.getElementById("bankAcct").value = b.acct;
+        document.getElementById("bankCurrency").value = b.currency;
+        document.getElementById("bankColor").value = b.color;
+        document.getElementById("bankType").value = b.type;
+        document.getElementById("bankNotes").value = b.notes || "";
+        store.banks = store.banks.filter(function (x) {
+          return x.id !== id;
+        });
+        renderBankList();
+        flashMsg("Edita y guarda el banco", "warning");
+      }
+      function buildObsCurrencySelect() {
+        ["obsCurrency", "currBank"].forEach(function (selId) {
+          var sel = document.getElementById(selId);
+          if (!sel) return;
+          if (selId === "currBank") {
+            store.banks.forEach(function (b) {
+              var o = document.createElement("option");
+              o.value = b.name;
+              o.textContent = b.name;
+              sel.appendChild(o);
+            });
+          } else {
+            var o0 = document.createElement("option");
+            o0.value = "ALL";
+            o0.textContent = "Todas las monedas";
+            sel.appendChild(o0);
+            store.currencies.forEach(function (c) {
+              var o = document.createElement("option");
+              o.value = c.code;
+              o.textContent = c.flag + " " + c.code;
+              sel.appendChild(o);
+            });
+          }
+        });
+      }
+      function renderCurrTable() {
+        var el = document.getElementById("currTableBody");
+        el.innerHTML = "";
+        document.getElementById("currCount").textContent =
+          store.currencies.length;
+        store.currencies.forEach(function (c) {
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            '<td><span style="font-size:18px;margin-right:6px">' +
+            c.flag +
+            "</span><strong>" +
+            c.code +
+            '</strong> <span style="font-size:12px;color:var(--text3)">' +
+            c.name +
+            '</span></td><td class="mono">S/ ' +
+            fmtRate(c.rate, c.code) +
+            '</td><td><span class="tag tag-navy">' +
+            c.bank +
+            '</span></td><td><button class="btn btn-outline btn-sm" onclick="startEditCurr(\'' +
+            c.code +
+            "')\">✏️ Editar</button> " +
+            (store.currencies.length > 1
+              ? '<button class="btn btn-danger btn-sm" onclick="deleteCurr(\'' +
+                c.code +
+                "')\">🗑️</button>"
+              : "") +
+            "</td>";
+          el.appendChild(tr);
+        });
+        buildConvSelects();
+        buildChartCurrencyTabs();
+      }
+      function saveCurrency() {
+        var code = document
+          .getElementById("currCode")
+          .value.trim()
+          .toUpperCase();
+        var name = document.getElementById("currName").value.trim();
+        var sym = document.getElementById("currSymbol").value.trim();
+        var flag = document.getElementById("currFlag").value.trim();
+        var rate = parseFloat(document.getElementById("currRate").value);
+        var bank = document.getElementById("currBank").value;
+        var country = document.getElementById("currCountry").value.trim();
+        if (!code || !name || !rate) {
+          flashMsg("Código, nombre y tasa son obligatorios", "error");
+          return;
+        }
+        if (store.editingCurrCode) {
+          var c = store.currencies.find(function (x) {
+            return x.code === store.editingCurrCode;
+          });
+          if (c) {
+            c.code = code;
+            c.name = name;
+            c.symbol = sym;
+            c.flag = flag;
+            c.rate = rate;
+            c.bank = bank;
+            c.country = country;
+          }
+          store.editingCurrCode = null;
+          document.getElementById("currFormTitle").textContent =
+            "Agregar moneda";
+          document.getElementById("saveCurrBtn").textContent = "Guardar moneda";
+        } else {
+          if (
+            store.currencies.find(function (x) {
+              return x.code === code;
+            })
+          ) {
+            flashMsg("Ya existe una moneda con ese código", "error");
+            return;
+          }
+          store.currencies.push({
+            code: code,
+            name: name,
+            symbol: sym,
+            flag: flag,
+            rate: rate,
+            bank: bank,
+            country: country,
+            active: true,
+          });
+        }
+        renderCurrTable();
+        cancelEditCurr();
+        flashMsg("Moneda " + code + " guardada", "success");
+      }
+      function startEditCurr(code) {
+        var c = store.currencies.find(function (x) {
+          return x.code === code;
+        });
+        if (!c) return;
+        store.editingCurrCode = code;
+        document.getElementById("currCode").value = c.code;
+        document.getElementById("currName").value = c.name;
+        document.getElementById("currSymbol").value = c.symbol;
+        document.getElementById("currFlag").value = c.flag;
+        document.getElementById("currRate").value = c.rate;
+        document.getElementById("currCountry").value = c.country || "";
+        document.getElementById("currFormTitle").textContent =
+          "Editar moneda: " + code;
+        document.getElementById("saveCurrBtn").textContent =
+          "Actualizar moneda";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function cancelEditCurr() {
+        store.editingCurrCode = null;
+        [
+          "currCode",
+          "currName",
+          "currSymbol",
+          "currFlag",
+          "currRate",
+          "currCountry",
+        ].forEach(function (id) {
+          document.getElementById(id).value = "";
+        });
+        document.getElementById("currFormTitle").textContent = "Agregar moneda";
+        document.getElementById("saveCurrBtn").textContent = "Guardar moneda";
+      }
+      function deleteCurr(code) {
+        if (store.currencies.length <= 1) {
+          flashMsg("Debe haber al menos una moneda activa", "error");
+          return;
+        }
+        store.currencies = store.currencies.filter(function (x) {
+          return x.code !== code;
+        });
+        store.history = store.history.filter(function (x) {
+          return x.currency !== code;
+        });
+        renderCurrTable();
+        renderDashMetrics();
+        renderRateCards();
+        flashMsg("Moneda " + code + " eliminada", "warning");
+      }
+      function saveObservation() {
+        var date = document.getElementById("obsDate").value;
+        var curr = document.getElementById("obsCurrency").value;
+        var cat = document.getElementById("obsCategory").value;
+        var desc = document.getElementById("obsDesc").value.trim();
+        var impact = document.getElementById("obsImpact").value;
+        var src = document.getElementById("obsSource").value.trim();
+        if (!desc) {
+          flashMsg("La descripción es obligatoria", "error");
+          return;
+        }
+        store.observations.unshift({
+          id: Date.now(),
+          date: date || new Date().toISOString(),
+          currency: curr,
+          category: cat,
+          desc: desc,
+          impact: impact,
+          source: src,
+        });
+        renderObsList();
+        document.getElementById("obsDesc").value = "";
+        document.getElementById("obsSource").value = "";
+        flashMsg("Observación registrada correctamente", "success");
+      }
+      function renderObsList() {
+        var el = document.getElementById("obsList");
+        el.innerHTML = "";
+        if (!store.observations.length) {
+          el.innerHTML =
+            '<div style="color:var(--text3);font-size:13px;text-align:center;padding:2rem">Sin observaciones registradas</div>';
+          return;
+        }
+        var impactColors = {
+          bajo: "var(--amber)",
+          medio: "#E05A00",
+          alto: "var(--red)",
+        };
+        var impactBg = {
+          bajo: "var(--amber-bg)",
+          medio: "#FFF0E6",
+          alto: "var(--red-bg)",
+        };
+        store.observations.forEach(function (o) {
+          var c = store.currencies.find(function (x) {
+            return x.code === o.currency;
+          });
+          var div = document.createElement("div");
+          div.style.cssText =
+            "background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;transition:box-shadow .15s";
+          div.onmouseenter = function () {
+            this.style.boxShadow = "var(--shadow)";
+          };
+          div.onmouseleave = function () {
+            this.style.boxShadow = "";
+          };
+          div.innerHTML =
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.6rem"><div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span style="font-size:16px">' +
+            catEmoji(o.category) +
+            '</span><strong style="font-size:13px;color:var(--navy)">' +
+            o.category.charAt(0).toUpperCase() +
+            o.category.slice(1).replace("_", " ") +
+            "</strong>" +
+            (o.currency && o.currency !== "ALL" && c
+              ? '<span class="tag tag-navy">' +
+                c.flag +
+                " " +
+                o.currency +
+                "</span>"
+              : '<span class="tag tag-navy">Todas</span>') +
+            '<span class="tag" style="background:' +
+            impactBg[o.impact] +
+            ";color:" +
+            impactColors[o.impact] +
+            '">Impacto ' +
+            o.impact +
+            '</span></div><div style="font-size:11px;color:var(--text3);margin-top:3px">' +
+            fmtDate(o.date) +
+            (o.source ? " · " + o.source : "") +
+            '</div></div><button class="btn btn-danger btn-sm btn-icon" onclick="deleteObs(' +
+            o.id +
+            ')">✕</button></div><p style="font-size:13px;color:var(--text2);line-height:1.6">' +
+            o.desc +
+            "</p>";
+          el.appendChild(div);
+        });
+      }
+      function deleteObs(id) {
+        store.observations = store.observations.filter(function (x) {
+          return x.id !== id;
+        });
+        renderObsList();
+        flashMsg("Observación eliminada", "warning");
+      }
+      function closeModal() {
+        document.getElementById("modalBg").classList.remove("open");
+      }
+      document.getElementById("modalBg").onclick = function (e) {
+        if (e.target === this) closeModal();
+      };
+      document.getElementById("obsDate").value = new Date()
+        .toISOString()
+        .slice(0, 16);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A&M Importaciones</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="inicio.css" />
+  </head>
+  <body>
+    <!-- ========== HEADER ========== -->
+    <header class="header">
+      <div class="top-header">
+        <div class="logo" onclick="showPage('home')">
+          <img
+            src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+            alt="A&M Importaciones"
+            class="logo-img"
+          />
+          <div class="logo-name">
+            <span class="logo-name-main">A&amp;M</span>
+            <span class="logo-name-sub">Importaciones</span>
+          </div>
+        </div>
+        <button class="menu-btn" id="btnCategorias">☰ CATEGORÍAS</button>
+        <div class="search-box">
+          <input
+            type="text"
+            placeholder="¿Qué estás buscando?"
+            id="searchInput"
+            autocomplete="off"
+          />
+          <button class="search-submit" onclick="triggerAISearch()">🔍</button>
+          <div class="search-dropdown" id="searchDropdown"></div>
+        </div>
+        <div class="header-right-group">
+          <div class="location">
+            📍
+            <div><small>Selecciona</small><b>tu ubicación</b></div>
+          </div>
+          <div class="account" id="btnCuenta">
+            👤
+            <div>
+              <small>Hola,</small><b id="headerUserName">inicia sesión</b>
+            </div>
+          </div>
+          <button class="cart-btn" id="btnCarrito">
+            🛒<span class="cart-badge" id="cartCount">0</span>
+          </button>
+        </div>
+      </div>
+      <nav class="promo-bar">
+        <!--<span>🧡 Celebremos a mamá</span>-->
+        <span>💡 Iluminación 80% OFF</span>
+        <span>🔥 Desde S/1</span>
+        <span>⚡ Lo mejor en electro</span>
+        <span>🏠 Construcción -40%</span>
+        <span>🛠️ Herramientas Pro</span>
+      </nav>
+    </header>
+
+    <!-- ========== MEGA MENÚ ========== -->
+    <div class="mega-overlay" id="megaOverlay"></div>
+    <section class="mega-menu" id="megaMenu">
+      <div class="mega-inner">
+        <aside class="mega-sidebar">
+          <div class="mega-cat active" data-cat="limpieza">🧹 Limpieza</div>
+          <div class="mega-cat" data-cat="tecnologia">💻 Tecnología</div>
+          <div class="mega-cat" data-cat="electrohogar">🏠 Electrohogar</div>
+          <div class="mega-cat" data-cat="herramientas">🔧 Herramientas</div>
+          <div class="mega-cat" data-cat="construccion">🧱 Construcción</div>
+          <div class="mega-cat" data-cat="iluminacion">💡 Iluminación</div>
+          <div class="mega-cat" data-cat="ferreteria">🚪 Ferretería</div>
+          <div class="mega-cat" data-cat="jardineria">🌿 Jardinería</div>
+          <div class="mega-cat" data-cat="pinturas">🎨 Pinturas</div>
+          <div class="mega-cat" data-cat="muebles">🛋️ Muebles</div>
+          <div class="mega-cat" data-cat="bano">🚿 Baño</div>
+          <div class="mega-cat" data-cat="cocina">🍳 Cocina</div>
+          <div class="mega-cat" data-cat="automotriz">🚗 Automotriz</div>
+          <div class="mega-cat" data-cat="mascotas">🐾 Mascotas</div>
+        </aside>
+        <div class="mega-content" id="megaContent"></div>
+      </div>
+    </section>
+
+    <!-- ========== ACCOUNT MENU ========== -->
+    <div class="account-menu" id="accountMenu">
+      <div class="account-menu-header">Mi cuenta</div>
+      <div id="menuLoggedOut">
+        <div class="account-item" id="openLogin">🔐 Iniciar sesión</div>
+        <div class="account-item" id="openRegister">📝 Crear cuenta</div>
+      </div>
+      <div id="menuLoggedIn" style="display: none">
+        <div
+          class="account-item"
+          id="menuUserName"
+          style="font-weight: 700; color: var(--orange); cursor: default"
+        ></div>
+        <div class="account-item" onclick="showProfileModal()">
+          👤 Mi perfil
+        </div>
+        <div class="account-item" onclick="showOrdersModal()">
+          📦 Mis pedidos
+        </div>
+        <div class="account-item" onclick="showAddressModal()">
+          📍 Direcciones
+        </div>
+        <div class="account-item" onclick="showPointsModal()">
+          ⭐ Club Pro - Mis puntos
+        </div>
+        <div class="account-item" onclick="showContactModal()">
+          📞 Contáctanos
+        </div>
+        <div class="account-item logout-item" onclick="handleLogout()">
+          🚪 Cerrar sesión
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PÁGINAS PRINCIPALES ========== -->
+    <main id="mainContent">
+      <!-- ===== HOME ===== -->
+      <div id="page-home" class="page active">
+        <section class="hero">
+          <div class="hero-slides">
+            <div
+              class="hero-slide active"
+              style="
+                --bg: linear-gradient(
+                  135deg,
+                  #e89e48 0%,
+                  #c97d2a 60%,
+                  #e8b878 100%
+                );
+              "
+            >
+              <div class="hero-text">
+                <div class="hero-tag">🔥 MEGA OFERTAS</div>
+                <h1>Lo mejor en ferretería,<br />limpieza y hogar</h1>
+                <p>Ofertas exclusivas hasta <strong>80% OFF</strong></p>
+                <div class="hero-btns">
+                  <button class="btn-primary" onclick="showPage('catalog')">
+                    Ver catálogo
+                  </button>
+                  <button class="btn-ghost" onclick="showPage('catalog')">
+                    Ver productos
+                  </button>
+                </div>
+              </div>
+              <div class="hero-icons">
+                <div class="hero-icon-card">🧴<span>Lejías</span></div>
+                <div class="hero-icon-card">🛠️<span>Herramientas</span></div>
+                <div class="hero-icon-card">💡<span>Iluminación</span></div>
+                <div class="hero-icon-card">🚪<span>Puertas</span></div>
+              </div>
+            </div>
+            <div
+              class="hero-slide"
+              style="
+                --bg: linear-gradient(
+                  135deg,
+                  #1a1a2e 0%,
+                  #16213e 60%,
+                  #0f3460 100%
+                );
+              "
+            >
+              <div class="hero-text">
+                <div class="hero-tag">🤖 BÚSQUEDA INTELIGENTE</div>
+                <h1>Encuentra lo que<br />necesitas rápido</h1>
+                <p>Búsqueda inteligente con <strong>IA</strong></p>
+                <div class="hero-btns">
+                  <button class="btn-primary" onclick="openAIAssistant()">
+                    🤖 Buscar con IA
+                  </button>
+                  <button class="btn-ghost" onclick="showPage('catalog')">
+                    Ver productos
+                  </button>
+                </div>
+              </div>
+              <div class="hero-icons">
+                <div class="hero-icon-card">🤖<span>IA</span></div>
+                <div class="hero-icon-card">🔍<span>Búsqueda</span></div>
+                <div class="hero-icon-card">🛡️<span>Seguridad</span></div>
+                <div class="hero-icon-card">🚚<span>Envíos</span></div>
+              </div>
+            </div>
+            <div
+              class="hero-slide"
+              style="
+                --bg: linear-gradient(
+                  135deg,
+                  #2d5016 0%,
+                  #4a7c22 60%,
+                  #6aaa30 100%
+                );
+              "
+            >
+              <div class="hero-text">
+                <div class="hero-tag">🌿 TEMPORADA JARDÍN</div>
+                <h1>Todo para tu<br />jardín y terraza</h1>
+                <p>Plantas y herramientas <strong>40% OFF</strong></p>
+                <div class="hero-btns">
+                  <button class="btn-primary" onclick="showPage('catalog')">
+                    Ver jardinería
+                  </button>
+                  <button class="btn-ghost" onclick="showPage('catalog')">
+                    Explorar más
+                  </button>
+                </div>
+              </div>
+              <div class="hero-icons">
+                <div class="hero-icon-card">🌱<span>Plantas</span></div>
+                <div class="hero-icon-card">💧<span>Riego</span></div>
+                <div class="hero-icon-card">🪴<span>Maceteros</span></div>
+                <div class="hero-icon-card">✂️<span>Podadoras</span></div>
+              </div>
+            </div>
+          </div>
+          <button class="hero-arrow left" id="prevBanner">‹</button>
+          <button class="hero-arrow right" id="nextBanner">›</button>
+          <div class="hero-dots">
+            <span class="dot active"></span><span class="dot"></span
+            ><span class="dot"></span>
+          </div>
+        </section>
+
+        <section class="quick-cats">
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🧹<span>Limpieza</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🔧<span>Herramientas</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            💡<span>Iluminación</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🚪<span>Puertas</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🧱<span>Construcción</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🎨<span>Pinturas</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🌿<span>Jardinería</span>
+          </div>
+          <div class="quick-cat" onclick="showPage('catalog')">
+            🚗<span>Automotriz</span>
+          </div>
+        </section>
+
+        <section class="ai-banner" id="aiBannerSection">
+          <div class="ai-banner-inner">
+            <div class="ai-banner-left">
+              <span class="ai-chip">🤖 IA ACTIVA</span>
+              <h3>Recomendaciones personalizadas para ti</h3>
+              <p>Basadas en tu historial y preferencias de compra</p>
+            </div>
+            <div class="ai-recs" id="aiRecsHome"></div>
+            <button class="btn-ai" onclick="refreshAIRecs()">
+              ↻ Actualizar
+            </button>
+          </div>
+        </section>
+
+        <section class="featured-section">
+          <div class="section-header">
+            <h2>⭐ Productos destacados</h2>
+            <button class="btn-outline" onclick="showPage('catalog')">
+              Ver todos →
+            </button>
+          </div>
+          <div class="product-grid" id="featuredGrid"></div>
+        </section>
+
+        <section class="promo-banners">
+          <div class="promo-card orange" onclick="showPage('catalog')">
+            <div>
+              <h3>Ofertas del día</h3>
+              <p>Productos con mayor descuento</p>
+            </div>
+            <span>🔥</span>
+          </div>
+          <div class="promo-card dark" onclick="showPage('catalog')">
+            <div>
+              <h3>Más vendidos</h3>
+              <p>Los favoritos de nuestros clientes</p>
+            </div>
+            <span>🏆</span>
+          </div>
+          <div class="promo-card gray">
+            <div>
+              <h3>Envío gratis</h3>
+              <p>En compras mayores a S/ 150</p>
+            </div>
+            <span>🚚</span>
+          </div>
+        </section>
+      </div>
+      <!-- /page-home -->
+
+      <!-- ===== CATÁLOGO ===== -->
+      <div id="page-catalog" class="page">
+        <div class="catalog-layout">
+          <aside class="filters-panel">
+            <div class="filters-header">
+              <h2>Filtrar</h2>
+              <button class="clear-filters">Limpiar</button>
+            </div>
+            <details open class="filter-group">
+              <summary>Categorías</summary>
+              <label><input type="checkbox" checked /> Limpieza</label>
+              <label><input type="checkbox" /> Herramientas</label>
+              <label><input type="checkbox" /> Electrohogar</label>
+              <label><input type="checkbox" /> Ferretería</label>
+              <label><input type="checkbox" /> Iluminación</label>
+            </details>
+            <details class="filter-group">
+              <summary>Precio</summary>
+              <div class="range-slider">
+                <input
+                  type="range"
+                  min="0"
+                  max="500"
+                  value="500"
+                  id="priceRange"
+                  oninput="
+                    document.getElementById('priceVal').textContent =
+                      'S/ ' + this.value
+                  "
+                />
+                <span id="priceVal">S/ 500</span>
+              </div>
+            </details>
+            <details class="filter-group">
+              <summary>Marca</summary>
+              <label><input type="checkbox" checked /> Sapolio</label>
+              <label><input type="checkbox" /> Clorox</label>
+              <label><input type="checkbox" /> Sika</label>
+              <label><input type="checkbox" /> Stanley</label>
+              <label><input type="checkbox" /> Philips</label>
+            </details>
+            <details class="filter-group">
+              <summary>Entrega</summary>
+              <label><input type="checkbox" /> Retira mañana</label>
+              <label><input type="checkbox" /> Llega mañana</label>
+            </details>
+            <div class="ai-filter-box">
+              <div class="ai-filter-title">🤖 Filtro IA</div>
+              <p>Describe lo que necesitas y la IA filtrará por ti</p>
+              <textarea
+                id="aiFilterInput"
+                placeholder="Ej: Quiero algo para limpiar el baño barato..."
+              ></textarea>
+              <button onclick="applyAIFilter()">Aplicar filtro IA</button>
+            </div>
+          </aside>
+          <section class="products-section">
+            <div class="breadcrumb">
+              <span onclick="showPage('home')">A&M Importaciones</span> ›
+              <span>Catálogo</span>
+            </div>
+            <div class="catalog-topbar">
+              <h2>
+                Productos <span class="count-badge" id="productCount">0</span>
+              </h2>
+              <div class="topbar-right">
+                <select id="sortProducts" class="sort-select">
+                  <option value="recommended">Recomendados</option>
+                  <option value="low">Menor precio</option>
+                  <option value="high">Mayor precio</option>
+                  <option value="sold">Más vendidos</option>
+                </select>
+                <button class="btn-ai-rec" onclick="getAIRecommendations()">
+                  🤖 IA sugiere
+                </button>
+              </div>
+            </div>
+            <div class="product-grid" id="productGrid"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ===== DETALLE ===== -->
+      <div id="page-detail" class="page">
+        <div class="detail-layout">
+          <div class="detail-gallery">
+            <div class="detail-thumbs" id="detailThumbs"></div>
+            <div class="detail-main-img" id="detailMainImg"></div>
+          </div>
+          <div class="detail-info">
+            <div class="breadcrumb">
+              <span onclick="showPage('catalog')">← Volver</span>
+            </div>
+            <p class="detail-brand" id="detailBrand"></p>
+            <h1 id="detailName"></h1>
+            <p class="detail-sku">SKU: <span id="detailSku"></span></p>
+            <div class="detail-price-row">
+              <span class="detail-price" id="detailPrice"></span>
+              <span class="detail-old" id="detailOld"></span>
+              <span class="detail-disc" id="detailDisc"></span>
+            </div>
+            <div class="ai-review-box">
+              <div class="ai-review-title">🤖 Análisis IA de este producto</div>
+              <div class="ai-review-text" id="aiReviewText">
+                Analizando producto...
+              </div>
+            </div>
+            <div class="detail-qty">
+              <button onclick="changeDetailQty(-1)">−</button>
+              <span id="detailQty">1</span>
+              <button onclick="changeDetailQty(1)">+</button>
+            </div>
+            <button class="btn-primary btn-add-detail" id="btnAddDetail">
+              🛒 Agregar al carrito
+            </button>
+            <div class="delivery-options">
+              <div class="delivery-item">🚚 <b>Llega mañana</b></div>
+              <div class="delivery-item">🏪 <b>Retira el mismo día</b></div>
+              <div class="delivery-item">📦 <b>Consultar stock</b></div>
+            </div>
+            <div class="acordeon-group">
+              <details class="acordeon">
+                <summary>📄 Descripción</summary>
+                <p id="detailDesc"></p>
+              </details>
+              <details class="acordeon">
+                <summary>📋 Ficha técnica</summary>
+                <p>Especificaciones del fabricante disponibles en tienda.</p>
+              </details>
+              <details class="acordeon">
+                <summary>↩️ Cambios y devoluciones</summary>
+                <p>30 días para cambios. Aplican condiciones.</p>
+              </details>
+            </div>
+          </div>
+        </div>
+        <section class="featured-section" style="margin-top: 30px">
+          <div class="section-header"><h2>🤖 IA recomienda también</h2></div>
+          <div class="product-grid" id="relatedGrid"></div>
+        </section>
+      </div>
+
+      <!-- ===== CARRITO ===== -->
+      <div id="page-cart" class="page">
+        <div class="cart-page-layout">
+          <div class="cart-items-section">
+            <h2>🛒 Tu carrito</h2>
+            <div id="cartPageItems"></div>
+          </div>
+          <div class="cart-summary-box">
+            <h3>Resumen de compra</h3>
+            <div class="summary-row">
+              <span>Subtotal</span><span id="summarySubtotal">S/ 0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Ahorro total</span
+              ><span id="summaryDiscount" class="green">-S/ 0.00</span>
+            </div>
+            <div class="summary-row total-row">
+              <span>Total</span><span id="summaryTotal">S/ 0.00</span>
+            </div>
+            <button
+              class="btn-whatsapp-checkout"
+              onclick="goToWhatsAppCheckout()"
+            >
+              💬 Ir al checkout vía WhatsApp
+            </button>
+            <button
+              class="btn-outline full-width"
+              onclick="showPage('catalog')"
+            >
+              Seguir comprando
+            </button>
+            <div class="ai-upsell">
+              <div class="ai-upsell-title">🤖 IA sugiere agregar</div>
+              <div id="aiUpsellItems"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer>
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img
+              src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+              alt="A&M Importaciones"
+              class="logo-img-footer"
+            />
+          </div>
+          <p>
+            Tu tienda de A&M Importaciones, construcción y hogar con los mejores
+            precios del Perú.
+          </p>
+          <div class="social-links">
+            <a href="#">📘 Facebook</a><a href="#">📸 Instagram</a
+            ><a href="#">📺 YouTube</a>
+          </div>
+          <div class="newsletter">
+            <input type="email" placeholder="Tu correo electrónico" /><button>
+              Suscribirse
+            </button>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h4>Secciones</h4>
+          <a href="#">Venta empresa</a><a href="#">Cyber Wow</a
+          ><a href="#">Días A&M</a><a href="#">Club Pro</a>
+        </div>
+        <div class="footer-links">
+          <h4>Sobre A&M</h4>
+          <a href="#">Nosotros</a><a href="#">Nuestras tiendas</a
+          ><a href="#">Trabaja con nosotros</a>
+        </div>
+        <div class="footer-links">
+          <h4>Ayuda</h4>
+          <a href="#">Centro de ayuda</a><a href="#">Términos y condiciones</a>
+          <a href="#">Libro de reclamaciones 📋</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 A&M Importaciones. Todos los derechos reservados.</p>
+        <div class="payment-methods">
+          <span>💳 Visa</span><span>💳 Mastercard</span><span>📱 Yape</span
+          ><span>📱 Plin</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ========== CART DRAWER ========== -->
+    <div class="cart-drawer" id="cartDrawer">
+      <div class="drawer-header">
+        <h3>🛒 Carrito <span id="cartDrawerCount">(0 items)</span></h3>
+        <button class="close-drawer" id="closeCart">×</button>
+      </div>
+      <div id="cartItems" class="cart-items-list"></div>
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span>Total</span><b id="cartTotal">S/ 0.00</b>
+        </div>
+        <button
+          class="btn-primary full-width"
+          onclick="
+            showPage('cart');
+            document.getElementById('cartDrawer').classList.remove('open');
+            document.getElementById('drawerOverlay').classList.remove('show');
+          "
+        >
+          Ver carrito completo
+        </button>
+        <button
+          class="btn-outline full-width"
+          onclick="
+            document.getElementById('cartDrawer').classList.remove('open');
+            document.getElementById('drawerOverlay').classList.remove('show');
+          "
+        >
+          Seguir comprando
+        </button>
+      </div>
+    </div>
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+
+    <!-- ========== MODAL LOGIN ========== -->
+    <div class="modal-overlay" id="loginModal">
+      <div class="login-box">
+        <button class="modal-close" id="closeLogin">×</button>
+        <div class="login-logo">
+          <img
+            src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+            alt="A&M"
+            style="height: 56px; object-fit: contain"
+          />
+        </div>
+        <h2>Inicia sesión</h2>
+        <p class="login-sub">Accede a tu cuenta personal</p>
+        <div id="loginError" class="login-error" style="display: none">
+          ⚠️ Correo o contraseña incorrectos
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico</label
+          ><input
+            type="email"
+            id="loginEmail"
+            placeholder="correo@ejemplo.com"
+          />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label
+          ><input type="password" id="loginPass" placeholder="Tu contraseña" />
+        </div>
+        <button class="btn-primary full-width" onclick="handleLogin()">
+          Ingresar
+        </button>
+        <div class="login-links">
+          <a
+            href="#"
+            onclick="
+              switchToRegister();
+              return false;
+            "
+            >¿No tienes cuenta? Crear cuenta</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL REGISTRO ========== -->
+    <div class="modal-overlay" id="registerModal">
+      <div class="login-box">
+        <button class="modal-close" onclick="closeModal('registerModal')">
+          ×
+        </button>
+        <div class="login-logo">
+          <img
+            src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+            alt="A&M"
+            style="height: 56px; object-fit: contain"
+          />
+        </div>
+        <h2>Crear cuenta</h2>
+        <p class="login-sub">Regístrate gratis en A&M Importaciones</p>
+        <div id="registerError" class="login-error" style="display: none"></div>
+        <div class="form-group">
+          <label>Nombre completo</label
+          ><input type="text" id="regName" placeholder="Tu nombre completo" />
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico</label
+          ><input type="email" id="regEmail" placeholder="correo@ejemplo.com" />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label
+          ><input
+            type="password"
+            id="regPass"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </div>
+        <div class="form-group">
+          <label>Confirmar contraseña</label
+          ><input
+            type="password"
+            id="regPass2"
+            placeholder="Repite tu contraseña"
+          />
+        </div>
+        <button class="btn-primary full-width" onclick="handleRegister()">
+          Crear mi cuenta
+        </button>
+        <div class="login-links">
+          <a
+            href="#"
+            onclick="
+              switchToLogin();
+              return false;
+            "
+            >¿Ya tienes cuenta? Inicia sesión</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL MI PERFIL ========== -->
+    <div class="modal-overlay" id="profileModal">
+      <div class="login-box">
+        <button class="modal-close" onclick="closeModal('profileModal')">
+          ×
+        </button>
+        <h2 style="margin-bottom: 18px">👤 Mi perfil</h2>
+        <div class="profile-avatar" id="profileAvatar"></div>
+        <div class="form-group">
+          <label>Nombre completo</label
+          ><input type="text" id="profileName" placeholder="Tu nombre" />
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico</label
+          ><input
+            type="email"
+            id="profileEmail"
+            readonly
+            style="background: #f5f5f5; cursor: not-allowed"
+          />
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label
+          ><input
+            type="text"
+            id="profilePhone"
+            placeholder="Tu número de teléfono"
+          />
+        </div>
+        <button class="btn-primary full-width" onclick="saveProfile()">
+          Guardar cambios
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== MODAL MIS PEDIDOS (COMPLETO) ========== -->
+    <div class="modal-overlay orders-modal-overlay" id="ordersModal">
+      <div class="orders-modal-box">
+        <!-- HEADER + STATS (dark band) -->
+        <div class="orders-modal-header">
+          <div class="orders-modal-title">📦 Mis Pedidos</div>
+          <div class="orders-modal-user" id="ordersUserName"></div>
+          <button
+            class="orders-modal-close"
+            onclick="closeModal('ordersModal')"
+          >
+            ×
+          </button>
+        </div>
+        <div class="orders-stats-row" id="ordersStatsRow"></div>
+
+        <!-- TOOLBAR: legend + filters all in one compact bar -->
+        <div class="orders-toolbar">
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #1d4ed8"></span
+            >Proceso</span
+          >
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #f59e0b"></span
+            >Almacén</span
+          >
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #7c3aed"></span
+            >Empaquet.</span
+          >
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #e89e48"></span
+            >Envío</span
+          >
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #16a34a"></span
+            >Entregado</span
+          >
+          <span class="olg-item"
+            ><span class="olg-dot" style="background: #dc2626"></span
+            >Cancelado</span
+          >
+          <span class="olg-sep"></span>
+          <div class="orders-search-wrap">
+            <span class="orders-search-icon">🔍</span>
+            <input
+              type="text"
+              id="ordersSearchInput"
+              class="orders-search-input"
+              placeholder="Buscar producto, código, marca..."
+              oninput="filterOrdersModal()"
+            />
+          </div>
+          <select
+            class="orders-select"
+            id="ordersFilterStatus"
+            onchange="filterOrdersModal()"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="proceso">🔵 En proceso</option>
+            <option value="almacen">🟡 En almacén</option>
+            <option value="empaquetado">🟣 Empaquetando</option>
+            <option value="envio">🟠 En envío</option>
+            <option value="entregado">🟢 Entregado</option>
+            <option value="cancelado">🔴 Cancelado</option>
+            <option value="sinstock">⚠️ Sin stock</option>
+            <option value="observado">👁️ Observado</option>
+          </select>
+          <select
+            class="orders-select"
+            id="ordersFilterSort"
+            onchange="filterOrdersModal()"
+          >
+            <option value="recent">Recientes</option>
+            <option value="oldest">Antiguos</option>
+            <option value="total-high">Mayor monto</option>
+            <option value="total-low">Menor monto</option>
+          </select>
+          <button class="orders-print-all-btn" onclick="ordersPrintAll()">
+            🖨️ Imprimir
+          </button>
+        </div>
+
+        <!-- LIST -->
+        <div class="orders-list-wrap" id="ordersListWrap"></div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL DIRECCIONES ========== -->
+    <div class="modal-overlay" id="addressModal">
+      <div class="login-box">
+        <button class="modal-close" onclick="closeModal('addressModal')">
+          ×
+        </button>
+        <h2 style="margin-bottom: 18px">📍 Mis direcciones</h2>
+        <div class="form-group">
+          <label>Dirección principal</label
+          ><input
+            type="text"
+            id="addressMain"
+            placeholder="Ej: Av. Arequipa 1234, Lima"
+          />
+        </div>
+        <div class="form-group">
+          <label>Distrito</label
+          ><input
+            type="text"
+            id="addressDistrict"
+            placeholder="Ej: Miraflores"
+          />
+        </div>
+        <div class="form-group">
+          <label>Referencia</label
+          ><input
+            type="text"
+            id="addressRef"
+            placeholder="Ej: Frente al parque"
+          />
+        </div>
+        <button class="btn-primary full-width" onclick="saveAddress()">
+          Guardar dirección
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== MODAL PUNTOS ========== -->
+    <div class="modal-overlay" id="pointsModal">
+      <div class="login-box" style="text-align: center">
+        <button class="modal-close" onclick="closeModal('pointsModal')">
+          ×
+        </button>
+        <div style="font-size: 52px; margin-bottom: 12px">⭐</div>
+        <h2 style="margin-bottom: 8px">Club Pro - Mis puntos</h2>
+        <p style="color: var(--gray); margin-bottom: 22px">
+          Acumula puntos con cada compra
+        </p>
+        <div
+          style="
+            background: linear-gradient(
+              135deg,
+              var(--orange),
+              var(--orange-dark)
+            );
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            color: white;
+            margin-bottom: 16px;
+          "
+        >
+          <div style="font-size: 13px; opacity: 0.9; margin-bottom: 6px">
+            Puntos acumulados
+          </div>
+          <div
+            style="
+              font-family: var(--font-head);
+              font-size: 52px;
+              font-weight: 800;
+            "
+            id="userPoints"
+          >
+            0
+          </div>
+          <div style="font-size: 12px; opacity: 0.8">
+            equivalente a S/ <span id="userPointsValue">0.00</span>
+          </div>
+        </div>
+        <div
+          style="
+            background: var(--light-gray);
+            border-radius: var(--radius);
+            padding: 14px;
+            font-size: 13px;
+            color: var(--gray);
+            text-align: left;
+          "
+        >
+          <b>¿Cómo ganar puntos?</b><br />• Por cada S/ 10 de compra = 1
+          punto<br />• 100 puntos = S/ 5 de descuento<br />• Puntos vigentes por
+          12 meses
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL CONTÁCTANOS ========== -->
+    <div class="modal-overlay" id="contactModal">
+      <div class="login-box">
+        <button class="modal-close" onclick="closeModal('contactModal')">
+          ×
+        </button>
+        <h2 style="margin-bottom: 6px">📞 Contáctanos</h2>
+        <p style="color: var(--gray); font-size: 13px; margin-bottom: 18px">
+          Estamos aquí para ayudarte
+        </p>
+        <div class="contact-item-row">
+          <span>📱</span>
+          <div>
+            <b>WhatsApp</b>
+            <p
+              onclick="window.open('https://wa.me/51928020850', '_blank')"
+              style="cursor: pointer; color: var(--orange)"
+            >
+              +51 928 020 850
+            </p>
+          </div>
+        </div>
+        <div class="contact-item-row">
+          <span>📘</span>
+          <div>
+            <b>Facebook</b>
+            <p>A&M Importaciones</p>
+          </div>
+        </div>
+        <div class="contact-item-row">
+          <span>📸</span>
+          <div>
+            <b>Instagram</b>
+            <p>@amimportaciones</p>
+          </div>
+        </div>
+        <div class="contact-item-row">
+          <span>🕐</span>
+          <div>
+            <b>Horario</b>
+            <p>Lun - Sáb: 8am - 7pm</p>
+          </div>
+        </div>
+        <button
+          class="btn-primary full-width"
+          style="margin-top: 16px"
+          onclick="window.open('https://wa.me/51928020850', '_blank')"
+        >
+          💬 Escribir por WhatsApp
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== TOAST ========== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ========== AI ASSISTANT MODAL ========== -->
+    <div class="modal-overlay" id="aiAssistantModal">
+      <div class="ai-assistant-box">
+        <button class="modal-close" onclick="closeModal('aiAssistantModal')">
+          ×
+        </button>
+        <div class="ai-assistant-header">
+          <span class="ai-big-icon">🤖</span>
+          <div>
+            <h2>Búsqueda inteligente</h2>
+            <p>Describe lo que necesitas y la IA lo encuentra</p>
+          </div>
+        </div>
+        <div class="ai-search-section">
+          <div class="ai-search-input-wrap">
+            <input
+              type="text"
+              id="aiSearchQuery"
+              placeholder="Ej: algo para limpiar el baño, pintura para exteriores..."
+            />
+            <button class="btn-primary" onclick="runAISearch()">
+              🤖 Buscar
+            </button>
+          </div>
+          <div class="ai-quick-tags">
+            <span onclick="quickAISearch('lejía')">🧴 Lejías</span>
+            <span onclick="quickAISearch('herramienta')">🔧 Herramientas</span>
+            <span onclick="quickAISearch('foco')">💡 Iluminación</span>
+            <span onclick="quickAISearch('puerta')">🚪 Ferretería</span>
+            <span onclick="quickAISearch('taladro')">🛠️ Taladros</span>
+          </div>
+        </div>
+        <div class="ai-results" id="aiResults"></div>
+      </div>
+    </div>
+
+    <script src="inicio.js"></script>
+  </body>
+</html>

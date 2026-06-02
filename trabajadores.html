@@ -1,0 +1,5155 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
+    <title>A&M — Panel de Control</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --navy: #0b1c35;
+        --navy2: #132641;
+        --navy3: #1e3558;
+        --navy4: #0a1628;
+        --gold: #c49a2a;
+        --gold-l: #e8c55a;
+        --gold-pale: #fdf6e3;
+        --gold-d: #a07d1c;
+        --bg: #eceef2;
+        --surface: #ffffff;
+        --surface2: #f5f6fa;
+        --surface3: #eef0f5;
+        --text: #0b1c35;
+        --text2: #4a5568;
+        --text3: #8a95a3;
+        --text4: #b0bac8;
+        --border: #e0e3eb;
+        --border2: #c8d0dc;
+        --green: #157a3f;
+        --green-bg: #e8f5ee;
+        --green-bd: #4dab6a;
+        --red: #b91c1c;
+        --red-bg: #fef2f2;
+        --red-bd: #ef4444;
+        --blue: #1d4ed8;
+        --blue-bg: #eff6ff;
+        --blue-bd: #93c5fd;
+        --amber: #92400e;
+        --amber-bg: #fffbeb;
+        --amber-bd: #fcd34d;
+        --purple: #6d28d9;
+        --purple-bg: #f5f3ff;
+        --purple-bd: #c4b5fd;
+        --teal: #0f7490;
+        --teal-bg: #ecfeff;
+        --teal-bd: #67e8f9;
+        --radius: 10px;
+        --radius-lg: 16px;
+        --radius-xl: 22px;
+        --shadow:
+          0 1px 3px rgba(11, 28, 53, 0.07), 0 4px 16px rgba(11, 28, 53, 0.05);
+        --shadow-lg: 0 4px 24px rgba(11, 28, 53, 0.1);
+        --shadow-xl: 0 8px 40px rgba(11, 28, 53, 0.16);
+        --shadow-gold: 0 4px 20px rgba(196, 154, 42, 0.25);
+      }
+      [data-theme="dark"] {
+        --bg: #09090c;
+        --surface: #111116;
+        --surface2: #18181f;
+        --surface3: #1e1e27;
+        --text: #eeeef5;
+        --text2: #8888a8;
+        --text3: #52526a;
+        --text4: #3a3a50;
+        --border: #202028;
+        --border2: #2e2e3e;
+        --green: #22c55e;
+        --green-bg: rgba(34, 197, 94, 0.08);
+        --green-bd: rgba(34, 197, 94, 0.25);
+        --red: #e05252;
+        --red-bg: rgba(224, 82, 82, 0.08);
+        --red-bd: rgba(224, 82, 82, 0.25);
+        --blue: #3b82f6;
+        --blue-bg: rgba(59, 130, 246, 0.08);
+        --blue-bd: rgba(59, 130, 246, 0.25);
+        --amber: #d97706;
+        --amber-bg: rgba(217, 119, 6, 0.08);
+        --amber-bd: rgba(217, 119, 6, 0.25);
+        --purple: #a855f7;
+        --purple-bg: rgba(168, 85, 247, 0.08);
+        --purple-bd: rgba(168, 85, 247, 0.25);
+        --teal: #22d3ee;
+        --teal-bg: rgba(34, 211, 238, 0.08);
+        --teal-bd: rgba(34, 211, 238, 0.25);
+        --shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+        --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.55);
+        --shadow-xl: 0 8px 40px rgba(0, 0, 0, 0.65);
+      }
+      html,
+      body {
+        height: 100%;
+        font-family: "Outfit", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        transition:
+          background 0.25s,
+          color 0.25s;
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 4px;
+      }
+
+      /* ── LAYOUT ── */
+      .app {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* ── SIDEBAR ── */
+      .sidebar {
+        width: 248px;
+        background: var(--navy4);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 100;
+        overflow-y: auto;
+        transition: background 0.25s;
+        border-right: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      [data-theme="dark"] .sidebar {
+        background: #0d0d12;
+        border-right: 1px solid var(--border);
+      }
+
+      /* sidebar top gradient accent */
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 180px;
+        background: linear-gradient(
+          180deg,
+          rgba(196, 154, 42, 0.06) 0%,
+          transparent 100%
+        );
+        pointer-events: none;
+      }
+
+      .sidebar-logo {
+        padding: 1.3rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 70px;
+        position: relative;
+      }
+      .sidebar-logo-img {
+        height: 32px;
+        width: auto;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+        flex-shrink: 0;
+      }
+      .sidebar-brand .b1 {
+        font-family: "Instrument Serif", serif;
+        font-size: 14.5px;
+        color: #fff;
+        display: block;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+      }
+      .sidebar-brand .b2 {
+        font-size: 9.5px;
+        color: var(--gold-l);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        display: block;
+        margin-top: 3px;
+        font-weight: 600;
+        opacity: 0.8;
+      }
+
+      /* admin pill */
+      .sidebar-admin {
+        margin: 0.875rem 1rem 0.5rem;
+        background: linear-gradient(
+          135deg,
+          rgba(196, 154, 42, 0.12),
+          rgba(196, 154, 42, 0.06)
+        );
+        border: 1px solid rgba(196, 154, 42, 0.2);
+        border-radius: 12px;
+        padding: 0.7rem 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .s-av {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--gold), var(--gold-d));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 12px;
+        color: var(--navy);
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(196, 154, 42, 0.4);
+      }
+      .s-av-name {
+        font-size: 12.5px;
+        color: #fff;
+        font-weight: 600;
+        display: block;
+        line-height: 1.2;
+      }
+      .s-av-role {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+        display: block;
+        margin-top: 1px;
+      }
+      .s-av-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        margin-left: auto;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+        animation: pulse 2s infinite;
+      }
+
+      .sidebar-nav {
+        padding: 0.25rem 0;
+        flex: 1;
+      }
+      .nav-section {
+        padding: 0.6rem 1.25rem 0.3rem;
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.22);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-top: 0.5rem;
+        font-weight: 600;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.62rem 1.25rem;
+        cursor: pointer;
+        font-size: 13.5px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.55);
+        border-left: 2px solid transparent;
+        transition: all 0.15s;
+        border-top: none;
+        border-right: none;
+        border-bottom: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        font-family: "Outfit", sans-serif;
+        position: relative;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.88);
+      }
+      .nav-item.active {
+        background: linear-gradient(
+          90deg,
+          rgba(196, 154, 42, 0.13),
+          rgba(196, 154, 42, 0.04)
+        );
+        color: var(--gold-l);
+        border-left-color: var(--gold);
+        font-weight: 500;
+      }
+      .nav-icon {
+        font-size: 15px;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+        opacity: 0.9;
+      }
+      .nav-badge {
+        margin-left: auto;
+        font-size: 9.5px;
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .nav-item.active .nav-badge {
+        background: rgba(196, 154, 42, 0.2);
+        color: var(--gold-l);
+      }
+      .nav-item.nav-danger {
+        color: rgba(255, 100, 100, 0.6);
+      }
+      .nav-item.nav-danger:hover {
+        background: rgba(224, 82, 82, 0.08);
+        color: rgba(255, 130, 130, 0.9);
+      }
+
+      .sidebar-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.06);
+        margin: 0.5rem 1.25rem;
+      }
+      .sidebar-footer {
+        padding: 0.875rem 1.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 10.5px;
+        color: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* ── MAIN ── */
+      .main {
+        margin-left: 248px;
+        width: calc(100% - 248px);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      /* ── TOPBAR ── */
+      .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.75rem;
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        transition: background 0.25s;
+        box-shadow: 0 1px 0 var(--border);
+      }
+      [data-theme="dark"] .topbar {
+        background: #0d0d12;
+      }
+      .topbar-left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .topbar-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 19px;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .topbar-sub {
+        font-size: 11px;
+        color: var(--text3);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+      }
+      .topbar-date {
+        font-size: 11.5px;
+        color: var(--text3);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 5px 12px;
+        white-space: nowrap;
+      }
+      .badge-live {
+        background: var(--green-bg);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .dot-live {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* ── TOPBAR BUTTONS ── */
+      .topbar-btn {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text2);
+        border-radius: 20px;
+        padding: 6px 13px;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Outfit", sans-serif;
+        transition: all 0.15s;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .topbar-btn:hover {
+        border-color: var(--gold);
+        background: var(--gold-pale);
+        color: var(--text);
+      }
+      .topbar-btn.logout {
+        background: var(--red-bg);
+        border-color: var(--red-bd);
+        color: var(--red);
+      }
+      .topbar-btn.logout:hover {
+        background: var(--red);
+        color: #fff;
+        border-color: var(--red);
+      }
+      [data-theme="dark"] .topbar-btn {
+        background: var(--surface2);
+        border-color: var(--border2);
+        color: var(--text2);
+      }
+      [data-theme="dark"] .topbar-btn:hover {
+        background: rgba(196, 154, 42, 0.1);
+        border-color: var(--gold);
+        color: var(--gold-l);
+      }
+      [data-theme="dark"] .topbar-btn.logout {
+        background: var(--red-bg);
+        border-color: var(--red-bd);
+        color: var(--red);
+      }
+      [data-theme="dark"] .topbar-btn.logout:hover {
+        background: var(--red);
+        color: #fff;
+      }
+
+      /* ── CONTENT ── */
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.6rem 1.75rem;
+      }
+
+      /* ── TABS ── */
+      .tabs {
+        display: flex;
+        gap: 3px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        padding: 3px;
+        width: fit-content;
+        margin-bottom: 1.5rem;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .tab {
+        padding: 0.48rem 1rem;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--text3);
+        border: none;
+        background: transparent;
+        font-family: "Outfit", sans-serif;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      .tab:hover {
+        color: var(--text);
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .tab.active {
+        background: var(--navy);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(11, 28, 53, 0.2);
+      }
+      [data-theme="dark"] .tab.active {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .tab-cnt {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .tab:not(.active) .tab-cnt {
+        background: var(--surface);
+        color: var(--text3);
+        border: 1px solid var(--border);
+      }
+
+      /* ── VIEWS ── */
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+
+      /* ── METRIC GRID ── */
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .metric-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.2rem 1.4rem;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+        transition:
+          background 0.2s,
+          border-color 0.2s,
+          box-shadow 0.15s;
+        cursor: default;
+      }
+      .metric-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-1px);
+      }
+      .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .metric-card::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        opacity: 0.05;
+        transform: translate(20px, 20px);
+      }
+      .mc-gold::before {
+        background: linear-gradient(90deg, var(--gold), var(--gold-l));
+      }
+      .mc-gold::after {
+        background: var(--gold);
+      }
+      .mc-green::before {
+        background: linear-gradient(90deg, var(--green), #22c55e);
+      }
+      .mc-green::after {
+        background: var(--green);
+      }
+      .mc-blue::before {
+        background: linear-gradient(90deg, var(--blue), #60a5fa);
+      }
+      .mc-blue::after {
+        background: var(--blue);
+      }
+      .mc-red::before {
+        background: linear-gradient(90deg, var(--red), #f87171);
+      }
+      .mc-red::after {
+        background: var(--red);
+      }
+      .mc-amber::before {
+        background: linear-gradient(90deg, var(--amber), #f59e0b);
+      }
+      .mc-amber::after {
+        background: var(--amber);
+      }
+      .mc-purple::before {
+        background: linear-gradient(90deg, var(--purple), #a78bfa);
+      }
+      .mc-purple::after {
+        background: var(--purple);
+      }
+      .mc-teal::before {
+        background: linear-gradient(90deg, var(--teal), #22d3ee);
+      }
+      .mc-teal::after {
+        background: var(--teal);
+      }
+      .metric-icon {
+        font-size: 22px;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+      .metric-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.3rem;
+      }
+      .metric-value {
+        font-family: "Instrument Serif", serif;
+        font-size: 32px;
+        color: var(--text);
+        line-height: 1;
+        margin-bottom: 0.25rem;
+      }
+      .metric-sub {
+        font-size: 11px;
+        color: var(--text3);
+      }
+      .metric-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10.5px;
+        font-weight: 600;
+        margin-top: 4px;
+        padding: 2px 7px;
+        border-radius: 999px;
+      }
+      .trend-up {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .trend-dn {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .trend-eq {
+        background: var(--surface2);
+        color: var(--text3);
+      }
+
+      /* ── CARD ── */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow);
+        transition: background 0.2s;
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+      }
+      .card-title {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      /* ── TABLE ── */
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      thead {
+        background: linear-gradient(135deg, var(--navy), var(--navy3));
+      }
+      [data-theme="dark"] thead {
+        background: linear-gradient(135deg, #111116, #1a1a24);
+      }
+      thead th {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 10px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
+      }
+      tbody tr:hover td {
+        background: var(--surface2) !important;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody td {
+        padding: 0.72rem 1rem;
+        color: var(--text2);
+        vertical-align: middle;
+        background: var(--surface);
+        transition: background 0.2s;
+      }
+
+      /* ── WORKER CELL ── */
+      .worker-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .avatar {
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .worker-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        line-height: 1.3;
+      }
+      .worker-sub {
+        font-size: 11px;
+        color: var(--text3);
+      }
+      .antec-pill {
+        background: var(--red-bg);
+        color: var(--red);
+        font-size: 9px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        display: inline-block;
+        margin-top: 2px;
+        border: 1px solid var(--red-bd);
+      }
+
+      /* ── BADGES ── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .badge-activo {
+        background: var(--green-bg);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+      }
+      .badge-desconectado {
+        background: var(--surface2);
+        color: var(--text3);
+        border: 1px solid var(--border);
+      }
+      .badge-suspendido {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border: 1px solid var(--amber-bd);
+      }
+      .badge-cesado {
+        background: var(--red-bg);
+        color: var(--red);
+        border: 1px solid var(--red-bd);
+      }
+      .badge-info {
+        background: var(--blue-bg);
+        color: var(--blue);
+        border: 1px solid var(--blue-bd);
+      }
+      .badge-purple {
+        background: var(--purple-bg);
+        color: var(--purple);
+        border: 1px solid var(--purple-bd);
+      }
+      .badge-gold {
+        background: var(--gold-pale);
+        color: var(--gold-d);
+        border: 1px solid rgba(196, 154, 42, 0.3);
+      }
+      .badge-success {
+        background: var(--green-bg);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+      }
+      .badge-warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border: 1px solid var(--amber-bd);
+      }
+      .badge-teal {
+        background: var(--teal-bg);
+        color: var(--teal);
+        border: 1px solid var(--teal-bd);
+      }
+
+      /* ── ATT BADGES ── */
+      .att-type {
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .att-asistencia {
+        background: var(--green-bg);
+        color: var(--green);
+        border-color: var(--green-bd);
+      }
+      .att-tardanza {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border-color: var(--amber-bd);
+      }
+      .att-falta {
+        background: var(--red-bg);
+        color: var(--red);
+        border-color: var(--red-bd);
+      }
+      .att-permiso {
+        background: var(--blue-bg);
+        color: var(--blue);
+        border-color: var(--blue-bd);
+      }
+      .att-none {
+        background: var(--surface2);
+        color: var(--text3);
+        border-color: var(--border);
+      }
+
+      /* ── PROGRESS ── */
+      .prog-bar {
+        height: 6px;
+        background: var(--surface2);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+      .prog-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.5s ease;
+      }
+
+      /* ── INPUTS ── */
+      .inp,
+      .sel,
+      .txta {
+        padding: 0.65rem 0.9rem;
+        font-size: 13.5px;
+        font-family: "Outfit", sans-serif;
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        width: 100%;
+      }
+      .inp:focus,
+      .sel:focus,
+      .txta:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(11, 28, 53, 0.07);
+        background: var(--surface);
+      }
+      [data-theme="dark"] .inp:focus,
+      [data-theme="dark"] .sel:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px rgba(196, 154, 42, 0.1);
+      }
+      .txta {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .form-group.full {
+        grid-column: 1/-1;
+      }
+      .form-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text2);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .form-error {
+        font-size: 11px;
+        color: var(--red);
+        display: none;
+      }
+      .form-error.show {
+        display: block;
+      }
+
+      /* ── BUTTONS ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.62rem 1.2rem;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "Outfit", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-primary {
+        background: var(--navy);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--navy2);
+      }
+      .btn-gold {
+        background: linear-gradient(135deg, var(--gold), var(--gold-d));
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(196, 154, 42, 0.3);
+      }
+      .btn-gold:hover {
+        background: linear-gradient(135deg, var(--gold-l), var(--gold));
+        box-shadow: var(--shadow-gold);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text2);
+        border: 1.5px solid var(--border2);
+      }
+      .btn-outline:hover {
+        background: var(--surface2);
+      }
+      .btn-danger {
+        background: var(--red-bg);
+        color: var(--red);
+        border: 1.5px solid var(--red-bd);
+      }
+      .btn-danger:hover {
+        background: var(--red);
+        color: #fff;
+      }
+      .btn-success {
+        background: var(--green-bg);
+        color: var(--green);
+        border: 1.5px solid var(--green-bd);
+      }
+      .btn-success:hover {
+        background: var(--green);
+        color: #fff;
+      }
+      .btn-teal {
+        background: var(--teal-bg);
+        color: var(--teal);
+        border: 1.5px solid var(--teal-bd);
+      }
+      .btn-teal:hover {
+        background: var(--teal);
+        color: #fff;
+      }
+      .btn-sm {
+        padding: 0.4rem 0.85rem;
+        font-size: 12px;
+        border-radius: 7px;
+      }
+      .btn-xs {
+        padding: 0.26rem 0.65rem;
+        font-size: 11px;
+        border-radius: 6px;
+      }
+      .btn-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text2);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 13px;
+      }
+      .btn-icon:hover {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+
+      /* ── SEARCH ── */
+      .search-row {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .search-wrap {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+      }
+      .search-wrap input {
+        width: 100%;
+        padding: 0.65rem 0.9rem 0.65rem 2.3rem;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        font-family: "Outfit", sans-serif;
+        font-size: 13.5px;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .search-wrap input:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(11, 28, 53, 0.07);
+      }
+      .search-icon {
+        position: absolute;
+        left: 0.8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text3);
+        font-size: 13px;
+        pointer-events: none;
+      }
+      .adv-filters {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+        animation: fadeIn 0.2s ease;
+      }
+      .adv-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+      .adv-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text3);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 5px;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ── SESSION CARD ── */
+      .session-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.875rem 1rem;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        transition: all 0.2s;
+      }
+      .session-card.unauthorized {
+        border-color: var(--red-bd);
+        background: var(--red-bg);
+      }
+      .online-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+      }
+      .page-ok {
+        background: var(--green-bg);
+        color: var(--green);
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 11.5px;
+        font-weight: 600;
+        border: 1px solid var(--green-bd);
+      }
+      .page-warn {
+        background: var(--red-bg);
+        color: var(--red);
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 11.5px;
+        font-weight: 600;
+        border: 1px solid var(--red-bd);
+      }
+
+      /* ── MODAL ── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .modal-box {
+        background: var(--surface);
+        border-radius: var(--radius-xl);
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--border);
+        transform: translateY(20px) scale(0.97);
+        transition: transform 0.22s;
+      }
+      .modal-overlay.open .modal-box {
+        transform: none;
+      }
+      .modal-box.w-lg {
+        max-width: 740px;
+      }
+      .modal-box.w-xl {
+        max-width: 980px;
+      }
+      .modal-box.w-md {
+        max-width: 540px;
+      }
+      .modal-box.w-sm {
+        max-width: 400px;
+      }
+      .modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        z-index: 2;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      }
+      .modal-head h3 {
+        font-family: "Instrument Serif", serif;
+        font-size: 20px;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .modal-close {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 16px;
+        color: var(--text3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .modal-close:hover {
+        background: var(--red-bg);
+        color: var(--red);
+        border-color: var(--red-bd);
+      }
+      .modal-body {
+        padding: 1.5rem;
+      }
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--surface2);
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+      }
+
+      /* ── ACCORDION ── */
+      .acc-trigger {
+        cursor: pointer;
+        user-select: none;
+      }
+      .acc-row {
+        background: var(--surface2) !important;
+      }
+      .acc-row td {
+        padding: 0 !important;
+      }
+      .acc-inner {
+        padding: 1rem 1.25rem;
+        display: none;
+      }
+      .acc-inner.open {
+        display: block;
+        animation: fadeIn 0.15s ease;
+      }
+      .acc-chevron {
+        display: inline-block;
+        transition: transform 0.2s;
+        font-size: 10px;
+        color: var(--text3);
+        margin-left: 5px;
+      }
+      .acc-chevron.open {
+        transform: rotate(90deg);
+      }
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.625rem;
+        margin-bottom: 0.875rem;
+      }
+      .profile-field {
+        padding: 0.625rem 0.875rem;
+        background: var(--surface);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+      }
+      .pf-label {
+        font-size: 9px;
+        color: var(--text3);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 3px;
+      }
+      .pf-val {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      /* ── LOG ── */
+      .log-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.875rem 1rem;
+        background: var(--surface);
+        margin-bottom: 0.6rem;
+        transition: background 0.15s;
+        animation: fadeIn 0.2s ease;
+      }
+      .log-item:hover {
+        background: var(--surface2);
+      }
+      .log-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+      }
+      .log-chips {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+      }
+      .log-chip {
+        font-size: 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: var(--text3);
+      }
+      .diff-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 18px 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 11px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 6px 9px;
+        margin-top: 4px;
+      }
+      .audit-obs {
+        font-size: 12px;
+        color: var(--text2);
+        background: var(--gold-pale);
+        border-left: 3px solid var(--gold);
+        padding: 6px 10px;
+        border-radius: 0 6px 6px 0;
+        margin-top: 6px;
+        font-style: italic;
+      }
+      [data-theme="dark"] .audit-obs {
+        background: rgba(196, 154, 42, 0.08);
+      }
+
+      /* ── TOAST ── */
+      .flash-wrap {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        pointer-events: none;
+      }
+      .flash {
+        background: var(--navy);
+        color: #fff;
+        padding: 0.75rem 1.1rem;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: var(--shadow-xl);
+        animation: slideUp 0.25s ease;
+        max-width: 300px;
+        pointer-events: all;
+      }
+      .flash.f-success {
+        background: var(--green);
+      }
+      .flash.f-danger {
+        background: var(--red);
+      }
+      .flash.f-warn {
+        background: var(--amber);
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(14px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+
+      /* ── EMPTY STATE ── */
+      .empty-state {
+        text-align: center;
+        padding: 2.5rem 1.25rem;
+        color: var(--text3);
+      }
+      .empty-icon {
+        font-size: 36px;
+        margin-bottom: 0.75rem;
+      }
+
+      /* ── PASS WRAP ── */
+      .pass-wrap {
+        position: relative;
+      }
+      .pass-wrap .inp {
+        padding-right: 2.5rem;
+      }
+      .pass-eye {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--text3);
+        font-size: 15px;
+        padding: 3px;
+        line-height: 1;
+      }
+
+      /* ── KPI FILTER BAR ── */
+      .filter-bar {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+        padding: 1rem 1.1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .filter-bar .adv-label {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      /* ── AUDIT ADVANCED FILTERS ── */
+      .audit-adv {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+      }
+      .audit-adv-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      /* ── QUICK STATS STRIP ── */
+      .stats-strip {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+      }
+      .stat-pill {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text2);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: var(--shadow);
+      }
+
+      /* ── DASHBOARD GREETING ── */
+      .greeting-bar {
+        background: linear-gradient(
+          135deg,
+          var(--navy) 0%,
+          var(--navy3) 60%,
+          rgba(196, 154, 42, 0.15) 100%
+        );
+        border-radius: var(--radius-lg);
+        padding: 1.4rem 1.75rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
+      .greeting-bar::before {
+        content: "A&M";
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: "Instrument Serif", serif;
+        font-size: 80px;
+        color: rgba(255, 255, 255, 0.03);
+        font-style: italic;
+        pointer-events: none;
+        line-height: 1;
+      }
+      .greeting-text h2 {
+        font-family: "Instrument Serif", serif;
+        font-size: 20px;
+        color: #fff;
+        margin-bottom: 3px;
+      }
+      .greeting-text p {
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .greeting-actions {
+        display: flex;
+        gap: 0.625rem;
+        flex-wrap: wrap;
+      }
+
+      /* ── NOTIFICATIONS PANEL ── */
+      .notif-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-height: 340px;
+        overflow-y: auto;
+      }
+      .notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem 0.875rem;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        transition: background 0.15s;
+      }
+      .notif-item:hover {
+        background: var(--surface3);
+      }
+      .notif-item.unread {
+        border-left: 3px solid var(--gold);
+      }
+      .notif-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .notif-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .notif-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 2px;
+      }
+      .notif-sub {
+        font-size: 11.5px;
+        color: var(--text3);
+        line-height: 1.4;
+      }
+      .notif-time {
+        font-size: 10.5px;
+        color: var(--text4);
+        white-space: nowrap;
+        margin-top: 2px;
+      }
+      .notif-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--gold);
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+
+      /* ── SECTION TITLE ── */
+      .section-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 22px;
+        color: var(--text);
+        margin-bottom: 0.2rem;
+      }
+      .section-sub {
+        font-size: 12.5px;
+        color: var(--text3);
+        margin-bottom: 1.25rem;
+      }
+
+      /* ── HIDDEN ── */
+      .hidden {
+        display: none !important;
+      }
+
+      /* ── LOGOUT CONFIRM MODAL ── */
+      .logout-icon-big {
+        font-size: 44px;
+        text-align: center;
+        display: block;
+        margin-bottom: 1rem;
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 1200px) {
+        .metric-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .adv-grid,
+        .audit-adv-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 900px) {
+        .sidebar {
+          display: none;
+        }
+        .main {
+          margin-left: 0;
+          width: 100%;
+        }
+        .metric-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .profile-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── NOTIFICATION BADGE ── */
+      .notif-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 16px;
+        height: 16px;
+        background: var(--red);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--surface);
+      }
+      .topbar-notif-wrap {
+        position: relative;
+      }
+
+      /* ── EXPORT BTN ── */
+      .export-strip {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+
+      /* ── WORKER TAGS ── */
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text3);
+      }
+
+      /* ── CALENDAR HEATMAP (attendance mini) ── */
+      .heat-grid {
+        display: flex;
+        gap: 3px;
+        flex-wrap: wrap;
+        padding: 0.5rem 0;
+      }
+      .heat-cell {
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        cursor: default;
+        transition: transform 0.1s;
+      }
+      .heat-cell:hover {
+        transform: scale(1.25);
+      }
+      .heat-0 {
+        background: var(--surface2);
+      }
+      .heat-asistencia {
+        background: var(--green);
+      }
+      .heat-tardanza {
+        background: var(--amber);
+      }
+      .heat-falta {
+        background: var(--red);
+      }
+      .heat-permiso {
+        background: var(--blue);
+      }
+
+      /* ── SEPARATOR ── */
+      .sep {
+        height: 1px;
+        background: var(--border);
+        margin: 1rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ═══ SIDEBAR ═══ -->
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <img
+            class="sidebar-logo-img"
+            src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+            alt="A&M"
+            onerror="this.style.display = 'none'"
+          />
+          <div class="sidebar-brand">
+            <span class="b1">A&amp;M Exportaciones</span>
+            <span class="b2">Control Admin</span>
+          </div>
+        </div>
+
+        <div class="sidebar-admin">
+          <div class="s-av">AD</div>
+          <div style="flex: 1; min-width: 0">
+            <span class="s-av-name">Administrador</span>
+            <span class="s-av-role">Super Admin</span>
+          </div>
+          <div class="s-av-dot"></div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <span class="nav-section">Principal</span>
+          <button class="nav-item active" onclick="showTab('dashboard', this)">
+            <span class="nav-icon">🏠</span> Dashboard
+          </button>
+          <button class="nav-item" onclick="showTab('workers', this)">
+            <span class="nav-icon">👥</span> Trabajadores
+            <span class="nav-badge" id="nc-workers">0</span>
+          </button>
+          <button class="nav-item" onclick="showTab('sessions', this)">
+            <span class="nav-icon">🟢</span> Sesiones
+            <span class="nav-badge" id="nc-sessions">0</span>
+          </button>
+          <button class="nav-item" onclick="showTab('attendance', this)">
+            <span class="nav-icon">📋</span> Asistencia
+          </button>
+          <button class="nav-item" onclick="showTab('kpi', this)">
+            <span class="nav-icon">📊</span> KPIs
+          </button>
+          <span class="nav-section">Admin</span>
+          <button class="nav-item" onclick="showTab('notifications', this)">
+            <span class="nav-icon">🔔</span> Alertas
+            <span class="nav-badge" id="nc-notif">0</span>
+          </button>
+          <button class="nav-item" onclick="showTab('audit', this)">
+            <span class="nav-icon">📘</span> Bitácora
+            <span class="nav-badge" id="nc-audit">0</span>
+          </button>
+          <div class="sidebar-divider"></div>
+          <button class="nav-item nav-danger" onclick="confirmLogout()">
+            <span class="nav-icon">🔓</span> Cerrar sesión
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span>v6.0 © 2025 A&amp;M</span>
+        </div>
+      </aside>
+
+      <!-- ═══ MAIN ═══ -->
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar-left">
+            <div class="topbar-title" id="pageTitle">
+              <span id="pageTitleIcon">🏠</span>
+              <span id="pageTitleText">Dashboard</span>
+            </div>
+            <div class="topbar-sub" id="pageSub">
+              Bienvenido al panel de control de A&amp;M Exportaciones
+            </div>
+          </div>
+          <div class="topbar-right">
+            <!-- Notifications bell -->
+            <div class="topbar-notif-wrap" style="position: relative">
+              <button
+                class="btn-icon"
+                onclick="
+                  showTab(
+                    'notifications',
+                    document.querySelector('.nav-item:nth-child(7)') || null,
+                  )
+                "
+                title="Alertas"
+                style="font-size: 16px"
+              >
+                🔔
+              </button>
+              <span class="notif-badge" id="topNotifBadge" style="display: none"
+                >0</span
+              >
+            </div>
+            <button
+              class="topbar-btn"
+              type="button"
+              onclick="toggleDark()"
+              id="darkBtn"
+            >
+              🌙 Oscuro
+            </button>
+            <span class="topbar-date" id="dateChip"></span>
+            <div class="badge-live"><span class="dot-live"></span>En línea</div>
+            <button class="btn btn-gold" onclick="openWorkerModal(null)">
+              + Trabajador
+            </button>
+            <button
+              class="topbar-btn logout"
+              onclick="confirmLogout()"
+              title="Cerrar sesión"
+            >
+              🔓 Salir
+            </button>
+          </div>
+        </header>
+
+        <div class="content">
+          <!-- TABS -->
+          <div class="tabs">
+            <button
+              class="tab active"
+              id="tab-dashboard"
+              onclick="showTab('dashboard', this)"
+            >
+              🏠 Dashboard
+            </button>
+            <button
+              class="tab"
+              id="tab-workers"
+              onclick="showTab('workers', this)"
+            >
+              👥 Trabajadores <span class="tab-cnt" id="tb-workers">0</span>
+            </button>
+            <button
+              class="tab"
+              id="tab-sessions"
+              onclick="showTab('sessions', this)"
+            >
+              🟢 Sesiones <span class="tab-cnt" id="tb-sessions">0</span>
+            </button>
+            <button
+              class="tab"
+              id="tab-attendance"
+              onclick="showTab('attendance', this)"
+            >
+              📋 Asistencia
+            </button>
+            <button class="tab" id="tab-kpi" onclick="showTab('kpi', this)">
+              📊 KPIs
+            </button>
+            <button
+              class="tab"
+              id="tab-notifications"
+              onclick="showTab('notifications', this)"
+            >
+              🔔 Alertas <span class="tab-cnt" id="tb-notif">0</span>
+            </button>
+            <button class="tab" id="tab-audit" onclick="showTab('audit', this)">
+              📘 Bitácora <span class="tab-cnt" id="tb-audit">0</span>
+            </button>
+          </div>
+
+          <!-- ─── VIEW: DASHBOARD ─── -->
+          <div id="view-dashboard" class="view active">
+            <div class="greeting-bar">
+              <div class="greeting-text">
+                <h2 id="greetingTitle">Buenos días, Administrador 👋</h2>
+                <p id="greetingSub">Panel de control — A&amp;M Exportaciones</p>
+              </div>
+              <div class="greeting-actions">
+                <button class="btn btn-gold" onclick="openWorkerModal(null)">
+                  + Nuevo trabajador
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="border-color: rgba(255, 255, 255, 0.2); color: #fff"
+                  onclick="
+                    showTab('attendance', null);
+                    document.getElementById('attDateFilter').value = todayStr();
+                    renderAttendance();
+                  "
+                >
+                  📋 Asistencia hoy
+                </button>
+              </div>
+            </div>
+            <div class="metric-grid" id="dashMetrics"></div>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.25rem;
+                margin-bottom: 1.25rem;
+              "
+            >
+              <!-- Sesiones activas -->
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">🟢 Sesiones activas</span>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="showTab('sessions', null)"
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                <div
+                  id="dashSessionsMini"
+                  style="display: flex; flex-direction: column; gap: 0.5rem"
+                ></div>
+              </div>
+              <!-- Asistencia hoy -->
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">📋 Asistencia de hoy</span>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="
+                      showTab('attendance', null);
+                      document.getElementById('attDateFilter').value =
+                        todayStr();
+                      renderAttendance();
+                    "
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                <div
+                  id="dashAttMini"
+                  style="display: flex; flex-direction: column; gap: 0.4rem"
+                ></div>
+              </div>
+            </div>
+            <!-- Alertas recientes -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">🔔 Alertas recientes</span>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="showTab('notifications', null)"
+                >
+                  Ver todas
+                </button>
+              </div>
+              <div id="dashAlertsMini"></div>
+            </div>
+          </div>
+
+          <!-- ─── VIEW: WORKERS ─── -->
+          <div id="view-workers" class="view hidden">
+            <div class="metric-grid">
+              <div class="metric-card mc-blue">
+                <span class="metric-icon">👥</span>
+                <div class="metric-label">Total</div>
+                <div class="metric-value" id="kw-total">0</div>
+                <div class="metric-sub">Registrados</div>
+              </div>
+              <div class="metric-card mc-green">
+                <span class="metric-icon">✅</span>
+                <div class="metric-label">Activos</div>
+                <div class="metric-value" id="kw-activo">0</div>
+                <div class="metric-sub">En nómina</div>
+              </div>
+              <div class="metric-card mc-amber">
+                <span class="metric-icon">💤</span>
+                <div class="metric-label">Desconectados</div>
+                <div class="metric-value" id="kw-desconectado">0</div>
+                <div class="metric-sub">Fuera del sistema</div>
+              </div>
+              <div class="metric-card mc-red">
+                <span class="metric-icon">⛔</span>
+                <div class="metric-label">Suspendidos</div>
+                <div class="metric-value" id="kw-suspendido">0</div>
+                <div class="metric-sub">Restringidos</div>
+              </div>
+              <div class="metric-card mc-purple">
+                <span class="metric-icon">⚠️</span>
+                <div class="metric-label">Antecedentes</div>
+                <div class="metric-value" id="kw-antec">0</div>
+                <div class="metric-sub">Registrados</div>
+              </div>
+            </div>
+            <div class="search-row">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span
+                ><input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Buscar por nombre, documento, email, usuario..."
+                  oninput="renderWorkers()"
+                />
+              </div>
+              <button class="btn btn-outline" onclick="toggleAdvanced()">
+                ⚙ Filtros <span id="advIcon">▼</span>
+              </button>
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="exportWorkersCSV()"
+                title="Exportar CSV"
+              >
+                📥 CSV
+              </button>
+              <button
+                class="btn btn-outline btn-sm hidden"
+                id="clearFiltersBtn"
+                onclick="clearFilters()"
+              >
+                ✕ Limpiar
+              </button>
+            </div>
+            <div class="adv-filters hidden" id="advancedFilters">
+              <div class="adv-grid">
+                <div>
+                  <span class="adv-label">Rol</span
+                  ><select
+                    class="inp sel"
+                    id="fRole"
+                    onchange="renderWorkers()"
+                  >
+                    <option value="">Todos los roles</option>
+                    <option>Administrador</option>
+                    <option>Supervisor</option>
+                    <option>Vendedor</option>
+                    <option>Almacén</option>
+                    <option>Contabilidad</option>
+                    <option>Soporte</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="adv-label">Estado</span
+                  ><select
+                    class="inp sel"
+                    id="fStatus"
+                    onchange="renderWorkers()"
+                  >
+                    <option value="">Todos</option>
+                    <option value="activo">Activo</option>
+                    <option value="desconectado">Desconectado</option>
+                    <option value="suspendido">Suspendido</option>
+                    <option value="cesado">Cesado</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="adv-label">Género</span
+                  ><select
+                    class="inp sel"
+                    id="fGender"
+                    onchange="renderWorkers()"
+                  >
+                    <option value="">Todos</option>
+                    <option>Femenino</option>
+                    <option>Masculino</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="adv-label">Antecedentes</span
+                  ><select
+                    class="inp sel"
+                    id="fAntec"
+                    onchange="renderWorkers()"
+                  >
+                    <option value="">Todos</option>
+                    <option value="No">Sin antecedentes</option>
+                    <option value="Sí">Con antecedentes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trabajador</th>
+                    <th>Documento</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Contacto</th>
+                    <th>Horario</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="workersBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ─── VIEW: SESSIONS ─── -->
+          <div id="view-sessions" class="view hidden">
+            <div class="metric-grid">
+              <div class="metric-card mc-green">
+                <span class="metric-icon">🟢</span>
+                <div class="metric-label">En línea</div>
+                <div class="metric-value" id="ks-online">0</div>
+                <div class="metric-sub">Sesión activa</div>
+              </div>
+              <div class="metric-card mc-blue">
+                <span class="metric-icon">👤</span>
+                <div class="metric-label">Activos totales</div>
+                <div class="metric-value" id="ks-activos">0</div>
+                <div class="metric-sub">En sistema</div>
+              </div>
+              <div class="metric-card mc-red">
+                <span class="metric-icon">🚫</span>
+                <div class="metric-label">No autorizados</div>
+                <div class="metric-value" id="ks-unauth">0</div>
+                <div class="metric-sub">Fuera de permisos</div>
+              </div>
+              <div class="metric-card mc-amber">
+                <span class="metric-icon">⚠️</span>
+                <div class="metric-label">Suspendidos</div>
+                <div class="metric-value" id="ks-susp">0</div>
+                <div class="metric-sub">Restringidos</div>
+              </div>
+              <div class="metric-card mc-purple">
+                <span class="metric-icon">❌</span>
+                <div class="metric-label">Cesados</div>
+                <div class="metric-value" id="ks-cesados">0</div>
+                <div class="metric-sub">Dados de baja</div>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom: 1.25rem">
+              <div class="card-header">
+                <span class="card-title">🟢 Sesiones en curso</span
+                ><button
+                  class="btn btn-danger btn-sm"
+                  onclick="disconnectAll()"
+                >
+                  ⏏ Desconectar todos
+                </button>
+              </div>
+              <div
+                id="sessionsOnline"
+                style="display: flex; flex-direction: column; gap: 0.625rem"
+              ></div>
+            </div>
+            <div class="card" style="padding: 0; overflow: hidden">
+              <div
+                style="
+                  padding: 0.875rem 1.25rem;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                <span class="card-title">Todos los trabajadores</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Trabajador</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                      <th>Página actual</th>
+                      <th>Última actividad</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sessionsAllBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── VIEW: ATTENDANCE ─── -->
+          <div id="view-attendance" class="view hidden">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.875rem;
+                margin-bottom: 1.25rem;
+              "
+            >
+              <div>
+                <div class="section-title">Reporte de asistencia</div>
+                <div
+                  class="section-sub"
+                  id="attDateLabel"
+                  style="margin-bottom: 0"
+                ></div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 0.625rem;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <input
+                  type="date"
+                  id="attDateFilter"
+                  class="inp"
+                  style="width: auto; padding: 0.5rem 0.8rem"
+                  onchange="renderAttendance()"
+                />
+                <button class="btn btn-outline btn-sm" onclick="exportAttCSV()">
+                  📥 Exportar
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="printAttPage()">
+                  🖨️ Imprimir
+                </button>
+              </div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-card mc-green">
+                <span class="metric-icon">✅</span>
+                <div class="metric-label">Asistencias</div>
+                <div class="metric-value" id="ka-asist">0</div>
+              </div>
+              <div class="metric-card mc-amber">
+                <span class="metric-icon">⏰</span>
+                <div class="metric-label">Tardanzas</div>
+                <div class="metric-value" id="ka-tard">0</div>
+              </div>
+              <div class="metric-card mc-red">
+                <span class="metric-icon">❌</span>
+                <div class="metric-label">Faltas</div>
+                <div class="metric-value" id="ka-faltas">0</div>
+              </div>
+              <div class="metric-card mc-blue">
+                <span class="metric-icon">❓</span>
+                <div class="metric-label">Sin registro</div>
+                <div class="metric-value" id="ka-none">0</div>
+              </div>
+              <div class="metric-card mc-purple">
+                <span class="metric-icon">📝</span>
+                <div class="metric-label">Permisos</div>
+                <div class="metric-value" id="ka-perm">0</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trabajador</th>
+                    <th>Estado</th>
+                    <th>Entrada</th>
+                    <th>H. Deuda</th>
+                    <th>H. Compensadas</th>
+                    <th>Observación</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ─── VIEW: KPI ─── -->
+          <div id="view-kpi" class="view hidden">
+            <div class="filter-bar">
+              <div>
+                <span class="adv-label">Mes</span
+                ><select
+                  class="inp sel"
+                  id="kpiMonth"
+                  style="width: 130px"
+                  onchange="renderKpi()"
+                >
+                  <option value="01">Enero</option>
+                  <option value="02">Febrero</option>
+                  <option value="03">Marzo</option>
+                  <option value="04">Abril</option>
+                  <option value="05">Mayo</option>
+                  <option value="06">Junio</option>
+                  <option value="07">Julio</option>
+                  <option value="08">Agosto</option>
+                  <option value="09">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+              </div>
+              <div>
+                <span class="adv-label">Año</span
+                ><select
+                  class="inp sel"
+                  id="kpiYear"
+                  style="width: 100px"
+                  onchange="renderKpi()"
+                ></select>
+              </div>
+              <div style="flex: 1; min-width: 180px">
+                <span class="adv-label">Buscar trabajador</span>
+                <div class="search-wrap">
+                  <span class="search-icon">🔍</span
+                  ><input
+                    type="text"
+                    id="kpiSearch"
+                    placeholder="Buscar..."
+                    oninput="renderKpi()"
+                  />
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: flex-end">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="resetKpiFilters()"
+                >
+                  ↺ Hoy
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="exportKpiCSV()">
+                  📥 CSV
+                </button>
+              </div>
+            </div>
+            <div
+              class="metric-grid"
+              id="kpiBigGrid"
+              style="margin-bottom: 1.25rem"
+            ></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trabajador</th>
+                    <th>Rol</th>
+                    <th>Asistencias</th>
+                    <th>Tardanzas</th>
+                    <th>Faltas</th>
+                    <th>Permisos</th>
+                    <th>H. Deuda</th>
+                    <th>Cumplimiento</th>
+                    <th>Detalle</th>
+                  </tr>
+                </thead>
+                <tbody id="kpiBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ─── VIEW: NOTIFICATIONS ─── -->
+          <div id="view-notifications" class="view hidden">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.875rem;
+                margin-bottom: 1.25rem;
+              "
+            >
+              <div>
+                <div class="section-title">Centro de Alertas</div>
+                <div class="section-sub" style="margin-bottom: 0">
+                  Notificaciones automáticas del sistema
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem">
+                <button class="btn btn-outline btn-sm" onclick="markAllRead()">
+                  ✓ Marcar todo leído
+                </button>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="clearNotifications()"
+                >
+                  🗑 Limpiar
+                </button>
+              </div>
+            </div>
+            <div
+              class="notif-list"
+              id="notifList"
+              style="max-height: none"
+            ></div>
+          </div>
+
+          <!-- ─── VIEW: AUDIT ─── -->
+          <div id="view-audit" class="view hidden">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.875rem;
+                margin-bottom: 1rem;
+              "
+            >
+              <div>
+                <div class="section-title">Bitácora de Eventos</div>
+                <div class="section-sub" style="margin-bottom: 0">
+                  Registro completo de todas las acciones del sistema
+                </div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="exportAuditCSV()">
+                📥 Exportar CSV
+              </button>
+            </div>
+            <div class="audit-adv">
+              <div class="audit-adv-grid">
+                <div>
+                  <span class="adv-label">Buscar</span>
+                  <div class="search-wrap">
+                    <span class="search-icon">🔍</span
+                    ><input
+                      type="text"
+                      id="auditSearch"
+                      placeholder="Buscar..."
+                      oninput="renderAudit()"
+                      style="padding-left: 2.3rem"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <span class="adv-label">Fecha exacta</span
+                  ><input
+                    type="date"
+                    class="inp"
+                    id="auditDateFilter"
+                    onchange="renderAudit()"
+                  />
+                </div>
+                <div>
+                  <span class="adv-label">Desde</span
+                  ><input
+                    type="date"
+                    class="inp"
+                    id="auditDateFrom"
+                    onchange="renderAudit()"
+                  />
+                </div>
+                <div>
+                  <span class="adv-label">Hasta</span
+                  ><input
+                    type="date"
+                    class="inp"
+                    id="auditDateTo"
+                    onchange="renderAudit()"
+                  />
+                </div>
+                <div>
+                  <span class="adv-label">Tipo</span
+                  ><select
+                    class="inp sel"
+                    id="auditTypeFilter"
+                    onchange="renderAudit()"
+                  >
+                    <option value="">Todos los tipos</option>
+                    <option>Creación</option>
+                    <option>Edición de datos</option>
+                    <option>Cambio de estado</option>
+                    <option>Registro de asistencia</option>
+                    <option>Corrección de asistencia</option>
+                    <option>Eliminación</option>
+                    <option>Desconexión</option>
+                    <option>Memorandón enviado</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="adv-label">Trabajador</span
+                  ><select
+                    class="inp sel"
+                    id="auditWorkerFilter"
+                    onchange="renderAudit()"
+                  >
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+                <div style="align-self: flex-end">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="clearAuditFilters()"
+                  >
+                    ✕ Limpiar
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+                <button
+                  class="btn btn-outline btn-xs"
+                  onclick="quickAuditDate('today')"
+                >
+                  📅 Hoy
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  onclick="quickAuditDate('yesterday')"
+                >
+                  ⬅ Ayer
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  onclick="quickAuditDate('week')"
+                >
+                  📅 Esta semana
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  onclick="quickAuditDate('month')"
+                >
+                  📅 Este mes
+                </button>
+                <span
+                  id="auditResultCount"
+                  style="
+                    font-size: 12px;
+                    color: var(--text3);
+                    align-self: center;
+                    margin-left: auto;
+                  "
+                ></span>
+              </div>
+            </div>
+            <div id="auditList"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ═══ MODALS ═══ -->
+
+    <!-- LOGOUT CONFIRM -->
+    <div class="modal-overlay" id="logoutModal">
+      <div class="modal-box w-sm">
+        <div class="modal-head">
+          <h3>Cerrar sesión</h3>
+          <button class="modal-close" onclick="closeModal('logoutModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" style="text-align: center">
+          <span class="logout-icon-big">🔓</span>
+          <p style="font-size: 14px; font-weight: 600; margin-bottom: 0.5rem">
+            ¿Deseas cerrar tu sesión?
+          </p>
+          <p style="font-size: 12.5px; color: var(--text3)">
+            Serás redirigido a la pantalla de inicio de sesión.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('logoutModal')">
+            Cancelar</button
+          ><button class="btn btn-danger" onclick="doLogout()">
+            🔓 Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKER DETAIL -->
+    <div class="modal-overlay" id="detailModal">
+      <div class="modal-box w-xl">
+        <div class="modal-head">
+          <h3 id="detailTitle">Perfil</h3>
+          <button class="modal-close" onclick="closeModal('detailModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE DETAIL -->
+    <div class="modal-overlay" id="attDetailModal">
+      <div class="modal-box w-xl">
+        <div class="modal-head">
+          <h3 id="attDetailTitle">Historial de asistencia</h3>
+          <button class="modal-close" onclick="closeModal('attDetailModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" id="attDetailBody"></div>
+      </div>
+    </div>
+
+    <!-- KPI DETAIL -->
+    <div class="modal-overlay" id="kpiModal">
+      <div class="modal-box w-xl">
+        <div class="modal-head">
+          <h3 id="kpiModalTitle">KPI detallado</h3>
+          <button class="modal-close" onclick="closeModal('kpiModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" id="kpiModalBody"></div>
+      </div>
+    </div>
+
+    <!-- AUDIT DETAIL -->
+    <div class="modal-overlay" id="auditDetailModal">
+      <div class="modal-box w-lg">
+        <div class="modal-head">
+          <h3>Detalle del evento</h3>
+          <button class="modal-close" onclick="closeModal('auditDetailModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" id="auditDetailBody"></div>
+      </div>
+    </div>
+
+    <!-- ATT REC DETAIL -->
+    <div class="modal-overlay" id="attRecDetailModal">
+      <div class="modal-box w-md">
+        <div class="modal-head">
+          <h3 id="attRecDetailTitle">Detalle del registro</h3>
+          <button class="modal-close" onclick="closeModal('attRecDetailModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" id="attRecDetailBody"></div>
+      </div>
+    </div>
+
+    <!-- WORKER FORM -->
+    <div class="modal-overlay" id="workerModal">
+      <div class="modal-box w-lg">
+        <div class="modal-head">
+          <h3 id="workerModalTitle">Crear trabajador</h3>
+          <button class="modal-close" onclick="closeModal('workerModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="wId" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Nombre *</label
+              ><input class="inp" id="wFirstName" placeholder="Ana" /><span
+                class="form-error"
+                id="e-firstName"
+                >Requerido</span
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Apellidos *</label
+              ><input
+                class="inp"
+                id="wLastName"
+                placeholder="García Torres"
+              /><span class="form-error" id="e-lastName">Requerido</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo documento</label
+              ><select class="inp sel" id="wDocType">
+                <option>DNI</option>
+                <option>Carnet de Extranjería</option>
+                <option>Pasaporte</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">N° documento *</label
+              ><input class="inp" id="wDocNumber" placeholder="45678901" /><span
+                class="form-error"
+                id="e-docNumber"
+                >Requerido</span
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Género</label
+              ><select class="inp sel" id="wGender">
+                <option>Femenino</option>
+                <option>Masculino</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cumpleaños</label
+              ><input class="inp" type="date" id="wBirthday" />
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Dirección *</label
+              ><input
+                class="inp"
+                id="wAddress"
+                placeholder="Av. Primavera 234, Surco, Lima"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Antecedentes policiales</label
+              ><select class="inp sel" id="wAntec">
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email *</label
+              ><input
+                class="inp"
+                type="email"
+                id="wEmail"
+                placeholder="ana@am.pe"
+              /><span class="form-error" id="e-email">Email inválido</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Celular *</label
+              ><input class="inp" id="wPhone" placeholder="987654321" /><span
+                class="form-error"
+                id="e-phone"
+                >Requerido</span
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Usuario *</label
+              ><input class="inp" id="wUsername" placeholder="agarcia" /><span
+                class="form-error"
+                id="e-username"
+                >Requerido</span
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contraseña *</label>
+              <div class="pass-wrap">
+                <input
+                  class="inp"
+                  type="password"
+                  id="wPassword"
+                  placeholder="••••••••"
+                /><button
+                  type="button"
+                  onclick="togglePass('wPassword', this)"
+                  class="pass-eye"
+                >
+                  👁
+                </button>
+              </div>
+              <span class="form-error" id="e-password">Requerido</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rol</label
+              ><select class="inp sel" id="wRole">
+                <option>Administrador</option>
+                <option>Supervisor</option>
+                <option>Vendedor</option>
+                <option>Almacén</option>
+                <option>Contabilidad</option>
+                <option>Soporte</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Horario</label
+              ><input
+                class="inp"
+                id="wSchedule"
+                placeholder="Lun-Vie 08:00-17:00"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estado</label
+              ><select class="inp sel" id="wStatus">
+                <option value="activo">Activo</option>
+                <option value="desconectado">Desconectado</option>
+                <option value="suspendido">Suspendido</option>
+                <option value="cesado">Cesado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nombre referencia *</label
+              ><input
+                class="inp"
+                id="wRefName"
+                placeholder="Carlos García"
+              /><span class="form-error" id="e-refName">Requerido</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Celular referencia *</label
+              ><input class="inp" id="wRefPhone" placeholder="999111222" /><span
+                class="form-error"
+                id="e-refPhone"
+                >Requerido</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('workerModal')">
+            Cancelar</button
+          ><button class="btn btn-gold" onclick="saveWorker()">
+            💾 Guardar trabajador
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATT MODAL -->
+    <div class="modal-overlay" id="attModal">
+      <div class="modal-box w-md">
+        <div class="modal-head">
+          <h3 id="attModalTitle">Registrar asistencia</h3>
+          <button class="modal-close" onclick="closeModal('attModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="attWorkerId" />
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Tipo</label
+              ><select class="inp sel" id="attType">
+                <option value="asistencia">Asistencia</option>
+                <option value="tardanza">Tardanza</option>
+                <option value="falta">Falta</option>
+                <option value="salida_temprana">Salida temprana</option>
+                <option value="permiso">Permiso</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fecha</label
+              ><input class="inp" type="date" id="attDate" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hora entrada</label
+              ><input class="inp" type="time" id="attTime" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">H. a deber</label
+              ><input
+                class="inp"
+                type="number"
+                id="attDebt"
+                value="0"
+                min="0"
+                step="0.5"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">H. justificadas</label
+              ><input
+                class="inp"
+                type="number"
+                id="attJust"
+                value="0"
+                min="0"
+                step="0.5"
+              />
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Observación</label
+              ><textarea
+                class="inp txta"
+                id="attObs"
+                placeholder="Ej: llegó 20 min tarde por tráfico..."
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('attModal')">
+            Cancelar</button
+          ><button class="btn btn-gold" onclick="saveAttendance()">
+            ✅ Registrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMO MODAL -->
+    <div class="modal-overlay" id="memoModal">
+      <div class="modal-box w-md">
+        <div class="modal-head">
+          <h3>Enviar memorandón</h3>
+          <button class="modal-close" onclick="closeModal('memoModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="memoWorkerId" />
+          <div class="form-group" style="margin-bottom: 1rem">
+            <label class="form-label">Canal</label
+            ><select class="inp sel" id="memoChannel" onchange="toggleMemoWa()">
+              <option value="email">Correo electrónico</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </div>
+          <div
+            class="form-group hidden"
+            id="memoWaWrap"
+            style="margin-bottom: 1rem"
+          >
+            <label class="form-label">Número WhatsApp</label
+            ><input class="inp" id="memoPhone" placeholder="51987654321" />
+          </div>
+          <div
+            style="
+              background: var(--surface2);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 0.875rem 1rem;
+              font-size: 12.5px;
+              line-height: 1.7;
+              color: var(--text);
+              margin: 0.75rem 0;
+            "
+            id="memoPreview"
+          ></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('memoModal')">
+            Cancelar</button
+          ><button class="btn btn-outline" onclick="printMemo()">🖨️</button
+          ><button class="btn btn-gold" onclick="sendMemo()">📤 Enviar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELETE MODAL -->
+    <div class="modal-overlay" id="deleteModal">
+      <div class="modal-box w-sm">
+        <div class="modal-head">
+          <h3>Confirmar eliminación</h3>
+          <button class="modal-close" onclick="closeModal('deleteModal')">
+            ✕
+          </button>
+        </div>
+        <div class="modal-body" style="text-align: center">
+          <span style="font-size: 40px; display: block; margin-bottom: 0.75rem"
+            >🗑️</span
+          >
+          <p style="font-size: 14px; font-weight: 600; margin-bottom: 0.5rem">
+            ¿Eliminar a <strong id="deleteWorkerName"></strong>?
+          </p>
+          <p style="font-size: 12.5px; color: var(--text3)">
+            Esta acción quedará registrada en la bitácora.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('deleteModal')">
+            Cancelar</button
+          ><button class="btn btn-danger" onclick="confirmDelete()">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="flash-wrap" id="toastWrap"></div>
+
+    <script>
+      "use strict";
+
+      // ─── CONSTANTS ───
+      const STORAGE_KEY = "AM_WORKERS_V6";
+      const PAGES = [
+        "Dashboard",
+        "Inventario",
+        "Ventas",
+        "Tipo de Cambio",
+        "Bitácora",
+        "Reportes",
+        "Configuración",
+      ];
+      const AUTHORIZED = {
+        Administrador: PAGES,
+        Supervisor: [
+          "Dashboard",
+          "Inventario",
+          "Ventas",
+          "Bitácora",
+          "Reportes",
+        ],
+        Vendedor: ["Dashboard", "Ventas"],
+        Almacén: ["Dashboard", "Inventario"],
+        Contabilidad: ["Dashboard", "Ventas", "Reportes"],
+        Soporte: ["Dashboard", "Configuración"],
+      };
+      const AV_COLORS = [
+        "#0C447C",
+        "#065f46",
+        "#53429e",
+        "#993556",
+        "#993C1D",
+        "#0F6E56",
+        "#B45309",
+        "#1D4ED8",
+      ];
+
+      // ─── UTILS ───
+      const $ = (id) => document.getElementById(id);
+      const genId = () =>
+        Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      const nowStr = () =>
+        new Date().toLocaleString("es-PE", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      const todayStr = () => new Date().toISOString().slice(0, 10);
+      const fakeIP = () => `192.168.${rnd(1, 254)}.${rnd(1, 254)}`;
+      const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const avatarColor = (n) =>
+        AV_COLORS[(n || "").charCodeAt(0) % AV_COLORS.length];
+      const initials = (n) =>
+        (n || "??")
+          .split(" ")
+          .slice(0, 2)
+          .map((w) => w[0])
+          .join("")
+          .toUpperCase();
+      const esc = (s) =>
+        String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
+      function avatar(name, size = 32) {
+        const bg = avatarColor(name),
+          fs = size * 0.37;
+        return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${fs}px;background:${bg};color:#fff">${initials(name)}</div>`;
+      }
+      function badgeStatus(s) {
+        const m = {
+          activo: "badge-activo",
+          desconectado: "badge-desconectado",
+          suspendido: "badge-suspendido",
+          cesado: "badge-cesado",
+        };
+        const l = {
+          activo: "● Activo",
+          desconectado: "○ Desconectado",
+          suspendido: "⚠ Suspendido",
+          cesado: "✕ Cesado",
+        };
+        return `<span class="badge ${m[s] || "badge-desconectado"}">${l[s] || s}</span>`;
+      }
+      function attBadge(t) {
+        if (!t) return `<span class="att-type att-none">Sin registro</span>`;
+        const m = {
+          asistencia: "att-asistencia",
+          tardanza: "att-tardanza",
+          falta: "att-falta",
+          permiso: "att-permiso",
+          salida_temprana: "att-tardanza",
+        };
+        return `<span class="att-type ${m[t] || "att-none"}">${t.charAt(0).toUpperCase() + t.slice(1).replace("_", " ")}</span>`;
+      }
+
+      // ─── DB ───
+      function seedWorkers() {
+        return [
+          {
+            id: genId(),
+            firstName: "Ana",
+            lastName: "García Torres",
+            docType: "DNI",
+            docNumber: "45678901",
+            gender: "Femenino",
+            address: "Av. Primavera 234, Surco",
+            antecedentes: "No",
+            email: "ana.garcia@am.pe",
+            phone: "987654321",
+            birthday: "1995-03-15",
+            username: "agarcia",
+            password: "Ana2024!",
+            schedule: "Lun-Vie 08:00-17:00",
+            status: "activo",
+            refName: "Carlos García",
+            refPhone: "999111222",
+            role: "Vendedor",
+            createdAt: nowStr(),
+            currentPage: "Ventas",
+            lastSeen: nowStr(),
+          },
+          {
+            id: genId(),
+            firstName: "Marco",
+            lastName: "Ruiz Salinas",
+            docType: "DNI",
+            docNumber: "38291047",
+            gender: "Masculino",
+            address: "Jr. Los Pinos 890, Miraflores",
+            antecedentes: "No",
+            email: "marco.ruiz@am.pe",
+            phone: "976543210",
+            birthday: "1988-07-22",
+            username: "mruiz",
+            password: "Marco2024!",
+            schedule: "Lun-Sáb 09:00-18:00",
+            status: "activo",
+            refName: "Rosa Ruiz",
+            refPhone: "988222333",
+            role: "Supervisor",
+            createdAt: nowStr(),
+            currentPage: "Inventario",
+            lastSeen: nowStr(),
+          },
+          {
+            id: genId(),
+            firstName: "Lucía",
+            lastName: "Mendoza Prado",
+            docType: "DNI",
+            docNumber: "71234567",
+            gender: "Femenino",
+            address: "Calle Las Flores 12, Surquillo",
+            antecedentes: "No",
+            email: "lucia.mendoza@am.pe",
+            phone: "965432109",
+            birthday: "2000-11-08",
+            username: "lmendoza",
+            password: "Lucia2024!",
+            schedule: "Lun-Vie 07:00-16:00",
+            status: "desconectado",
+            refName: "Juan Mendoza",
+            refPhone: "977333444",
+            role: "Almacén",
+            createdAt: nowStr(),
+            currentPage: null,
+            lastSeen: nowStr(),
+          },
+          {
+            id: genId(),
+            firstName: "Diego",
+            lastName: "Vargas Castro",
+            docType: "CE",
+            docNumber: "C123456",
+            gender: "Masculino",
+            address: "Av. Brasil 567, Jesús María",
+            antecedentes: "Sí",
+            email: "diego.vargas@am.pe",
+            phone: "954321098",
+            birthday: "1992-05-30",
+            username: "dvargas",
+            password: "Diego2024!",
+            schedule: "Lun-Vie 09:00-18:00",
+            status: "suspendido",
+            refName: "Elena Vargas",
+            refPhone: "966444555",
+            role: "Contabilidad",
+            createdAt: nowStr(),
+            currentPage: null,
+            lastSeen: nowStr(),
+          },
+          {
+            id: genId(),
+            firstName: "Sofía",
+            lastName: "Torres Ramos",
+            docType: "DNI",
+            docNumber: "62345678",
+            gender: "Femenino",
+            address: "Jr. Manco Cápac 45, La Victoria",
+            antecedentes: "No",
+            email: "sofia.torres@am.pe",
+            phone: "943210987",
+            birthday: "1997-08-14",
+            username: "storres",
+            password: "Sofia2024!",
+            schedule: "Lun-Vie 08:00-17:00",
+            status: "activo",
+            refName: "Pedro Torres",
+            refPhone: "955555666",
+            role: "Soporte",
+            createdAt: nowStr(),
+            currentPage: "Configuración",
+            lastSeen: nowStr(),
+          },
+        ];
+      }
+      function seedAttendance(workers) {
+        const recs = [];
+        const types = [
+          "asistencia",
+          "asistencia",
+          "asistencia",
+          "tardanza",
+          "falta",
+          "permiso",
+        ];
+        workers.forEach((w) => {
+          for (let d = 0; d <= 14; d++) {
+            const dt = new Date();
+            dt.setDate(dt.getDate() - d);
+            const ds = dt.toISOString().slice(0, 10);
+            const t = types[rnd(0, types.length - 1)];
+            recs.push({
+              id: genId(),
+              workerId: w.id,
+              date: ds,
+              type: t,
+              checkIn: "08:" + String(rnd(0, 30)).padStart(2, "0"),
+              hoursDebt: t === "tardanza" ? rnd(1, 3) : 0,
+              justified: 0,
+              obs: "",
+              recordedAt: nowStr(),
+              recordedBy: "Administrador",
+              editHistory: [],
+            });
+          }
+        });
+        return recs;
+      }
+      function loadDB() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const d = JSON.parse(raw);
+            if (d.attendance)
+              d.attendance.forEach((r) => {
+                if (!r.editHistory) r.editHistory = [];
+              });
+            if (!d.notifications) d.notifications = [];
+            return d;
+          }
+        } catch (e) {}
+        const workers = seedWorkers();
+        const db = {
+          workers,
+          attendance: seedAttendance(workers),
+          auditLog: [],
+          notifications: [],
+        };
+        // seed notifications
+        db.notifications = [
+          {
+            id: genId(),
+            type: "warn",
+            title: "Trabajador con antecedentes activo",
+            body: "Diego Vargas Castro tiene antecedentes policiales registrados.",
+            at: nowStr(),
+            atISO: new Date().toISOString(),
+            read: false,
+          },
+          {
+            id: genId(),
+            type: "info",
+            title: "3 sesiones activas ahora",
+            body: "Ana García, Marco Ruiz y Sofía Torres tienen sesiones abiertas.",
+            at: nowStr(),
+            atISO: new Date().toISOString(),
+            read: false,
+          },
+          {
+            id: genId(),
+            type: "success",
+            title: "Sistema operativo",
+            body: "Todos los servicios funcionan correctamente.",
+            at: nowStr(),
+            atISO: new Date().toISOString(),
+            read: true,
+          },
+        ];
+        return db;
+      }
+
+      let DB = loadDB();
+      let deleteTarget = null;
+
+      function saveDB() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+        } catch (e) {}
+      }
+
+      function addLog(
+        workerId,
+        tipo,
+        desc,
+        module = "Trabajadores",
+        diffs = null,
+        obs = "",
+        extra = {},
+      ) {
+        const entry = {
+          id: genId(),
+          workerId,
+          tipo,
+          desc,
+          module,
+          obs,
+          at: nowStr(),
+          atISO: new Date().toISOString(),
+          by: "Administrador",
+          ip: fakeIP(),
+          diffs: diffs || [],
+          ...extra,
+        };
+        DB.auditLog.unshift(entry);
+        saveDB();
+        return entry;
+      }
+
+      function addNotification(type, title, body) {
+        DB.notifications.unshift({
+          id: genId(),
+          type,
+          title,
+          body,
+          at: nowStr(),
+          atISO: new Date().toISOString(),
+          read: false,
+        });
+        saveDB();
+        updateCounts();
+      }
+
+      // ─── TOAST ───
+      function toast(msg, type = "") {
+        const el = document.createElement("div");
+        el.className = "flash" + (type ? " f-" + type : "");
+        el.innerHTML = `<span>${msg}</span>`;
+        const wrap = $("toastWrap");
+        if (wrap) wrap.appendChild(el);
+        setTimeout(() => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 3200);
+      }
+
+      // ─── MODAL ───
+      function openModal(id) {
+        const m = $(id);
+        if (m) m.classList.add("open");
+      }
+      function closeModal(id) {
+        const m = $(id);
+        if (m) m.classList.remove("open");
+      }
+      document.querySelectorAll(".modal-overlay").forEach((m) => {
+        m.addEventListener("click", (e) => {
+          if (e.target === m) m.classList.remove("open");
+        });
+      });
+
+      // ─── LOGOUT ───
+      function confirmLogout() {
+        openModal("logoutModal");
+      }
+      function doLogout() {
+        closeModal("logoutModal");
+        toast("Cerrando sesión...", "warn");
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1000);
+      }
+
+      // ─── DARK MODE ───
+      (function initTheme() {
+        const t = localStorage.getItem("am-theme") || "light";
+        document.documentElement.setAttribute("data-theme", t);
+        const btn = $("darkBtn");
+        if (btn) btn.textContent = t === "dark" ? "☀️ Claro" : "🌙 Oscuro";
+      })();
+      function toggleDark() {
+        const root = document.documentElement;
+        const next =
+          root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        localStorage.setItem("am-theme", next);
+        const btn = $("darkBtn");
+        if (btn) btn.textContent = next === "dark" ? "☀️ Claro" : "🌙 Oscuro";
+      }
+
+      // ─── DATE ───
+      function updateDate() {
+        const d = new Date().toLocaleDateString("es-PE", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        const el = $("dateChip");
+        if (el) el.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+      }
+      setInterval(updateDate, 60000);
+      updateDate();
+
+      function updateGreeting() {
+        const h = new Date().getHours();
+        const g =
+          h < 12 ? "Buenos días" : h < 18 ? "Buenas tardes" : "Buenas noches";
+        const el = $("greetingTitle");
+        if (el) el.textContent = `${g}, Administrador 👋`;
+        const sub = $("greetingSub");
+        if (sub)
+          sub.textContent = `${new Date().toLocaleDateString("es-PE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} — A&M Exportaciones`;
+      }
+
+      // ─── TABS ───
+      const TAB_META = {
+        dashboard: {
+          icon: "🏠",
+          title: "Dashboard",
+          sub: "Resumen general del sistema",
+        },
+        workers: {
+          icon: "👥",
+          title: "Control de Trabajadores",
+          sub: "Gestión completa del personal",
+        },
+        sessions: {
+          icon: "🟢",
+          title: "Control de Sesiones",
+          sub: "Monitoreo en tiempo real",
+        },
+        attendance: {
+          icon: "📋",
+          title: "Asistencia / Reportes",
+          sub: "Control de asistencia diaria",
+        },
+        kpi: {
+          icon: "📊",
+          title: "KPIs del Personal",
+          sub: "Estadísticas y métricas de desempeño",
+        },
+        notifications: {
+          icon: "🔔",
+          title: "Centro de Alertas",
+          sub: "Notificaciones y alertas del sistema",
+        },
+        audit: {
+          icon: "📘",
+          title: "Bitácora de Eventos",
+          sub: "Registro completo de todas las acciones",
+        },
+      };
+      function showTab(tab, el) {
+        document.querySelectorAll(".view").forEach((v) => {
+          v.classList.add("hidden");
+          v.classList.remove("active");
+        });
+        const view = $("view-" + tab);
+        if (view) {
+          view.classList.remove("hidden");
+          view.classList.add("active");
+        }
+        document
+          .querySelectorAll(".tab,.nav-item")
+          .forEach((b) => b.classList.remove("active"));
+        const tabBtn = $("tab-" + tab);
+        if (tabBtn) tabBtn.classList.add("active");
+        document.querySelectorAll(".nav-item").forEach((b) => {
+          if ((b.getAttribute("onclick") || "").includes("'" + tab + "'"))
+            b.classList.add("active");
+        });
+        const meta = TAB_META[tab] || { icon: "", title: tab, sub: "" };
+        $("pageTitleIcon").textContent = meta.icon;
+        $("pageTitleText").textContent = meta.title;
+        $("pageSub").textContent = meta.sub;
+        if (tab === "attendance") {
+          $("attDateFilter").value = todayStr();
+          renderAttendance();
+        }
+        if (tab === "kpi") renderKpi();
+        if (tab === "audit") {
+          populateAuditWorkerFilter();
+          renderAudit();
+        }
+        if (tab === "sessions") renderSessions();
+        if (tab === "dashboard") renderDashboard();
+        if (tab === "notifications") renderNotifications();
+      }
+
+      // ─── PASS ───
+      function togglePass(inputId, btn) {
+        const inp = $(inputId);
+        if (!inp) return;
+        inp.type = inp.type === "password" ? "text" : "password";
+        btn.textContent = inp.type === "password" ? "👁" : "🙈";
+      }
+
+      // ─── WORKERS ───
+      function filteredWorkers() {
+        const q = ($("searchInput")?.value || "").toLowerCase();
+        const role = $("fRole")?.value || "",
+          status = $("fStatus")?.value || "",
+          gender = $("fGender")?.value || "",
+          antec = $("fAntec")?.value || "";
+        return DB.workers.filter((w) => {
+          if (
+            q &&
+            !`${w.firstName} ${w.lastName} ${w.docNumber} ${w.email} ${w.username} ${w.phone}`
+              .toLowerCase()
+              .includes(q)
+          )
+            return false;
+          if (role && w.role !== role) return false;
+          if (status && w.status !== status) return false;
+          if (gender && w.gender !== gender) return false;
+          if (antec && w.antecedentes !== antec) return false;
+          return true;
+        });
+      }
+      function toggleAdvanced() {
+        const el = $("advancedFilters");
+        el.classList.toggle("hidden");
+        $("advIcon").textContent = el.classList.contains("hidden") ? "▼" : "▲";
+      }
+      function clearFilters() {
+        ["fRole", "fStatus", "fGender", "fAntec"].forEach((f) => {
+          const e = $(f);
+          if (e) e.value = "";
+        });
+        $("searchInput").value = "";
+        renderWorkers();
+      }
+
+      function renderWorkers() {
+        const workers = filteredWorkers();
+        $("kw-total").textContent = workers.length;
+        $("kw-activo").textContent = workers.filter(
+          (w) => w.status === "activo",
+        ).length;
+        $("kw-desconectado").textContent = workers.filter(
+          (w) => w.status === "desconectado",
+        ).length;
+        $("kw-suspendido").textContent = workers.filter(
+          (w) => w.status === "suspendido",
+        ).length;
+        $("kw-antec").textContent = workers.filter(
+          (w) => w.antecedentes === "Sí",
+        ).length;
+        $("nc-workers").textContent = DB.workers.length;
+        $("tb-workers").textContent = DB.workers.length;
+        const hasF =
+          $("fRole").value ||
+          $("fStatus").value ||
+          $("fGender").value ||
+          $("fAntec").value;
+        $("clearFiltersBtn").style.display = hasF ? "inline-flex" : "none";
+        if (!workers.length) {
+          $("workersBody").innerHTML =
+            `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>Sin resultados.</p></div></td></tr>`;
+          return;
+        }
+        $("workersBody").innerHTML = workers
+          .map((w) => {
+            const antecH =
+              w.antecedentes === "Sí"
+                ? '<span class="antec-pill">⚠ Antecedentes</span>'
+                : "";
+            const pageH = w.currentPage
+              ? `<br><span style="font-size:10px;color:var(--blue);font-weight:600;margin-top:2px;display:block">● ${esc(w.currentPage)}</span>`
+              : "";
+            const opts = ["activo", "desconectado", "suspendido", "cesado"]
+              .map(
+                (s) =>
+                  `<option value="${s}"${w.status === s ? " selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`,
+              )
+              .join("");
+            return `<tr class="acc-trigger" onclick="toggleAccordion('${w.id}')">
+      <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 36)}
+        <div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}<span class="acc-chevron" id="chev-${w.id}">▶</span></div>
+        <div class="worker-sub">${esc(w.username)} · ${esc(w.email)}</div>${antecH}</div></div></td>
+      <td><span style="font-size:11px;color:var(--text3)">${esc(w.docType)}</span><br><span style="font-weight:500">${esc(w.docNumber)}</span></td>
+      <td><span class="badge badge-info">${esc(w.role)}</span></td>
+      <td>${badgeStatus(w.status)}${pageH}</td>
+      <td><div style="font-size:13px">${esc(w.phone)}</div><div style="font-size:11px;color:var(--text3)">${esc((w.address || "").slice(0, 28))}</div></td>
+      <td style="font-size:12px;color:var(--text3)">${esc(w.schedule)}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-outline btn-sm" onclick="openWorkerModal('${w.id}')">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="openAttModal('${w.id}',null)">📋</button>
+          <button class="btn btn-danger btn-sm" onclick="openDelete('${w.id}')">🗑️</button>
+          <select class="inp sel" style="padding:4px 6px;font-size:11px;width:auto;border-radius:7px" onchange="quickStatus('${w.id}',this.value)">${opts}</select>
+        </div>
+      </td>
+    </tr>
+    <tr class="acc-row"><td colspan="7"><div class="acc-inner" id="acc-${w.id}"></div></td></tr>`;
+          })
+          .join("");
+      }
+
+      function quickStatus(wid, newStatus) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w || w.status === newStatus) return;
+        const old = w.status;
+        w.status = newStatus;
+        if (newStatus !== "activo") w.currentPage = null;
+        saveDB();
+        addLog(
+          wid,
+          "Cambio de estado",
+          `Estado: "${old}" → "${newStatus}"`,
+          "Trabajadores",
+          [{ field: "Estado", from: old, to: newStatus }],
+        );
+        addNotification(
+          "info",
+          `Estado cambiado — ${w.firstName} ${w.lastName}`,
+          `De "${old}" a "${newStatus}"`,
+        );
+        renderWorkers();
+        updateCounts();
+        renderSessions();
+        toast(`Estado → ${newStatus}`, "success");
+      }
+
+      // ─── ACCORDION ───
+      function toggleAccordion(wid) {
+        const inner = $("acc-" + wid),
+          chev = $("chev-" + wid);
+        if (!inner) return;
+        const isOpen = inner.classList.contains("open");
+        document
+          .querySelectorAll(".acc-inner")
+          .forEach((e) => e.classList.remove("open"));
+        document
+          .querySelectorAll(".acc-chevron")
+          .forEach((e) => e.classList.remove("open"));
+        if (!isOpen) {
+          inner.classList.add("open");
+          if (chev) chev.classList.add("open");
+          inner.innerHTML = buildAccordion(wid);
+        }
+      }
+
+      function buildAccordion(wid) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return "";
+        const logs = DB.auditLog.filter((l) => l.workerId === wid);
+        const fields = [
+          ["Nombre", `${w.firstName} ${w.lastName}`],
+          ["Documento", `${w.docType}: ${w.docNumber}`],
+          ["Género", w.gender || "—"],
+          ["Cumpleaños", w.birthday || "—"],
+          ["Email", w.email || "—"],
+          ["Celular", w.phone || "—"],
+          ["Dirección", w.address || "—"],
+          ["Antecedentes", w.antecedentes || "—"],
+          ["Usuario", "@" + (w.username || "")],
+          ["Contraseña", "••••••••"],
+          ["Horario", w.schedule || "—"],
+          ["Ref. nombre", w.refName || "—"],
+          ["Ref. celular", w.refPhone || "—"],
+          ["Creado", w.createdAt || "—"],
+        ];
+
+        // Heatmap for last 30 days
+        const heatDays = 30;
+        let heatHTML = '<div class="heat-grid">';
+        for (let d = heatDays - 1; d >= 0; d--) {
+          const dt = new Date();
+          dt.setDate(dt.getDate() - d);
+          const ds = dt.toISOString().slice(0, 10);
+          const rec = DB.attendance.find(
+            (r) => r.workerId === wid && r.date === ds,
+          );
+          const cls = rec ? `heat-${rec.type}` : "heat-0";
+          const label = rec ? `${ds}: ${rec.type}` : `${ds}: sin registro`;
+          heatHTML += `<div class="heat-cell ${cls}" title="${label}"></div>`;
+        }
+        heatHTML +=
+          '</div><div style="display:flex;gap:12px;font-size:10.5px;color:var(--text3);flex-wrap:wrap;margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span>Asistencia</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--amber);display:inline-block"></span>Tardanza</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block"></span>Falta</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--blue);display:inline-block"></span>Permiso</span></div>';
+
+        return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem">
+    ${fields.map(([k, v]) => `<div class="profile-field"><div class="pf-label">${esc(k)}</div><div class="pf-val">${esc(v)}</div></div>`).join("")}
+  </div>
+  <div style="margin-bottom:1rem">
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:.5rem">Mapa de asistencia (últimos 30 días)</div>
+    ${heatHTML}
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+    <h4 style="font-family:'Instrument Serif',serif;font-size:15px">Historial de eventos <span style="font-size:10px;background:var(--gold-pale);color:var(--gold-d);padding:2px 8px;border-radius:999px;border:1px solid rgba(196,154,42,.3);margin-left:6px">${logs.length}</span></h4>
+    <button class="btn btn-outline btn-sm" onclick="openWorkerModal('${wid}')">✏️ Editar</button>
+  </div>
+  ${
+    logs.length === 0
+      ? '<div class="empty-state" style="padding:20px"><p>Sin eventos.</p></div>'
+      : `<div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)">${logs.map((l) => buildMiniLog(l)).join("")}</div>`
+  }`;
+      }
+
+      function buildMiniLog(l) {
+        const ICONS = {
+          Creación: "✨",
+          Eliminación: "🗑",
+          Desconexión: "🔌",
+          "Cambio de estado": "🏷",
+          "Edición de datos": "✏️",
+          "Registro de asistencia": "📋",
+          "Corrección de asistencia": "🔧",
+          "Memorandón enviado": "📤",
+        };
+        const TC = {
+          Creación: "badge-success",
+          Eliminación: "badge-cesado",
+          "Cambio de estado": "badge-warn",
+          "Edición de datos": "badge-info",
+          "Registro de asistencia": "badge-purple",
+          "Corrección de asistencia": "badge-purple",
+          "Memorandón enviado": "badge-teal",
+          Desconexión: "badge-suspendido",
+        };
+        const diffsH =
+          l.diffs && l.diffs.length
+            ? '<div style="margin-top:5px">' +
+              l.diffs
+                .map(
+                  (d) =>
+                    `<div class="diff-row"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3)">${esc(d.field)}</span><span style="color:var(--red);text-decoration:line-through">${esc(d.from)}</span><span style="color:var(--text3)">→</span><span style="color:var(--green)">${esc(d.to)}</span></div>`,
+                )
+                .join("") +
+              "</div>"
+            : "";
+        const obsH = l.obs
+          ? `<div class="audit-obs">📝 ${esc(l.obs)}</div>`
+          : "";
+        return `<div style="display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border)">
+    <span style="font-size:16px;flex-shrink:0;width:24px;text-align:center">${ICONS[l.tipo] || "ℹ️"}</span>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:3px">
+        <span class="badge ${TC[l.tipo] || "badge-info"}" style="font-size:10px">${esc(l.tipo)}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:monospace">${esc(l.at)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">${esc(l.desc)}</div>
+      ${obsH}${diffsH}
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+        <span class="log-chip">👤 ${esc(l.by)}</span><span class="log-chip">🌐 ${esc(l.ip)}</span>
+      </div>
+    </div>
+  </div>`;
+      }
+
+      // ─── WORKER MODAL ───
+      function openWorkerModal(id) {
+        const isEdit = !!id;
+        $("workerModalTitle").textContent = isEdit
+          ? "Editar trabajador"
+          : "Crear trabajador";
+        if (isEdit) {
+          const w = DB.workers.find((x) => x.id === id);
+          if (!w) return;
+          $("wId").value = w.id;
+          $("wFirstName").value = w.firstName;
+          $("wLastName").value = w.lastName;
+          $("wDocType").value = w.docType;
+          $("wDocNumber").value = w.docNumber;
+          $("wGender").value = w.gender;
+          $("wBirthday").value = w.birthday || "";
+          $("wAddress").value = w.address;
+          $("wAntec").value = w.antecedentes;
+          $("wEmail").value = w.email;
+          $("wPhone").value = w.phone;
+          $("wUsername").value = w.username;
+          $("wPassword").value = w.password;
+          $("wRole").value = w.role;
+          $("wSchedule").value = w.schedule;
+          $("wStatus").value = w.status;
+          $("wRefName").value = w.refName;
+          $("wRefPhone").value = w.refPhone;
+        } else {
+          [
+            "wId",
+            "wFirstName",
+            "wLastName",
+            "wDocNumber",
+            "wBirthday",
+            "wAddress",
+            "wEmail",
+            "wPhone",
+            "wUsername",
+            "wPassword",
+            "wSchedule",
+            "wRefName",
+            "wRefPhone",
+          ].forEach((f) => {
+            const e = $(f);
+            if (e) e.value = "";
+          });
+          $("wDocType").value = "DNI";
+          $("wGender").value = "Femenino";
+          $("wAntec").value = "No";
+          $("wRole").value = "Vendedor";
+          $("wStatus").value = "activo";
+          $("wSchedule").value = "Lun-Vie 08:00-17:00";
+        }
+        document
+          .querySelectorAll(".form-error")
+          .forEach((e) => e.classList.remove("show"));
+        openModal("workerModal");
+      }
+      function saveWorker() {
+        const id = $("wId").value,
+          fn = $("wFirstName").value.trim(),
+          ln = $("wLastName").value.trim();
+        const dn = $("wDocNumber").value.trim(),
+          em = $("wEmail").value.trim(),
+          ph = $("wPhone").value.trim();
+        const us = $("wUsername").value.trim(),
+          pw = $("wPassword").value.trim();
+        const rn = $("wRefName").value.trim(),
+          rp = $("wRefPhone").value.trim(),
+          ad = $("wAddress").value.trim();
+        let valid = true;
+        const check = (c, eid) => {
+          $(`e-${eid}`)?.classList[c ? "add" : "remove"]("show");
+          if (c) valid = false;
+        };
+        check(!fn, "firstName");
+        check(!ln, "lastName");
+        check(!dn, "docNumber");
+        check(!em || !/\S+@\S+\.\S+/.test(em), "email");
+        check(!ph, "phone");
+        check(!us, "username");
+        check(!id && !pw, "password");
+        check(!rn, "refName");
+        check(!rp, "refPhone");
+        if (!valid) return;
+        const fd = {
+          firstName: fn,
+          lastName: ln,
+          docType: $("wDocType").value,
+          docNumber: dn,
+          gender: $("wGender").value,
+          birthday: $("wBirthday").value,
+          address: ad,
+          antecedentes: $("wAntec").value,
+          email: em,
+          phone: ph,
+          username: us,
+          role: $("wRole").value,
+          schedule: $("wSchedule").value,
+          status: $("wStatus").value,
+          refName: rn,
+          refPhone: rp,
+        };
+        if (id) {
+          const w = DB.workers.find((x) => x.id === id);
+          const tracked = {
+            firstName: "Nombre",
+            lastName: "Apellidos",
+            role: "Rol",
+            status: "Estado",
+            email: "Correo",
+            phone: "Celular",
+            address: "Dirección",
+            schedule: "Horario",
+            antecedentes: "Antecedentes",
+          };
+          const diffs = [];
+          Object.entries(tracked).forEach(([k, label]) => {
+            if (w[k] !== fd[k])
+              diffs.push({ field: label, from: w[k], to: fd[k] });
+          });
+          const np = $("wPassword").value.trim();
+          fd.password =
+            np && np !== w.password
+              ? (diffs.push({ field: "Contraseña", from: "***", to: "***" }),
+                np)
+              : w.password;
+          Object.assign(w, fd);
+          saveDB();
+          if (diffs.length)
+            addLog(
+              id,
+              "Edición de datos",
+              `Datos modificados: ${fn} ${ln}`,
+              "Trabajadores",
+              diffs,
+            );
+          toast("Trabajador actualizado", "success");
+        } else {
+          fd.password = pw;
+          const w = {
+            ...fd,
+            id: genId(),
+            createdAt: nowStr(),
+            currentPage: null,
+            lastSeen: null,
+          };
+          DB.workers.unshift(w);
+          saveDB();
+          addLog(
+            w.id,
+            "Creación",
+            `Trabajador creado: ${fn} ${ln} — ${w.role}`,
+          );
+          addNotification(
+            "success",
+            `Nuevo trabajador: ${fn} ${ln}`,
+            `Rol: ${w.role} | Estado: ${w.status}`,
+          );
+          toast("Trabajador creado", "success");
+        }
+        closeModal("workerModal");
+        renderWorkers();
+        updateCounts();
+      }
+
+      // ─── DELETE ───
+      function openDelete(id) {
+        deleteTarget = id;
+        const w = DB.workers.find((x) => x.id === id);
+        $("deleteWorkerName").textContent = w
+          ? `${w.firstName} ${w.lastName}`
+          : "";
+        openModal("deleteModal");
+      }
+      function confirmDelete() {
+        if (!deleteTarget) return;
+        const w = DB.workers.find((x) => x.id === deleteTarget);
+        if (w) {
+          addLog(
+            deleteTarget,
+            "Eliminación",
+            `Trabajador eliminado: ${w.firstName} ${w.lastName}`,
+          );
+          DB.workers = DB.workers.filter((x) => x.id !== deleteTarget);
+          saveDB();
+          toast("Eliminado", "success");
+          renderWorkers();
+          updateCounts();
+        }
+        deleteTarget = null;
+        closeModal("deleteModal");
+      }
+
+      // ─── SESSIONS ───
+      function renderSessions() {
+        const online = DB.workers.filter(
+          (w) => w.status === "activo" && w.currentPage,
+        );
+        const unauth = online.filter(
+          (w) => !(AUTHORIZED[w.role] || []).includes(w.currentPage),
+        );
+        $("ks-online").textContent = online.length;
+        $("ks-activos").textContent = DB.workers.filter(
+          (w) => w.status === "activo",
+        ).length;
+        $("ks-unauth").textContent = unauth.length;
+        $("ks-susp").textContent = DB.workers.filter(
+          (w) => w.status === "suspendido",
+        ).length;
+        $("ks-cesados").textContent = DB.workers.filter(
+          (w) => w.status === "cesado",
+        ).length;
+        $("nc-sessions").textContent = online.length;
+        $("tb-sessions").textContent = online.length;
+        if (!online.length) {
+          $("sessionsOnline").innerHTML =
+            '<div class="empty-state" style="padding:28px"><div class="empty-icon">🔌</div><p>Sin sesiones activas.</p></div>';
+        } else {
+          $("sessionsOnline").innerHTML = online
+            .map((w) => {
+              const auth = (AUTHORIZED[w.role] || []).includes(w.currentPage);
+              const opts = ["activo", "desconectado", "suspendido", "cesado"]
+                .map(
+                  (s) =>
+                    `<option value="${s}"${w.status === s ? " selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`,
+                )
+                .join("");
+              return `<div class="session-card ${auth ? "" : "unauthorized"}">
+        <div style="display:flex;align-items:center;gap:12px"><div class="online-dot"></div>${avatar(w.firstName + " " + w.lastName, 40)}
+          <div><div style="font-weight:600;font-size:14px">${esc(w.firstName)} ${esc(w.lastName)}</div><div style="font-size:12px;color:var(--text3)">${esc(w.role)} · ${esc(w.schedule)}</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="${auth ? "page-ok" : "page-warn"}">${auth ? "✓" : "⚠"} ${esc(w.currentPage)}</span>
+          <span style="font-size:11px;color:var(--text3)">${esc(w.lastSeen || "—")}</span>
+          <button class="btn btn-danger btn-sm" onclick="disconnectWorker('${w.id}')">⏏ Desconectar</button>
+          <select class="inp sel" style="padding:4px 7px;font-size:11.5px;width:auto;border-radius:7px" onchange="quickStatus('${w.id}',this.value)">${opts}</select>
+        </div></div>`;
+            })
+            .join("");
+        }
+        $("sessionsAllBody").innerHTML = DB.workers
+          .map(
+            (w) => `<tr>
+    <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 30)}<div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}</div></div></div></td>
+    <td style="font-size:12px">${esc(w.role)}</td><td>${badgeStatus(w.status)}</td>
+    <td>${w.currentPage ? `<span class="badge badge-info">${esc(w.currentPage)}</span>` : "—"}</td>
+    <td style="font-size:12px;color:var(--text3)">${esc(w.lastSeen || "—")}</td>
+    <td>${w.currentPage ? `<button class="btn btn-danger btn-sm" onclick="disconnectWorker('${w.id}')">⏏</button>` : "—"}</td>
+  </tr>`,
+          )
+          .join("");
+      }
+      function disconnectWorker(id) {
+        const w = DB.workers.find((x) => x.id === id);
+        if (!w) return;
+        w.currentPage = null;
+        w.lastSeen = nowStr();
+        saveDB();
+        addLog(
+          id,
+          "Desconexión",
+          `Sesión cerrada: ${w.firstName} ${w.lastName}`,
+        );
+        renderSessions();
+        renderWorkers();
+        toast("Sesión cerrada", "success");
+      }
+      function disconnectAll() {
+        const online = DB.workers.filter(
+          (w) => w.status === "activo" && w.currentPage,
+        );
+        online.forEach((w) => {
+          w.currentPage = null;
+          w.lastSeen = nowStr();
+          addLog(w.id, "Desconexión", `Sesión cerrada en desconexión masiva`);
+        });
+        saveDB();
+        renderSessions();
+        renderWorkers();
+        toast(`${online.length} sesiones cerradas`, "warn");
+      }
+
+      // ─── ATTENDANCE ───
+      function openAttModal(wid, existingRec) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        $("attModalTitle").textContent =
+          "Asistencia — " + w.firstName + " " + w.lastName;
+        $("attWorkerId").value = wid;
+        if (existingRec) {
+          $("attType").value = existingRec.type || "asistencia";
+          $("attDate").value = existingRec.date || todayStr();
+          $("attTime").value = existingRec.checkIn || "08:00";
+          $("attDebt").value = existingRec.hoursDebt || 0;
+          $("attJust").value = existingRec.justified || 0;
+          $("attObs").value = existingRec.obs || "";
+          $("attModal").dataset.editId = existingRec.id;
+        } else {
+          $("attType").value = "asistencia";
+          $("attDate").value = todayStr();
+          $("attTime").value = "08:00";
+          $("attDebt").value = 0;
+          $("attJust").value = 0;
+          $("attObs").value = "";
+          delete $("attModal").dataset.editId;
+        }
+        openModal("attModal");
+      }
+      function saveAttendance() {
+        const wid = $("attWorkerId").value,
+          w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const editId = $("attModal").dataset.editId,
+          now = nowStr();
+        const newType = $("attType").value,
+          newDate = $("attDate").value,
+          newCheckIn = $("attTime").value;
+        const newDebt = Number($("attDebt").value),
+          newJust = Number($("attJust").value),
+          newObs = $("attObs").value.trim();
+        if (editId) {
+          const existing = DB.attendance.find((r) => r.id === editId);
+          if (!existing) return;
+          const editEntry = {
+            editId: genId(),
+            at: now,
+            atISO: new Date().toISOString(),
+            by: "Administrador",
+            ip: fakeIP(),
+            changes: [],
+            obs: newObs,
+          };
+          if (existing.type !== newType)
+            editEntry.changes.push({
+              field: "Tipo",
+              from: existing.type,
+              to: newType,
+            });
+          if (existing.checkIn !== newCheckIn)
+            editEntry.changes.push({
+              field: "Hora",
+              from: existing.checkIn,
+              to: newCheckIn,
+            });
+          if (existing.hoursDebt !== newDebt)
+            editEntry.changes.push({
+              field: "H.deuda",
+              from: String(existing.hoursDebt),
+              to: String(newDebt),
+            });
+          if (existing.justified !== newJust)
+            editEntry.changes.push({
+              field: "H.justif.",
+              from: String(existing.justified),
+              to: String(newJust),
+            });
+          if (existing.obs !== newObs)
+            editEntry.changes.push({
+              field: "Obs.",
+              from: existing.obs || "—",
+              to: newObs || "—",
+            });
+          existing.type = newType;
+          existing.checkIn = newCheckIn;
+          existing.hoursDebt = newDebt;
+          existing.justified = newJust;
+          existing.obs = newObs;
+          if (!existing.editHistory) existing.editHistory = [];
+          existing.editHistory.push(editEntry);
+          addLog(
+            wid,
+            "Corrección de asistencia",
+            `Registro ${newDate} corregido — ${w.firstName} ${w.lastName}`,
+            "Trabajadores",
+            editEntry.changes,
+            newObs,
+            { attRecId: editId, attDate: newDate },
+          );
+          toast("Asistencia actualizada", "success");
+        } else {
+          const rec = {
+            id: genId(),
+            workerId: wid,
+            date: newDate,
+            type: newType,
+            checkIn: newCheckIn,
+            hoursDebt: newDebt,
+            justified: newJust,
+            obs: newObs,
+            recordedAt: now,
+            recordedBy: "Administrador",
+            editHistory: [],
+          };
+          DB.attendance.push(rec);
+          addLog(
+            wid,
+            "Registro de asistencia",
+            `${newType} — ${w.firstName} ${w.lastName} el ${newDate}`,
+            "Trabajadores",
+            [],
+            newObs,
+            { attRecId: rec.id, attDate: newDate },
+          );
+          if (newType === "falta" || newType === "tardanza") {
+            addNotification(
+              "warn",
+              `${newType.charAt(0).toUpperCase() + newType.slice(1)} registrada`,
+              `${w.firstName} ${w.lastName} — ${newDate}${newObs ? " | " + newObs : ""}`,
+            );
+          }
+          toast("Asistencia registrada", "success");
+        }
+        saveDB();
+        closeModal("attModal");
+        renderAttendance();
+        renderDashboard();
+      }
+      function renderAttendance() {
+        const date =
+          $("attDateFilter") && $("attDateFilter").value
+            ? $("attDateFilter").value
+            : todayStr();
+        const label = new Date(date + "T12:00:00").toLocaleDateString("es-PE", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        $("attDateLabel").textContent = "Fecha: " + label;
+        const workers = DB.workers.filter((w) => w.status !== "cesado");
+        const cnt = {
+          asistencia: 0,
+          tardanza: 0,
+          falta: 0,
+          none: 0,
+          permiso: 0,
+        };
+        $("attendanceBody").innerHTML = workers
+          .map((w) => {
+            const rec = DB.attendance.find(
+              (r) => r.workerId === w.id && r.date === date,
+            );
+            const type = rec ? rec.type : null;
+            if (!type) cnt.none++;
+            else if (cnt[type] !== undefined) cnt[type]++;
+            const debt = rec ? rec.hoursDebt || 0 : 0,
+              just = rec ? rec.justified || 0 : 0,
+              remain = Math.max(0, debt - just);
+            const debtC = debt > 0 ? "var(--amber)" : "var(--text3)",
+              compC = remain > 0 ? "var(--red)" : "var(--green)";
+            const compT =
+              type === "tardanza"
+                ? remain > 0
+                  ? remain + "h pend."
+                  : "✓ OK"
+                : "—";
+            const obsSnip =
+              rec && rec.obs
+                ? `<span style="font-size:11px;color:var(--text3);font-style:italic">${esc(rec.obs.slice(0, 35) + (rec.obs.length > 35 ? "…" : ""))}</span>`
+                : '<span style="font-size:11px;color:var(--text3)">—</span>';
+            return `<tr>
+      <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 34)}<div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}</div><div class="worker-sub">${esc(w.role)}</div></div></div></td>
+      <td>${attBadge(type)}</td>
+      <td style="font-size:13px">${rec && rec.checkIn ? esc(rec.checkIn) : "—"}</td>
+      <td style="font-size:13px;color:${debtC}">${debt > 0 ? debt + "h" : "—"}</td>
+      <td style="font-size:13px;color:${compC}">${compT}</td>
+      <td>${obsSnip}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn-icon" onclick="openAttDetail('${w.id}','${date}')" title="Detalle">👁</button>
+        <button class="btn-icon" onclick="openAttModal('${w.id}',${rec ? `DB.attendance.find(r=>r.id==='${rec.id}')` : null})" title="Editar">✏️</button>
+        <button class="btn-icon" onclick="openMemo('${w.id}','${date}')" title="Memorandón">📨</button>
+        <button class="btn-icon" onclick="printAttReport('${w.id}','${date}')" title="Imprimir">🖨️</button>
+      </div></td>
+    </tr>`;
+          })
+          .join("");
+        $("ka-asist").textContent = cnt.asistencia;
+        $("ka-tard").textContent = cnt.tardanza;
+        $("ka-faltas").textContent = cnt.falta;
+        $("ka-none").textContent = cnt.none;
+        $("ka-perm").textContent = cnt.permiso;
+      }
+
+      function openAttDetail(wid, date) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const allRecs = DB.attendance
+          .filter((r) => r.workerId === wid)
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 30);
+        $("attDetailTitle").textContent =
+          `Historial — ${w.firstName} ${w.lastName}`;
+        const infoCards = [
+          ["Rol", w.role],
+          ["Horario", w.schedule],
+          ["Estado", w.status],
+        ]
+          .map(
+            ([k, v]) =>
+              `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 13px"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:3px">${k}</div><div style="font-size:13px;font-weight:500">${esc(v)}</div></div>`,
+          )
+          .join("");
+        $("attDetailBody").innerHTML =
+          `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">${infoCards}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h4 style="font-size:14px;font-weight:600;font-family:'Instrument Serif',serif">Registros recientes</h4>
+    <button class="btn btn-gold btn-sm" onclick="openAttModal('${wid}',null)">+ Nuevo</button>
+  </div>
+  ${
+    allRecs.length === 0
+      ? '<div class="empty-state" style="padding:24px"><p>Sin registros.</p></div>'
+      : allRecs
+          .map((r) => {
+            const hasEdits = r.editHistory && r.editHistory.length > 0;
+            const editBadge = hasEdits
+              ? `<span class="badge badge-warn" style="font-size:9.5px;cursor:pointer" onclick="openAttRecDetail('${r.id}')">👁 ${r.editHistory.length} edición${r.editHistory.length > 1 ? "es" : ""}</span>`
+              : "";
+            const obsH = r.obs
+              ? `<div style="font-size:11.5px;color:var(--text2);font-style:italic;margin-top:4px">📝 ${esc(r.obs)}</div>`
+              : "";
+            return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--surface)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">${attBadge(r.type)}<span style="font-weight:600;font-size:13px">${esc(r.date)}</span>${editBadge}</div>
+        <button class="btn btn-outline btn-sm" onclick="openAttModal('${wid}',DB.attendance.find(r=>r.id==='${r.id}'))">✏️ Editar</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">Entrada: ${r.checkIn || "—"} · Deuda: ${r.hoursDebt || 0}h · Justif.: ${r.justified || 0}h</div>
+      ${obsH}
+      ${hasEdits ? buildEditHistory(r.editHistory) : ""}
+    </div>`;
+          })
+          .join("")
+  }`;
+        openModal("attDetailModal");
+      }
+
+      function buildEditHistory(editHistory) {
+        if (!editHistory || !editHistory.length) return "";
+        return `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+    <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Modificaciones (${editHistory.length})</div>
+    ${editHistory
+      .map(
+        (
+          e,
+          i,
+        ) => `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+        <span style="background:var(--navy);color:#fff;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px">#${i + 1}</span>
+        <span style="font-size:12px;font-weight:600">👤 ${esc(e.by)}</span>
+        <span style="font-size:10.5px;color:var(--text3);font-family:monospace">🕐 ${esc(e.at)}</span>
+        <span class="log-chip">🌐 ${esc(e.ip)}</span>
+      </div>
+      ${e.changes && e.changes.length ? e.changes.map((c) => `<div class="diff-row" style="font-size:11px"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3)">${esc(c.field)}</span><span style="color:var(--red);text-decoration:line-through">${esc(c.from)}</span><span style="color:var(--text3)">→</span><span style="color:var(--green)">${esc(c.to)}</span></div>`).join("") : ""}
+      ${e.obs ? `<div class="audit-obs" style="margin-top:5px">📝 ${esc(e.obs)}</div>` : ""}
+    </div>`,
+      )
+      .join("")}
+  </div>`;
+      }
+
+      function openAttRecDetail(recId) {
+        const rec = DB.attendance.find((r) => r.id === recId);
+        if (!rec) return;
+        const w = DB.workers.find((x) => x.id === rec.workerId);
+        $("attRecDetailTitle").textContent =
+          `Detalle del registro — ${rec.date}`;
+        const eh = rec.editHistory || [];
+        $("attRecDetailBody").innerHTML = `
+    <div style="padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${attBadge(rec.type)}<span style="font-size:13px;font-weight:600">${esc(rec.date)}</span><span style="font-size:12px;color:var(--text3)">Entrada: ${rec.checkIn || "—"} · Deuda: ${rec.hoursDebt || 0}h</span></div>
+      ${rec.obs ? `<div style="font-size:12px;color:var(--text2);margin-top:6px;font-style:italic">📝 ${esc(rec.obs)}</div>` : ""}
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Registrado por: ${esc(rec.recordedBy || "—")} · ${esc(rec.recordedAt || "—")}</div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Historial de modificaciones (${eh.length})</div>
+    ${
+      eh.length === 0
+        ? '<div class="empty-state" style="padding:18px"><p>Sin modificaciones.</p></div>'
+        : eh
+            .map(
+              (
+                e,
+                i,
+              ) => `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--surface)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px">Edición #${i + 1}</span>
+          <span style="font-size:12px;font-weight:600">👤 ${esc(e.by)}</span>
+        </div>
+        <span style="font-size:10.5px;color:var(--text3);font-family:monospace">🕐 ${esc(e.at)}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><span class="log-chip">🌐 ${esc(e.ip)}</span><span class="log-chip">📁 Asistencia</span></div>
+      ${e.changes && e.changes.length ? e.changes.map((c) => `<div class="diff-row" style="font-size:11px"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3)">${esc(c.field)}</span><span style="color:var(--red);text-decoration:line-through">${esc(c.from)}</span><span style="color:var(--text3)">→</span><span style="color:var(--green)">${esc(c.to)}</span></div>`).join("") : '<span style="font-size:11px;color:var(--text3)">Sin cambios de campos</span>'}
+      ${e.obs ? `<div class="audit-obs" style="margin-top:6px">📝 Observación: ${esc(e.obs)}</div>` : ""}
+    </div>`,
+            )
+            .join("")
+    }`;
+        openModal("attRecDetailModal");
+      }
+
+      function printAttReport(wid, date) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const rec = DB.attendance.find(
+          (r) => r.workerId === wid && r.date === date,
+        );
+        const win = window.open("", "_blank", "width=700,height=500");
+        win.document.write(
+          `<html><head><title>Reporte Asistencia — A&M</title><style>body{font-family:sans-serif;padding:30px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:8px 12px;border:1px solid #ddd;text-align:left}th{background:#f5f5f5}h1{font-size:18px;margin-bottom:8px}</style></head><body><h1>Reporte de Asistencia — A&M Exportaciones</h1><p><b>${w.firstName} ${w.lastName}</b> · ${w.role}</p><p>Fecha: ${date}</p><table><tr><th>Tipo</th><th>Entrada</th><th>H.Deuda</th><th>H.Justif</th><th>Observación</th></tr><tr><td>${rec?.type || "Sin registro"}</td><td>${rec?.checkIn || "—"}</td><td>${rec?.hoursDebt || 0}h</td><td>${rec?.justified || 0}h</td><td>${rec?.obs || "—"}</td></tr></table></body></html>`,
+        );
+        win.print();
+      }
+
+      function printAttPage() {
+        const date = $("attDateFilter").value || todayStr();
+        const workers = DB.workers.filter((w) => w.status !== "cesado");
+        const rows = workers
+          .map((w) => {
+            const rec = DB.attendance.find(
+              (r) => r.workerId === w.id && r.date === date,
+            );
+            return `<tr><td>${w.firstName} ${w.lastName}</td><td>${w.role}</td><td>${rec?.type || "Sin registro"}</td><td>${rec?.checkIn || "—"}</td><td>${rec?.hoursDebt || 0}h</td><td>${rec?.obs || "—"}</td></tr>`;
+          })
+          .join("");
+        const win = window.open("", "_blank");
+        win.document.write(
+          `<html><head><title>Asistencia ${date}</title><style>body{font-family:sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:7px 10px;border:1px solid #ddd;text-align:left;font-size:13px}th{background:#0b1c35;color:#fff}</style></head><body><h2 style="margin-bottom:12px">Reporte de Asistencia — ${date} — A&M Exportaciones</h2><table><thead><tr><th>Trabajador</th><th>Rol</th><th>Tipo</th><th>Entrada</th><th>H.Deuda</th><th>Obs</th></tr></thead><tbody>${rows}</tbody></table></body></html>`,
+        );
+        win.print();
+      }
+
+      function openMemo(wid, date) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        $("memoWorkerId").value = wid;
+        $("memoChannel").value = "email";
+        $("memoPhone").value = w.phone || "";
+        $("memoWaWrap").classList.add("hidden");
+        const rec = DB.attendance.find(
+          (r) => r.workerId === wid && r.date === date,
+        );
+        const tipo = rec?.type || "sin registro";
+        $("memoPreview").innerHTML =
+          `<div style="font-weight:700;margin-bottom:8px">MEMORANDÓN A&amp;M EXPORTACIONES</div>
+    <div><b>Para:</b> ${w.firstName} ${w.lastName}</div><div><b>Correo:</b> ${w.email}</div>
+    <div><b>Fecha:</b> ${date}</div><div><b>Asunto:</b> Registro de ${tipo.toUpperCase()}</div>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0">
+    <div>Se notifica que el día <b>${date}</b> se registró incidencia de tipo <b>${tipo}</b>.</div>
+    ${rec?.hoursDebt ? `<div>Horas a compensar: <b>${rec.hoursDebt}h</b> · Justificadas: <b>${rec.justified || 0}h</b></div>` : ""}
+    ${rec?.obs ? `<div><b>Observación:</b> ${rec.obs}</div>` : ""}
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0">
+    <div style="color:#888">Atentamente, Administración A&amp;M Exportaciones</div>`;
+        $("memoModal").dataset.date = date;
+        openModal("memoModal");
+      }
+      function toggleMemoWa() {
+        $("memoChannel").value === "whatsapp"
+          ? $("memoWaWrap").classList.remove("hidden")
+          : $("memoWaWrap").classList.add("hidden");
+      }
+      function sendMemo() {
+        const wid = $("memoWorkerId").value,
+          w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const ch = $("memoChannel").value,
+          dest = ch === "whatsapp" ? $("memoPhone").value : w.email;
+        addLog(
+          wid,
+          "Memorandón enviado",
+          `Memorandón enviado por ${ch} a ${dest}`,
+        );
+        toast("Memorandón enviado", "success");
+        closeModal("memoModal");
+      }
+      function printMemo() {
+        const win = window.open("", "_blank");
+        win.document.write(
+          `<html><head><style>body{font-family:sans-serif;padding:30px;line-height:1.7}</style></head><body>${$("memoPreview").innerHTML}</body></html>`,
+        );
+        win.print();
+      }
+
+      // ─── KPI ───
+      function workerStats(wid, yearMonth) {
+        const period = yearMonth || todayStr().slice(0, 7);
+        const recs = DB.attendance.filter(
+          (r) => r.workerId === wid && r.date.startsWith(period),
+        );
+        const totalDays = 22;
+        const a = recs.filter((r) => r.type === "asistencia").length;
+        const t = recs.filter((r) => r.type === "tardanza").length;
+        const f = recs.filter((r) => r.type === "falta").length;
+        const p = recs.filter((r) => r.type === "permiso").length;
+        const debt = recs.reduce((s, r) => s + (r.hoursDebt || 0), 0);
+        const just = recs.reduce((s, r) => s + (r.justified || 0), 0);
+        const pct = totalDays ? Math.round((a / totalDays) * 100) : 0;
+        return { a, t, f, p, debt, just, pct, totalDays, recs };
+      }
+      function getKpiPeriod() {
+        return `${$("kpiYear")?.value || todayStr().slice(0, 4)}-${$("kpiMonth")?.value || todayStr().slice(5, 7)}`;
+      }
+      function resetKpiFilters() {
+        const today = todayStr();
+        if ($("kpiMonth")) $("kpiMonth").value = today.slice(5, 7);
+        if ($("kpiYear")) $("kpiYear").value = today.slice(0, 4);
+        if ($("kpiSearch")) $("kpiSearch").value = "";
+        renderKpi();
+      }
+      function renderKpi() {
+        const period = getKpiPeriod();
+        const q = ($("kpiSearch")?.value || "").toLowerCase();
+        const workers = DB.workers.filter(
+          (w) =>
+            !q ||
+            (w.firstName + " " + w.lastName + " " + w.role)
+              .toLowerCase()
+              .includes(q),
+        );
+        const allStats = DB.workers.map((w) => workerStats(w.id, period));
+        const totalA = allStats.reduce((s, x) => s + x.a, 0),
+          totalT = allStats.reduce((s, x) => s + x.t, 0);
+        const totalF = allStats.reduce((s, x) => s + x.f, 0),
+          avgPct = allStats.length
+            ? Math.round(
+                allStats.reduce((s, x) => s + x.pct, 0) / allStats.length,
+              )
+            : 0;
+        $("kpiBigGrid").innerHTML = [
+          ["mc-blue", "Total trabajadores", DB.workers.length, "Registrados"],
+          ["mc-green", "Asistencias", totalA, "Este período"],
+          ["mc-amber", "Tardanzas", totalT, "Este período"],
+          ["mc-red", "Faltas", totalF, "Este período"],
+          ["mc-purple", "Cumpl. promedio", avgPct + "%", "Asistencia"],
+        ]
+          .map(
+            (k) =>
+              `<div class="metric-card ${k[0]}"><span class="metric-icon">${["👥", "✅", "⏰", "❌", "📊"][["mc-blue", "mc-green", "mc-amber", "mc-red", "mc-purple"].indexOf(k[0])]}</span><div class="metric-label">${k[1]}</div><div class="metric-value">${k[2]}</div><div class="metric-sub">${k[3]}</div></div>`,
+          )
+          .join("");
+        $("kpiBody").innerHTML = workers
+          .map((w) => {
+            const s = workerStats(w.id, period);
+            const bc =
+              s.pct >= 90
+                ? "var(--green)"
+                : s.pct >= 70
+                  ? "var(--amber)"
+                  : "var(--red)";
+            const debt = Math.max(0, s.debt - s.just);
+            return `<tr>
+      <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 30)}<div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}</div></div></div></td>
+      <td style="font-size:12px;color:var(--text3)">${esc(w.role)}</td>
+      <td><span style="font-weight:600;color:var(--green)">${s.a}</span></td>
+      <td><span class="badge ${s.t > 0 ? "badge-warn" : "badge-desconectado"}">${s.t}</span></td>
+      <td><span class="badge ${s.f > 0 ? "badge-cesado" : "badge-desconectado"}">${s.f}</span></td>
+      <td><span class="badge ${s.p > 0 ? "badge-info" : "badge-desconectado"}">${s.p}</span></td>
+      <td style="color:${debt > 0 ? "var(--red)" : "var(--green)"};font-weight:500">${debt}h</td>
+      <td style="min-width:120px"><div style="font-size:12px;font-weight:600">${s.pct}%</div><div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100, s.pct)}%;background:${bc}"></div></div></td>
+      <td><button class="btn btn-outline btn-sm" onclick="openKpiDetail('${w.id}','${period}')">👁 KPI</button></td>
+    </tr>`;
+          })
+          .join("");
+      }
+
+      function openKpiDetail(wid, period) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const s = workerStats(wid, period);
+        $("kpiModalTitle").textContent = `KPI — ${w.firstName} ${w.lastName}`;
+        const bc =
+          s.pct >= 90
+            ? "var(--green)"
+            : s.pct >= 70
+              ? "var(--amber)"
+              : "var(--red)";
+        const recs = s.recs.sort((a, b) => b.date.localeCompare(a.date));
+        $("kpiModalBody").innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px;background:linear-gradient(135deg,var(--navy),var(--navy3));border-radius:var(--radius);margin-bottom:18px">
+      ${avatar(w.firstName + " " + w.lastName, 46)}
+      <div><div style="font-size:18px;font-family:'Instrument Serif',serif;color:#fff">${esc(w.firstName)} ${esc(w.lastName)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6)">${esc(w.role)} · ${esc(w.schedule)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px">
+      ${[
+        ["Asistencias", s.a, "mc-green"],
+        ["Tardanzas", s.t, "mc-amber"],
+        ["Faltas", s.f, "mc-red"],
+        ["Cumplimiento", s.pct + "%", "mc-blue"],
+      ]
+        .map(
+          (k) =>
+            `<div class="metric-card ${k[2]}" style="padding:12px 14px"><div class="metric-label">${k[0]}</div><div class="metric-value" style="font-size:24px">${k[1]}</div></div>`,
+        )
+        .join("")}
+    </div>
+    <div style="margin-bottom:16px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Cumplimiento del período — ${s.pct}%</div>
+      <div class="prog-bar" style="height:10px"><div class="prog-fill" style="width:${Math.min(100, s.pct)}%;background:${bc}"></div></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">${s.a} asistencias de ${s.totalDays} días · Deuda: ${Math.max(0, s.debt - s.just)}h</div>
+    </div>
+    <h4 style="font-size:14px;font-weight:600;font-family:'Instrument Serif',serif;margin-bottom:12px">Historial del período</h4>
+    ${
+      recs.length === 0
+        ? '<div class="empty-state" style="padding:20px"><p>Sin registros en este período.</p></div>'
+        : `<div style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto">
+      ${recs
+        .map((r) => {
+          const hasEdits = r.editHistory && r.editHistory.length > 0;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;min-width:90px">${esc(r.date)}</span>
+          ${attBadge(r.type)}
+          <span style="font-size:12px;color:var(--text3);min-width:50px">${r.checkIn || "—"}</span>
+          <span style="font-size:12px;font-weight:500;color:${r.hoursDebt > 0 ? "var(--amber)" : "var(--green)"}">${r.hoursDebt > 0 ? r.hoursDebt + "h deuda" : "✓ OK"}</span>
+          ${r.obs ? `<span style="font-size:11px;color:var(--text3);font-style:italic;flex:1">📝 ${esc(r.obs.slice(0, 35) + (r.obs.length > 35 ? "…" : ""))}</span>` : '<span style="flex:1"></span>'}
+          ${hasEdits ? `<span class="badge badge-warn" style="font-size:9.5px;cursor:pointer" onclick="openAttRecDetail('${r.id}')">👁 ${r.editHistory.length} edición${r.editHistory.length > 1 ? "es" : ""}</span>` : ""}
+          <button class="btn btn-outline btn-sm" style="padding:4px 8px" onclick="closeModal('kpiModal');openAttModal('${wid}',DB.attendance.find(r=>r.id==='${r.id}'))">✏️</button>
+        </div>`;
+        })
+        .join("")}
+    </div>`
+    }`;
+        openModal("kpiModal");
+      }
+
+      // ─── NOTIFICATIONS ───
+      function renderNotifications() {
+        const notifs = DB.notifications;
+        $("tb-notif").textContent = notifs.filter((n) => !n.read).length;
+        $("nc-notif").textContent = notifs.filter((n) => !n.read).length;
+        updateNotifBadge();
+        if (!notifs.length) {
+          $("notifList").innerHTML =
+            '<div class="empty-state"><div class="empty-icon">🔔</div><p>Sin alertas registradas.</p></div>';
+          return;
+        }
+        const ICON = { warn: "⚠️", info: "ℹ️", success: "✅", danger: "🚨" };
+        const COLORS = {
+          warn: "var(--amber-bg)",
+          info: "var(--blue-bg)",
+          success: "var(--green-bg)",
+          danger: "var(--red-bg)",
+        };
+        $("notifList").innerHTML = notifs
+          .map(
+            (n) => `
+    <div class="notif-item ${n.read ? "" : "unread"}">
+      <div class="notif-icon" style="background:${COLORS[n.type] || COLORS.info}">${ICON[n.type] || "ℹ️"}</div>
+      <div class="notif-body">
+        <div class="notif-title">${esc(n.title)}</div>
+        <div class="notif-sub">${esc(n.body)}</div>
+        <div class="notif-time">${esc(n.at)}</div>
+      </div>
+      ${!n.read ? `<div class="notif-dot"></div>` : ""}
+      <button class="btn-icon" onclick="dismissNotif('${n.id}')" title="Descartar" style="font-size:11px;align-self:flex-start">✕</button>
+    </div>`,
+          )
+          .join("");
+      }
+      function markAllRead() {
+        DB.notifications.forEach((n) => (n.read = true));
+        saveDB();
+        renderNotifications();
+        updateCounts();
+      }
+      function clearNotifications() {
+        DB.notifications = [];
+        saveDB();
+        renderNotifications();
+        updateCounts();
+      }
+      function dismissNotif(id) {
+        DB.notifications = DB.notifications.filter((n) => n.id !== id);
+        saveDB();
+        renderNotifications();
+        updateCounts();
+      }
+      function updateNotifBadge() {
+        const unread = DB.notifications.filter((n) => !n.read).length;
+        const badge = $("topNotifBadge");
+        if (badge) {
+          badge.textContent = unread;
+          badge.style.display = unread > 0 ? "flex" : "none";
+        }
+      }
+
+      // ─── AUDIT ───
+      function populateAuditWorkerFilter() {
+        const sel = $("auditWorkerFilter");
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Todos</option>';
+        DB.workers.forEach((w) => {
+          const o = document.createElement("option");
+          o.value = w.id;
+          o.textContent = `${w.firstName} ${w.lastName}`;
+          sel.appendChild(o);
+        });
+        sel.value = cur;
+      }
+      function clearAuditFilters() {
+        [
+          "auditSearch",
+          "auditDateFilter",
+          "auditDateFrom",
+          "auditDateTo",
+        ].forEach((f) => {
+          const e = $(f);
+          if (e) e.value = "";
+        });
+        ["auditTypeFilter", "auditWorkerFilter"].forEach((f) => {
+          const e = $(f);
+          if (e) e.value = "";
+        });
+        renderAudit();
+      }
+      function quickAuditDate(r) {
+        const today = todayStr();
+        $("auditDateFilter").value = "";
+        $("auditDateFrom").value = "";
+        $("auditDateTo").value = "";
+        if (r === "today") $("auditDateFilter").value = today;
+        else if (r === "yesterday") {
+          const y = new Date();
+          y.setDate(y.getDate() - 1);
+          $("auditDateFilter").value = y.toISOString().slice(0, 10);
+        } else if (r === "week") {
+          const f = new Date();
+          f.setDate(f.getDate() - 6);
+          $("auditDateFrom").value = f.toISOString().slice(0, 10);
+          $("auditDateTo").value = today;
+        } else if (r === "month") {
+          $("auditDateFrom").value = today.slice(0, 7) + "-01";
+          $("auditDateTo").value = today;
+        }
+        renderAudit();
+      }
+      function parseLogDate(at) {
+        if (!at) return "";
+        const p = at.split(",")[0].trim().split("/");
+        return p.length === 3
+          ? `${p[2]}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}`
+          : at.slice(0, 10) || "";
+      }
+      function renderAudit() {
+        populateAuditWorkerFilter();
+        const q = ($("auditSearch")?.value || "").toLowerCase(),
+          typeF = $("auditTypeFilter")?.value || "",
+          workerF = $("auditWorkerFilter")?.value || "";
+        const exactDate = $("auditDateFilter")?.value || "",
+          dateFrom = $("auditDateFrom")?.value || "",
+          dateTo = $("auditDateTo")?.value || "";
+        let logs = [...DB.auditLog];
+        if (q)
+          logs = logs.filter((l) =>
+            JSON.stringify(l).toLowerCase().includes(q),
+          );
+        if (typeF) logs = logs.filter((l) => l.tipo === typeF);
+        if (workerF) logs = logs.filter((l) => l.workerId === workerF);
+        if (exactDate)
+          logs = logs.filter((l) => {
+            const d = l.atISO ? l.atISO.slice(0, 10) : parseLogDate(l.at);
+            return d === exactDate;
+          });
+        if (dateFrom || dateTo)
+          logs = logs.filter((l) => {
+            const d = l.atISO ? l.atISO.slice(0, 10) : parseLogDate(l.at);
+            if (dateFrom && d < dateFrom) return false;
+            if (dateTo && d > dateTo) return false;
+            return true;
+          });
+        $("nc-audit").textContent = DB.auditLog.length;
+        $("tb-audit").textContent = DB.auditLog.length;
+        const cnt = $("auditResultCount");
+        if (cnt)
+          cnt.textContent = `${logs.length} resultado${logs.length !== 1 ? "s" : ""}`;
+        const ICONS = {
+          Creación: "✨",
+          Eliminación: "🗑",
+          Desconexión: "🔌",
+          "Cambio de estado": "🏷",
+          "Edición de datos": "✏️",
+          "Registro de asistencia": "📋",
+          "Corrección de asistencia": "🔧",
+          "Memorandón enviado": "📤",
+        };
+        const TC = {
+          Creación: "badge-success",
+          Eliminación: "badge-cesado",
+          "Cambio de estado": "badge-warn",
+          "Edición de datos": "badge-info",
+          "Registro de asistencia": "badge-purple",
+          "Corrección de asistencia": "badge-purple",
+          "Memorandón enviado": "badge-teal",
+          Desconexión: "badge-suspendido",
+        };
+        if (!logs.length) {
+          $("auditList").innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📘</div><p>Sin eventos con esos filtros.</p></div>';
+          return;
+        }
+        $("auditList").innerHTML = logs
+          .map((l) => {
+            const w = DB.workers.find((x) => x.id === l.workerId),
+              wName = w ? `${w.firstName} ${w.lastName}` : "Sistema";
+            const diffsH =
+              l.diffs && l.diffs.length
+                ? `<div style="margin-top:6px">${l.diffs.map((d) => `<div class="diff-row" style="font-size:11px"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3)">${esc(d.field)}</span><span style="color:var(--red);text-decoration:line-through">${esc(d.from)}</span><span style="color:var(--text3)">→</span><span style="color:var(--green)">${esc(d.to)}</span></div>`).join("")}</div>`
+                : "";
+            const obsH = l.obs
+              ? `<div class="audit-obs">📝 ${esc(l.obs)}</div>`
+              : "";
+            return `<div class="log-item">
+      <div class="log-header">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:18px">${ICONS[l.tipo] || "ℹ️"}</span>
+          <span class="badge ${TC[l.tipo] || "badge-info"}">${esc(l.tipo)}</span>
+          <span style="font-size:13px;font-weight:600">${esc(wName)}</span>
+          <span style="font-size:12px;color:var(--text3)">— ${esc(l.desc)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--text3);white-space:nowrap">${esc(l.at)}</span>
+          <button class="btn-icon" onclick="openAuditDetail('${l.id}')" title="Ver detalle" style="font-size:13px">👁</button>
+        </div>
+      </div>
+      <div class="log-chips">
+        <span class="log-chip">👤 ${esc(l.by)}</span>
+        <span class="log-chip">🌐 ${esc(l.ip)}</span>
+        <span class="log-chip">📁 ${esc(l.module || "Trabajadores")}</span>
+        ${w ? `<span class="log-chip">🧑 ${esc(wName)}</span>` : ""}
+      </div>
+      ${obsH}${diffsH}
+    </div>`;
+          })
+          .join("");
+      }
+      function openAuditDetail(logId) {
+        const l = DB.auditLog.find((x) => x.id === logId);
+        if (!l) return;
+        const w = DB.workers.find((x) => x.id === l.workerId),
+          wName = w ? `${w.firstName} ${w.lastName}` : "Sistema";
+        const ICONS = {
+          Creación: "✨",
+          Eliminación: "🗑",
+          Desconexión: "🔌",
+          "Cambio de estado": "🏷",
+          "Edición de datos": "✏️",
+          "Registro de asistencia": "📋",
+          "Corrección de asistencia": "🔧",
+          "Memorandón enviado": "📤",
+        };
+        const TC = {
+          Creación: "badge-success",
+          Eliminación: "badge-cesado",
+          "Cambio de estado": "badge-warn",
+          "Edición de datos": "badge-info",
+          "Registro de asistencia": "badge-purple",
+          "Corrección de asistencia": "badge-purple",
+          "Memorandón enviado": "badge-teal",
+          Desconexión: "badge-suspendido",
+        };
+        $("auditDetailBody").innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:14px;background:linear-gradient(135deg,var(--navy),var(--navy3));border-radius:var(--radius);color:#fff;margin-bottom:16px">
+      <span style="font-size:28px">${ICONS[l.tipo] || "ℹ️"}</span>
+      <div><div style="font-size:16px;font-family:'Instrument Serif',serif;color:#fff">${esc(l.tipo)}</div><div style="font-size:12px;color:rgba(255,255,255,.6)">${esc(l.at)}</div></div>
+      <span class="badge ${TC[l.tipo] || "badge-info"}" style="margin-left:auto">${esc(l.tipo)}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      ${[
+        ["Trabajador", wName],
+        ["Ejecutado por", l.by],
+        ["IP", l.ip],
+        ["Módulo", l.module || "Trabajadores"],
+        ["Fecha/Hora", l.at],
+        ["ID", l.id],
+      ]
+        .map(
+          ([k, v]) =>
+            `<div class="profile-field"><div class="pf-label">${k}</div><div class="pf-val">${esc(v)}</div></div>`,
+        )
+        .join("")}
+    </div>
+    <div class="profile-field" style="margin-bottom:12px"><div class="pf-label">Descripción</div><div class="pf-val" style="font-size:13.5px">${esc(l.desc)}</div></div>
+    ${l.obs ? `<div style="background:var(--gold-pale);border:1px solid rgba(196,154,42,.3);border-left:4px solid var(--gold);padding:12px 14px;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gold-d);margin-bottom:4px">Observación</div><div style="font-size:13px">${esc(l.obs)}</div></div>` : ""}
+    ${l.diffs && l.diffs.length ? `<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Cambios</div>${l.diffs.map((d) => `<div style="display:grid;grid-template-columns:120px 1fr 18px 1fr;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3)">${esc(d.field)}</span><span style="color:var(--red);text-decoration:line-through;font-family:monospace;font-size:12px">${esc(d.from)}</span><span style="color:var(--text3);text-align:center">→</span><span style="color:var(--green);font-family:monospace;font-size:12px">${esc(d.to)}</span></div>`).join("")}</div>` : ""}`;
+        openModal("auditDetailModal");
+      }
+
+      // ─── DASHBOARD ───
+      function renderDashboard() {
+        updateGreeting();
+        const workers = DB.workers,
+          today = todayStr();
+        const activos = workers.filter((w) => w.status === "activo").length;
+        const online = workers.filter(
+          (w) => w.status === "activo" && w.currentPage,
+        ).length;
+        const suspendidos = workers.filter(
+          (w) => w.status === "suspendido",
+        ).length;
+        const antec = workers.filter((w) => w.antecedentes === "Sí").length;
+        const todayAtt = DB.attendance.filter((r) => r.date === today);
+        const asistencias = todayAtt.filter(
+          (r) => r.type === "asistencia",
+        ).length;
+        const faltas = todayAtt.filter((r) => r.type === "falta").length;
+        const tardanzas = todayAtt.filter((r) => r.type === "tardanza").length;
+
+        // Big metrics
+        $("dashMetrics").innerHTML = `
+    <div class="metric-card mc-blue" style="cursor:pointer" onclick="showTab('workers',null)">
+      <span class="metric-icon">👥</span><div class="metric-label">Trabajadores</div>
+      <div class="metric-value">${workers.length}</div><div class="metric-sub">Registrados en total</div>
+    </div>
+    <div class="metric-card mc-green" style="cursor:pointer" onclick="showTab('sessions',null)">
+      <span class="metric-icon">🟢</span><div class="metric-label">En línea ahora</div>
+      <div class="metric-value">${online}</div><div class="metric-sub">Sesiones activas</div>
+    </div>
+    <div class="metric-card mc-green" style="cursor:pointer" onclick="showTab('attendance',null)">
+      <span class="metric-icon">✅</span><div class="metric-label">Asistencias hoy</div>
+      <div class="metric-value">${asistencias}</div><div class="metric-sub">De ${activos} activos</div>
+    </div>
+    <div class="metric-card mc-red" style="cursor:pointer" onclick="showTab('attendance',null)">
+      <span class="metric-icon">❌</span><div class="metric-label">Faltas hoy</div>
+      <div class="metric-value">${faltas}</div><div class="metric-sub">Sin justificar</div>
+    </div>
+    <div class="metric-card mc-amber" style="cursor:pointer" onclick="showTab('notifications',null)">
+      <span class="metric-icon">🔔</span><div class="metric-label">Alertas</div>
+      <div class="metric-value">${DB.notifications.filter((n) => !n.read).length}</div><div class="metric-sub">Sin leer</div>
+    </div>`;
+
+        // Online sessions mini
+        const onlineWorkers = workers.filter(
+          (w) => w.status === "activo" && w.currentPage,
+        );
+        $("dashSessionsMini").innerHTML =
+          onlineWorkers.length === 0
+            ? '<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">Sin sesiones activas</div>'
+            : onlineWorkers
+                .slice(0, 4)
+                .map(
+                  (
+                    w,
+                  ) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div class="online-dot"></div>${avatar(w.firstName + " " + w.lastName, 30)}
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(w.firstName)} ${esc(w.lastName)}</div><div style="font-size:11px;color:var(--text3)">${esc(w.role)} · ${esc(w.currentPage)}</div></div>
+      <button class="btn btn-danger btn-xs" onclick="disconnectWorker('${w.id}')">⏏</button>
+    </div>`,
+                )
+                .join("");
+
+        // Today attendance mini
+        const activeWorkers = workers
+          .filter((w) => w.status !== "cesado")
+          .slice(0, 5);
+        $("dashAttMini").innerHTML = activeWorkers
+          .map((w) => {
+            const rec = DB.attendance.find(
+              (r) => r.workerId === w.id && r.date === today,
+            );
+            return `<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;background:var(--surface2)">
+      ${avatar(w.firstName + " " + w.lastName, 26)}
+      <span style="font-size:12.5px;font-weight:500;flex:1">${esc(w.firstName)} ${esc(w.lastName)}</span>
+      ${attBadge(rec?.type || null)}
+    </div>`;
+          })
+          .join("");
+
+        // Alerts mini
+        const recentNotifs = DB.notifications.slice(0, 3);
+        const ICON = { warn: "⚠️", info: "ℹ️", success: "✅", danger: "🚨" };
+        $("dashAlertsMini").innerHTML =
+          recentNotifs.length === 0
+            ? '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">Sin alertas</div>'
+            : recentNotifs
+                .map(
+                  (
+                    n,
+                  ) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:6px${n.read ? "" : ";border-left:3px solid var(--gold)"}">
+      <span style="font-size:18px">${ICON[n.type] || "ℹ️"}</span>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:600">${esc(n.title)}</div><div style="font-size:11.5px;color:var(--text3)">${esc(n.body)}</div></div>
+      <span style="font-size:10.5px;color:var(--text3)">${esc(n.at)}</span>
+    </div>`,
+                )
+                .join("");
+      }
+
+      // ─── COUNTS ───
+      function updateCounts() {
+        $("nc-workers").textContent = DB.workers.length;
+        $("tb-workers").textContent = DB.workers.length;
+        const online = DB.workers.filter(
+          (w) => w.status === "activo" && w.currentPage,
+        ).length;
+        $("nc-sessions").textContent = online;
+        $("tb-sessions").textContent = online;
+        $("nc-audit").textContent = DB.auditLog.length;
+        $("tb-audit").textContent = DB.auditLog.length;
+        const unread = DB.notifications.filter((n) => !n.read).length;
+        $("nc-notif").textContent = unread;
+        $("tb-notif").textContent = unread;
+        updateNotifBadge();
+      }
+
+      // ─── EXPORT CSV ───
+      function downloadCSV(filename, rows, headers) {
+        const csv = [
+          headers.join(","),
+          ...rows.map((r) =>
+            r
+              .map((v) => '"' + String(v || "").replace(/"/g, '""') + '"')
+              .join(","),
+          ),
+        ].join("\n");
+        const a = document.createElement("a");
+        a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+        a.download = filename;
+        a.click();
+      }
+      function exportWorkersCSV() {
+        downloadCSV(
+          "trabajadores.csv",
+          DB.workers.map((w) => [
+            w.firstName,
+            w.lastName,
+            w.docType,
+            w.docNumber,
+            w.role,
+            w.status,
+            w.email,
+            w.phone,
+            w.schedule,
+            w.antecedentes,
+            w.createdAt,
+          ]),
+          [
+            "Nombre",
+            "Apellidos",
+            "Tipo Doc",
+            "Documento",
+            "Rol",
+            "Estado",
+            "Email",
+            "Celular",
+            "Horario",
+            "Antecedentes",
+            "Creado",
+          ],
+        );
+        toast("CSV exportado", "success");
+      }
+      function exportAttCSV() {
+        const date = $("attDateFilter").value || todayStr();
+        const rows = DB.workers
+          .filter((w) => w.status !== "cesado")
+          .map((w) => {
+            const rec = DB.attendance.find(
+              (r) => r.workerId === w.id && r.date === date,
+            );
+            return [
+              w.firstName + " " + w.lastName,
+              w.role,
+              rec?.type || "Sin registro",
+              rec?.checkIn || "—",
+              rec?.hoursDebt || 0,
+              rec?.justified || 0,
+              rec?.obs || "—",
+            ];
+          });
+        downloadCSV(`asistencia_${date}.csv`, rows, [
+          "Trabajador",
+          "Rol",
+          "Tipo",
+          "Entrada",
+          "H.Deuda",
+          "H.Justif",
+          "Observación",
+        ]);
+        toast("CSV exportado", "success");
+      }
+      function exportKpiCSV() {
+        const period = getKpiPeriod();
+        const rows = DB.workers.map((w) => {
+          const s = workerStats(w.id, period);
+          return [
+            w.firstName + " " + w.lastName,
+            w.role,
+            s.a,
+            s.t,
+            s.f,
+            s.p,
+            Math.max(0, s.debt - s.just),
+            s.pct + "%",
+          ];
+        });
+        downloadCSV(`kpi_${period}.csv`, rows, [
+          "Trabajador",
+          "Rol",
+          "Asistencias",
+          "Tardanzas",
+          "Faltas",
+          "Permisos",
+          "H.Deuda",
+          "Cumplimiento",
+        ]);
+        toast("CSV exportado", "success");
+      }
+      function exportAuditCSV() {
+        const rows = DB.auditLog.map((l) => {
+          const w = DB.workers.find((x) => x.id === l.workerId);
+          return [
+            l.at,
+            l.tipo,
+            w ? w.firstName + " " + w.lastName : "Sistema",
+            l.desc,
+            l.obs || "—",
+            l.by,
+            l.ip,
+            l.module || "Trabajadores",
+          ];
+        });
+        downloadCSV("bitacora.csv", rows, [
+          "Fecha",
+          "Tipo",
+          "Trabajador",
+          "Descripción",
+          "Observación",
+          "Ejecutado por",
+          "IP",
+          "Módulo",
+        ]);
+        toast("CSV exportado", "success");
+      }
+
+      // ─── INIT KPI FILTERS ───
+      (function initKpiFilters() {
+        const today = todayStr(),
+          currentYear = parseInt(today.slice(0, 4));
+        const yearSel = $("kpiYear");
+        if (yearSel) {
+          for (let y = currentYear; y >= currentYear - 4; y--) {
+            const o = document.createElement("option");
+            o.value = String(y);
+            o.textContent = String(y);
+            yearSel.appendChild(o);
+          }
+          yearSel.value = String(currentYear);
+        }
+        const monthSel = $("kpiMonth");
+        if (monthSel) monthSel.value = today.slice(5, 7);
+      })();
+
+      // ─── BOOT ───
+      updateCounts();
+      renderWorkers();
+      renderDashboard();
+    </script>
+  </body>
+</html>

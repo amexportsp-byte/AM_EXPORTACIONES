@@ -1,0 +1,1639 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>A&M Importaciones — Libro Contable Digital</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="libro.css" />
+  </head>
+  <body>
+    <!-- ── NOTIFICACIONES EMERGENTES ── -->
+    <div id="toastWrap"></div>
+
+    <!-- ══════════════════════════════════════
+     MODALES FLOTANTES
+══════════════════════════════════════ -->
+
+    <!-- MODAL CONFIRMACIÓN -->
+    <div class="modal-bg" id="modalConfirm">
+      <div class="modal-box modal-sm">
+        <div class="modal-head">
+          <h3 id="confirmTitulo">
+            <i class="fa fa-triangle-exclamation"></i> Confirmar
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarConfirm()">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body"><p id="confirmMensaje"></p></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarConfirm()">
+            Cancelar
+          </button>
+          <button class="btn btn-danger" id="btnConfirmAceptar">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL ASIENTO CONTABLE -->
+    <div class="modal-bg" id="modalAsiento">
+      <div class="modal-box modal-xl">
+        <div class="modal-head">
+          <h3 id="modalAsientoTitulo">
+            <i class="fa fa-file-invoice"></i> Nuevo Asiento
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalAsiento')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalAsientoBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalAsiento')">
+            Cancelar
+          </button>
+          <button class="btn btn-secondary" onclick="limpiarFormAsiento()">
+            <i class="fa fa-eraser"></i> Limpiar
+          </button>
+          <button class="btn btn-primario" onclick="guardarAsiento()">
+            <i class="fa fa-save"></i> Guardar Asiento
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DETALLE / HISTORIAL (reutilizable) -->
+    <div class="modal-bg" id="modalDetalle">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalDetalleTitulo">Detalle</h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalDetalle')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalDetalleBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalDetalle')">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL VENTA -->
+    <div class="modal-bg" id="modalVenta">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalVentaTitulo">
+            <i class="fa fa-cart-plus"></i> Nueva Venta
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalVenta')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalVentaBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalVenta')">
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarVenta">
+            <i class="fa fa-save"></i> Guardar Venta
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL COMPRA -->
+    <div class="modal-bg" id="modalCompra">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalCompraTitulo">
+            <i class="fa fa-shopping-cart"></i> Nueva Compra
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalCompra')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalCompraBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalCompra')">
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarCompra">
+            <i class="fa fa-save"></i> Guardar Compra
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL GASTO -->
+    <div class="modal-bg" id="modalGasto">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalGastoTitulo">
+            <i class="fa fa-receipt"></i> Nuevo Gasto
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalGasto')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalGastoBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalGasto')">
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarGasto">
+            <i class="fa fa-save"></i> Guardar Gasto
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL INVERSIÓN -->
+    <div class="modal-bg" id="modalInversion">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalInversionTitulo">
+            <i class="fa fa-chart-line"></i> Nueva Inversión
+          </h3>
+          <button
+            class="modal-close-btn"
+            onclick="cerrarModal('modalInversion')"
+          >
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalInversionBody"></div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-outline"
+            onclick="cerrarModal('modalInversion')"
+          >
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarInversion">
+            <i class="fa fa-save"></i> Guardar Inversión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CxC (Cuenta por Cobrar) -->
+    <div class="modal-bg" id="modalCxc">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalCxcTitulo">
+            <i class="fa fa-file-invoice-dollar"></i> Nueva Cuenta por Cobrar
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalCxc')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalCxcBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalCxc')">
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarCxc">
+            <i class="fa fa-save"></i> Guardar CxC
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CxP (Cuenta por Pagar) -->
+    <div class="modal-bg" id="modalCxp">
+      <div class="modal-box modal-lg">
+        <div class="modal-head">
+          <h3 id="modalCxpTitulo">
+            <i class="fa fa-hand-holding-dollar"></i> Nueva Cuenta por Pagar
+          </h3>
+          <button class="modal-close-btn" onclick="cerrarModal('modalCxp')">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalCxpBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="cerrarModal('modalCxp')">
+            Cancelar
+          </button>
+          <button class="btn btn-primario" id="btnGuardarCxp">
+            <i class="fa fa-save"></i> Guardar CxP
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL GRÁFICO AMPLIADO -->
+    <div class="modal-bg" id="modalGrafico">
+      <div class="modal-box modal-grafico">
+        <div class="modal-head">
+          <h3 id="modalGraficoTitulo">
+            <i class="fa fa-chart-line"></i> Detalle del Gráfico
+          </h3>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <select
+              id="modalGraficoAnio"
+              class="sel-mini"
+              onchange="actualizarGraficoModal()"
+              style="min-width: 80px"
+            ></select>
+            <button
+              class="btn btn-outline btn-sm"
+              onclick="exportarGraficoModal()"
+            >
+              <i class="fa fa-download"></i> PNG
+            </button>
+            <button
+              class="modal-close-btn"
+              onclick="cerrarModal('modalGrafico')"
+            >
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem">
+          <!-- KPIs del gráfico seleccionado -->
+          <div id="modalGraficoKpis" class="grafico-modal-kpis"></div>
+          <!-- Canvas grande -->
+          <div class="grafico-modal-wrap">
+            <canvas id="canvasGraficoModal"></canvas>
+          </div>
+          <!-- Tabla de datos -->
+          <div id="modalGraficoTabla" class="grafico-modal-tabla"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+     CONTENEDOR PRINCIPAL
+══════════════════════════════════════ -->
+    <div class="app-shell">
+      <!-- ╔═══════════════╗
+       ║   SIDEBAR     ║
+       ╚═══════════════╝ -->
+      <aside class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+          <img
+            src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+            alt="A&M"
+            class="logo-img"
+            onerror="this.style.display = 'none'"
+          />
+          <div class="logo-texto">
+            <span class="logo-nombre">A&M Importaciones</span>
+            <span class="logo-sub">Libro Contable Digital</span>
+          </div>
+        </div>
+
+        <!-- Usuario activo -->
+        <div class="sidebar-usuario">
+          <div class="usuario-avatar" id="avatarSidebar">AD</div>
+          <div class="usuario-info">
+            <span class="usuario-nombre" id="usuarioNombre">Administrador</span>
+            <span class="usuario-rol" id="usuarioRol">Contador Principal</span>
+          </div>
+        </div>
+
+        <!-- Navegación -->
+        <nav class="sidebar-nav">
+          <div class="nav-grupo">Principal</div>
+          <button
+            class="nav-item activo"
+            data-seccion="dashboard"
+            onclick="mostrarSeccion('dashboard', this)"
+          >
+            <i class="fa fa-gauge-high"></i><span>Dashboard</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="libroDiario"
+            onclick="mostrarSeccion('libroDiario', this)"
+          >
+            <i class="fa fa-book"></i><span>Libro Diario</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="libroMayor"
+            onclick="mostrarSeccion('libroMayor', this)"
+          >
+            <i class="fa fa-layer-group"></i><span>Libro Mayor</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="balances"
+            onclick="mostrarSeccion('balances', this)"
+          >
+            <i class="fa fa-scale-balanced"></i><span>Balances</span>
+          </button>
+
+          <div class="nav-grupo">Registros</div>
+          <button
+            class="nav-item"
+            data-seccion="ventas"
+            onclick="mostrarSeccion('ventas', this)"
+          >
+            <i class="fa fa-cart-plus"></i><span>Ventas</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="compras"
+            onclick="mostrarSeccion('compras', this)"
+          >
+            <i class="fa fa-shopping-cart"></i><span>Compras</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="gastos"
+            onclick="mostrarSeccion('gastos', this)"
+          >
+            <i class="fa fa-receipt"></i><span>Gastos</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="inversiones"
+            onclick="mostrarSeccion('inversiones', this)"
+          >
+            <i class="fa fa-chart-line"></i><span>Inversiones</span>
+          </button>
+
+          <div class="nav-grupo">Tesorería</div>
+          <button
+            class="nav-item"
+            data-seccion="caja"
+            onclick="mostrarSeccion('caja', this)"
+          >
+            <i class="fa fa-cash-register"></i><span>Caja y Bancos</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="cxc"
+            onclick="mostrarSeccion('cxc', this)"
+          >
+            <i class="fa fa-file-invoice-dollar"></i
+            ><span>Cuentas por Cobrar</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="cxp"
+            onclick="mostrarSeccion('cxp', this)"
+          >
+            <i class="fa fa-hand-holding-dollar"></i
+            ><span>Cuentas por Pagar</span>
+          </button>
+
+          <div class="nav-grupo">Análisis</div>
+          <button
+            class="nav-item"
+            data-seccion="reportes"
+            onclick="mostrarSeccion('reportes', this)"
+          >
+            <i class="fa fa-chart-bar"></i><span>Reportes</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="comparaciones"
+            onclick="mostrarSeccion('comparaciones', this)"
+          >
+            <i class="fa fa-code-compare"></i><span>Comparaciones</span>
+          </button>
+          <button
+            class="nav-item"
+            data-seccion="exportaciones"
+            onclick="mostrarSeccion('exportaciones', this)"
+          >
+            <i class="fa fa-file-export"></i><span>Exportaciones</span>
+          </button>
+
+          <div class="nav-grupo">Sistema</div>
+          <button
+            class="nav-item"
+            data-seccion="config"
+            onclick="mostrarSeccion('config', this)"
+          >
+            <i class="fa fa-gear"></i><span>Configuración</span>
+          </button>
+        </nav>
+
+        <!-- Pie del sidebar -->
+        <div class="sidebar-pie">
+          <button class="btn-tema" onclick="cambiarTema()" title="Cambiar tema">
+            <i class="fa fa-circle-half-stroke"></i>
+          </button>
+          <span class="version-texto">v3.0 © 2025 A&M</span>
+        </div>
+      </aside>
+
+      <!-- ╔═══════════════╗
+       ║    MAIN       ║
+       ╚═══════════════╝ -->
+      <main class="contenido-principal">
+        <!-- TOPBAR -->
+        <header class="topbar">
+          <div class="topbar-izq">
+            <button class="btn-menu" onclick="toggleSidebar()">
+              <i class="fa fa-bars"></i>
+            </button>
+            <span class="topbar-titulo" id="topbarTitulo"
+              >Dashboard General</span
+            >
+          </div>
+          <div class="topbar-der">
+            <div class="busqueda-global">
+              <i class="fa fa-search"></i>
+              <input
+                type="text"
+                id="busquedaGlobal"
+                placeholder="Buscar en todo el sistema..."
+                oninput="busquedaGlobalFn(this.value)"
+              />
+            </div>
+            <div id="alertasTopbar"></div>
+            <span class="fecha-topbar" id="fechaTopbar"></span>
+            <button class="btn btn-dorado btn-sm" onclick="abrirNuevoAsiento()">
+              <i class="fa fa-plus"></i> Nuevo Asiento
+            </button>
+          </div>
+        </header>
+
+        <!-- ÁREA DE CONTENIDO -->
+        <div class="area-contenido">
+          <!-- ════════════════════════════════
+           DASHBOARD
+           ════════════════════════════════ -->
+          <section class="seccion activo" id="s-dashboard">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Dashboard General</div>
+                <div class="seccion-sub" id="subEmpresa">
+                  Sistema Contable A&M
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="mostrarSeccion('exportaciones', null)"
+                >
+                  <i class="fa fa-file-export"></i> Exportar
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirNuevoAsiento()"
+                >
+                  <i class="fa fa-plus"></i> Nuevo Asiento
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid" id="kpiDashboard"></div>
+            <div class="card" id="saludFinanciera"></div>
+
+            <div class="grid-2col">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-line"></i> Ingresos vs Egresos</span
+                  >
+                  <div style="display: flex; gap: 6px; align-items: center">
+                    <select
+                      id="selectorAnioGrafico"
+                      class="sel-mini"
+                      onchange="renderGraficoDashboard()"
+                    ></select>
+                    <button
+                      class="btn-icono-grafico"
+                      onclick="abrirGraficoModal('ingegr')"
+                      title="Ver detalle"
+                    >
+                      <i class="fa fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoIngEgr"></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-pie"></i> Distribución de
+                    Gastos</span
+                  >
+                  <button
+                    class="btn-icono-grafico"
+                    onclick="abrirGraficoModal('gastosPie')"
+                    title="Ver detalle"
+                  >
+                    <i class="fa fa-eye"></i>
+                  </button>
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoGastosPie"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2col">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-bar"></i> Ventas por Mes</span
+                  >
+                  <button
+                    class="btn-icono-grafico"
+                    onclick="abrirGraficoModal('ventas')"
+                    title="Ver detalle"
+                  >
+                    <i class="fa fa-eye"></i>
+                  </button>
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoVentas"></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-area"></i> Flujo de Caja</span
+                  >
+                  <button
+                    class="btn-icono-grafico"
+                    onclick="abrirGraficoModal('flujo')"
+                    title="Ver detalle"
+                  >
+                    <i class="fa fa-eye"></i>
+                  </button>
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoFlujo"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-3col">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-trophy"></i> Top Clientes</span
+                  >
+                </div>
+                <div id="rankingClientes"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-truck"></i> Top Proveedores</span
+                  >
+                </div>
+                <div id="rankingProveedores"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-tags"></i> Top Categorías</span
+                  >
+                </div>
+                <div id="rankingCategorias"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <span class="card-titulo"
+                  ><i class="fa fa-clock-rotate-left"></i> Últimos
+                  Movimientos</span
+                >
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="mostrarSeccion('libroDiario', null)"
+                >
+                  Ver todos
+                </button>
+              </div>
+              <div class="tabla-wrap" id="ultimosMovimientos"></div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           LIBRO DIARIO
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-libroDiario">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Libro Diario</div>
+                <div class="seccion-sub">
+                  Registro cronológico de todas las operaciones
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarDiarioExcel()"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarDiarioPDF()"
+                >
+                  <i class="fa fa-file-pdf"></i> PDF
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirNuevoAsiento()"
+                >
+                  <i class="fa fa-plus"></i> Nuevo Asiento
+                </button>
+              </div>
+            </div>
+
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Buscar</label>
+                  <input
+                    type="text"
+                    id="diarioBuscar"
+                    placeholder="Glosa, cuenta, cliente..."
+                    oninput="renderLibroDiario()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Desde</label>
+                  <input
+                    type="date"
+                    id="diarioDesde"
+                    onchange="renderLibroDiario()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Hasta</label>
+                  <input
+                    type="date"
+                    id="diarioHasta"
+                    onchange="renderLibroDiario()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Tipo</label>
+                  <select id="diarioTipo" onchange="renderLibroDiario()">
+                    <option value="">Todos los tipos</option>
+                    <option>ingreso</option>
+                    <option>egreso</option>
+                    <option>venta</option>
+                    <option>compra</option>
+                    <option>gasto</option>
+                    <option>inversión</option>
+                    <option>transferencia</option>
+                    <option>ajuste</option>
+                  </select>
+                </div>
+                <div class="filtro-grupo">
+                  <label>Estado</label>
+                  <select id="diarioEstado" onchange="renderLibroDiario()">
+                    <option value="">Todos</option>
+                    <option>registrado</option>
+                    <option>pendiente</option>
+                    <option>anulado</option>
+                    <option>revisado</option>
+                  </select>
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="limpiarFiltrosDiario()"
+                >
+                  <i class="fa fa-filter-circle-xmark"></i> Limpiar
+                </button>
+              </div>
+            </div>
+
+            <div class="diario-totales" id="diarioTotales"></div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>N°</th>
+                      <th>Fecha</th>
+                      <th>Cuenta</th>
+                      <th>Glosa</th>
+                      <th>Documento</th>
+                      <th>Debe</th>
+                      <th>Haber</th>
+                      <th>Tipo</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoLibroDiario"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           LIBRO MAYOR
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-libroMayor">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Libro Mayor</div>
+                <div class="seccion-sub">
+                  Clasificación automática por cuenta contable
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarMayorExcel()"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarMayorPDF()"
+                >
+                  <i class="fa fa-file-pdf"></i> PDF
+                </button>
+              </div>
+            </div>
+
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Filtrar cuenta</label>
+                  <input
+                    type="text"
+                    id="mayorBuscar"
+                    placeholder="Código o nombre de cuenta..."
+                    oninput="renderLibroMayor()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Desde</label
+                  ><input
+                    type="date"
+                    id="mayorDesde"
+                    onchange="renderLibroMayor()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Hasta</label
+                  ><input
+                    type="date"
+                    id="mayorHasta"
+                    onchange="renderLibroMayor()"
+                  />
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="limpiarFiltrosMayor()"
+                >
+                  <i class="fa fa-filter-circle-xmark"></i> Limpiar
+                </button>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Denominación</th>
+                      <th>Total Debe</th>
+                      <th>Total Haber</th>
+                      <th>Saldo Deudor</th>
+                      <th>Saldo Acreedor</th>
+                      <th>Saldo Final</th>
+                      <th>Movimientos</th>
+                      <th>Última Fecha</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoLibroMayor"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div
+              class="card"
+              id="mayorDetalleCard"
+              style="display: none; margin-top: 1rem"
+            >
+              <div class="card-header">
+                <span class="card-titulo" id="mayorDetalleTitulo"
+                  >Detalle de cuenta</span
+                >
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="
+                    document.getElementById('mayorDetalleCard').style.display =
+                      'none'
+                  "
+                >
+                  <i class="fa fa-times"></i> Cerrar
+                </button>
+              </div>
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>N°</th>
+                      <th>Glosa</th>
+                      <th>Debe</th>
+                      <th>Haber</th>
+                      <th>Saldo Acum.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoMayorDetalle"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           BALANCES
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-balances">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Inventarios y Balances</div>
+                <div class="seccion-sub">
+                  Situación patrimonial de la empresa
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarBalancesExcel()"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="calcularBalances()"
+                >
+                  <i class="fa fa-calculator"></i> Recalcular
+                </button>
+              </div>
+            </div>
+            <div id="contenidoBalances"></div>
+          </section>
+
+          <!-- ════════════════════════════════
+           VENTAS
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-ventas">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Registro de Ventas</div>
+                <div class="seccion-sub">
+                  Control de ingresos y comprobantes — incluye ventas de módulo
+                  venta.html
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('ventas')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalVenta()"
+                >
+                  <i class="fa fa-plus"></i> Nueva Venta
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiVentas"></div>
+
+            <!-- Filtros de ventas con período -->
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Buscar</label>
+                  <input
+                    type="text"
+                    id="ventasBuscar"
+                    placeholder="Cliente, comprobante..."
+                    oninput="renderTablaVentas()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Desde</label>
+                  <input
+                    type="date"
+                    id="ventasDesde"
+                    onchange="renderTablaVentas()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Hasta</label>
+                  <input
+                    type="date"
+                    id="ventasHasta"
+                    onchange="renderTablaVentas()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Estado pago</label>
+                  <select id="ventasEstado" onchange="renderTablaVentas()">
+                    <option value="">Todos</option>
+                    <option>cobrado</option>
+                    <option>pendiente</option>
+                    <option>parcial</option>
+                  </select>
+                </div>
+                <div class="filtro-grupo">
+                  <label>Período</label>
+                  <select
+                    id="ventasPeriodo"
+                    onchange="actualizarFiltrosPeriodoVentas()"
+                  >
+                    <option value="">Sin filtro</option>
+                    <option value="dia">Día específico</option>
+                    <option value="semana">Semana N°</option>
+                    <option value="mes">Mes</option>
+                    <option value="trimestre">Trimestre</option>
+                    <option value="anio">Año</option>
+                  </select>
+                </div>
+                <div
+                  class="filtro-grupo"
+                  id="ventasFechaDiaWrap"
+                  style="display: none"
+                >
+                  <label>Fecha</label>
+                  <input
+                    type="date"
+                    id="ventasFechaDia"
+                    onchange="renderTablaVentas()"
+                  />
+                </div>
+                <div
+                  class="filtro-grupo"
+                  id="ventasPeriodoValWrap"
+                  style="display: none"
+                >
+                  <label>N° / Mes / Trim.</label>
+                  <input
+                    type="number"
+                    id="ventasPeriodoVal"
+                    min="1"
+                    max="53"
+                    placeholder="Ej: 3"
+                    oninput="renderTablaVentas()"
+                    style="width: 90px"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Año</label>
+                  <input
+                    type="number"
+                    id="ventasAnio"
+                    value=""
+                    placeholder="2025"
+                    style="width: 80px"
+                    oninput="renderTablaVentas()"
+                  />
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="limpiarFiltros('ventas')"
+                >
+                  <i class="fa fa-filter-circle-xmark"></i> Limpiar
+                </button>
+              </div>
+              <div id="ventasPeriodoResumen"></div>
+            </div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Cliente</th>
+                      <th>RUC/DNI</th>
+                      <th>Comprobante</th>
+                      <th>Producto/Servicio</th>
+                      <th>Subtotal</th>
+                      <th>IGV</th>
+                      <th>Total</th>
+                      <th>Pago</th>
+                      <th>Estado</th>
+                      <th>Audit.</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoVentas"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           COMPRAS
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-compras">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Registro de Compras</div>
+                <div class="seccion-sub">Control de compras y proveedores</div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('compras')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalCompra()"
+                >
+                  <i class="fa fa-plus"></i> Nueva Compra
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiCompras"></div>
+
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Buscar</label
+                  ><input
+                    type="text"
+                    id="comprasBuscar"
+                    placeholder="Proveedor, descripción..."
+                    oninput="renderTablaCompras()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Desde</label
+                  ><input
+                    type="date"
+                    id="comprasDesde"
+                    onchange="renderTablaCompras()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Hasta</label
+                  ><input
+                    type="date"
+                    id="comprasHasta"
+                    onchange="renderTablaCompras()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Categoría</label
+                  ><input
+                    type="text"
+                    id="comprasCategoria"
+                    placeholder="Categoría..."
+                    oninput="renderTablaCompras()"
+                  />
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="limpiarFiltros('compras')"
+                >
+                  <i class="fa fa-filter-circle-xmark"></i> Limpiar
+                </button>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Proveedor</th>
+                      <th>RUC</th>
+                      <th>Comprobante</th>
+                      <th>Categoría</th>
+                      <th>Descripción</th>
+                      <th>Subtotal</th>
+                      <th>IGV</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th>Audit.</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoCompras"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           GASTOS
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-gastos">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Registro de Gastos</div>
+                <div class="seccion-sub">
+                  Control detallado de todos los egresos
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('gastos')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalGasto()"
+                >
+                  <i class="fa fa-plus"></i> Nuevo Gasto
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiGastos"></div>
+
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Buscar</label
+                  ><input
+                    type="text"
+                    id="gastosBuscar"
+                    placeholder="Descripción, proveedor..."
+                    oninput="renderTablaGastos()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Desde</label
+                  ><input
+                    type="date"
+                    id="gastosDesde"
+                    onchange="renderTablaGastos()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Hasta</label
+                  ><input
+                    type="date"
+                    id="gastosHasta"
+                    onchange="renderTablaGastos()"
+                  />
+                </div>
+                <div class="filtro-grupo">
+                  <label>Categoría</label
+                  ><input
+                    type="text"
+                    id="gastosCategoria"
+                    placeholder="Categoría..."
+                    oninput="renderTablaGastos()"
+                  />
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="limpiarFiltros('gastos')"
+                >
+                  <i class="fa fa-filter-circle-xmark"></i> Limpiar
+                </button>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Categoría</th>
+                      <th>Descripción</th>
+                      <th>Proveedor</th>
+                      <th>Comprobante</th>
+                      <th>Subtotal</th>
+                      <th>IGV</th>
+                      <th>Total</th>
+                      <th>Pago</th>
+                      <th>Estado</th>
+                      <th>Audit.</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoGastos"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           INVERSIONES
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-inversiones">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Registro de Inversiones</div>
+                <div class="seccion-sub">
+                  Seguimiento, rentabilidad e inventario de almacén
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('inversiones')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="irAAlmacen()">
+                  <i class="fa fa-warehouse"></i> Ir a Almacén
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalInversion()"
+                >
+                  <i class="fa fa-plus"></i> Nueva Inversión
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiInversiones"></div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>Nombre</th>
+                      <th>Monto</th>
+                      <th>Retorno Esp.</th>
+                      <th>Retorno Real</th>
+                      <th>Rentabilidad</th>
+                      <th>Plazo</th>
+                      <th>Estado</th>
+                      <th>Audit.</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoInversiones"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           CAJA Y BANCOS
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-caja">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Caja y Bancos</div>
+                <div class="seccion-sub">
+                  Control de efectivo y cuentas bancarias
+                </div>
+              </div>
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="exportarTablaExcel('caja')"
+              >
+                <i class="fa fa-file-excel"></i> Excel
+              </button>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiCaja"></div>
+
+            <div class="grid-2col">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-line"></i> Flujo de Caja
+                    Mensual</span
+                  >
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoCaja"></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-building-columns"></i> Efectivo vs
+                    Banco</span
+                  >
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoCajaPie"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 0">
+              <div class="card-header" style="padding: 1rem 1.25rem">
+                <span class="card-titulo">Movimientos de Caja y Bancos</span>
+              </div>
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>N° Asiento</th>
+                      <th>Descripción</th>
+                      <th>Medio</th>
+                      <th>Ingreso</th>
+                      <th>Egreso</th>
+                      <th>Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoCaja"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           CUENTAS POR COBRAR (CxC)
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-cxc">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Cuentas por Cobrar</div>
+                <div class="seccion-sub">
+                  Ventas pendientes de cobro + CxC manuales
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('cxc')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalCxc()"
+                >
+                  <i class="fa fa-plus"></i> Nueva CxC
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiCxc"></div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Cliente</th>
+                      <th>Comprobante</th>
+                      <th>Total</th>
+                      <th>Cobrado</th>
+                      <th>Pendiente</th>
+                      <th>Vencimiento</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoCxc"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           CUENTAS POR PAGAR (CxP)
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-cxp">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Cuentas por Pagar</div>
+                <div class="seccion-sub">
+                  Compras y gastos pendientes + CxP manuales
+                </div>
+              </div>
+              <div class="header-acciones">
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="exportarTablaExcel('cxp')"
+                >
+                  <i class="fa fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-primario btn-sm"
+                  onclick="abrirModalCxp()"
+                >
+                  <i class="fa fa-plus"></i> Nueva CxP
+                </button>
+              </div>
+            </div>
+
+            <div class="kpi-grid kpi-pequeño" id="kpiCxp"></div>
+
+            <div class="card" style="padding: 0">
+              <div class="tabla-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Proveedor</th>
+                      <th>Comprobante</th>
+                      <th>Total</th>
+                      <th>Pagado</th>
+                      <th>Pendiente</th>
+                      <th>Vencimiento</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cuerpoCxp"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           REPORTES
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-reportes">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Reportes Financieros</div>
+                <div class="seccion-sub">
+                  Indicadores clave y análisis avanzado
+                </div>
+              </div>
+              <button
+                class="btn btn-primario btn-sm"
+                onclick="exportarReportePDF()"
+              >
+                <i class="fa fa-file-pdf"></i> Exportar PDF Completo
+              </button>
+            </div>
+
+            <div class="kpi-grid" id="kpiReportes"></div>
+
+            <div class="grid-2col">
+              <div class="card" id="estadoResultados"></div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-bar"></i> Utilidad Neta por Mes</span
+                  >
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoUtilidadMes"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="indicadoresAvanzados"></div>
+          </section>
+
+          <!-- ════════════════════════════════
+           COMPARACIONES
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-comparaciones">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Comparaciones por Período</div>
+                <div class="seccion-sub">
+                  Análisis comparativo de indicadores financieros
+                </div>
+              </div>
+            </div>
+
+            <div class="card filtros-bar">
+              <div class="filtros-fila">
+                <div class="filtro-grupo">
+                  <label>Período</label>
+                  <select id="compPeriodo" onchange="renderComparaciones()">
+                    <option value="mes">Mes vs Mes anterior</option>
+                    <option value="trim">
+                      Trimestre vs Trimestre anterior
+                    </option>
+                    <option value="anio">Año vs Año anterior</option>
+                  </select>
+                </div>
+                <div class="filtro-grupo">
+                  <label>Año base</label>
+                  <select
+                    id="compAnio"
+                    onchange="renderComparaciones()"
+                  ></select>
+                </div>
+                <div class="filtro-grupo" id="compMesWrap">
+                  <label>Mes</label>
+                  <select id="compMes" onchange="renderComparaciones()">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div id="contenidoComparaciones"></div>
+
+            <div class="grid-2col">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-bar"></i> Ventas Comparativo</span
+                  >
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoCompVentas"></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-titulo"
+                    ><i class="fa fa-chart-bar"></i> Gastos Comparativo</span
+                  >
+                </div>
+                <div class="grafico-contenedor">
+                  <canvas id="graficoCompGastos"></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════
+           EXPORTACIONES
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-exportaciones">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Exportaciones</div>
+                <div class="seccion-sub">
+                  Genera reportes en Excel, PDF y respaldos JSON
+                </div>
+              </div>
+            </div>
+            <div id="contenidoExportaciones"></div>
+          </section>
+
+          <!-- ════════════════════════════════
+           CONFIGURACIÓN
+           ════════════════════════════════ -->
+          <section class="seccion" id="s-config">
+            <div class="seccion-header">
+              <div>
+                <div class="seccion-titulo">Configuración de Empresa</div>
+                <div class="seccion-sub">
+                  Datos legales, contables, sistema y sincronización
+                </div>
+              </div>
+              <button class="btn btn-primario btn-sm" onclick="guardarConfig()">
+                <i class="fa fa-save"></i> Guardar Configuración
+              </button>
+            </div>
+            <div id="contenidoConfig"></div>
+          </section>
+        </div>
+        <!-- /area-contenido -->
+      </main>
+    </div>
+    <!-- /app-shell -->
+
+    <script src="libro.js"></script>
+  </body>
+</html>

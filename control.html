@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A&M Exportaciones — Control Administrativo</title>
+    <link rel="stylesheet" href="control.css" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand brand-cambio">
+        <img
+          src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+          alt="A&M Exportaciones"
+          class="brand-logo-cambio"
+        />
+        <div class="brand-text-cambio">
+          <h2>A&amp;M Exportaciones</h2>
+          <p>CENTRO DE CONTROL ADMIN</p>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-info">
+          <strong>Administrador</strong>
+          <span>Sesión activa</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <span class="nav-label">Panel principal</span>
+        <button class="nav-item active" type="button" data-page="dashboard">
+          📊 Dashboard General
+        </button>
+
+        <span class="nav-label">Operaciones</span>
+        <button class="nav-item" type="button" data-page="inicio">
+          🏠 Página Principal
+        </button>
+        <button class="nav-item" type="button" data-page="trabajadores">
+          👥 Trabajadores
+        </button>
+        <button class="nav-item" type="button" data-page="inventario">
+          📦 Inventario / Productos
+        </button>
+        <button class="nav-item" type="button" data-page="ventas">
+          🧾 Ventas / Clientes
+        </button>
+        <button class="nav-item" type="button" data-page="cambio">
+          💱 Tipo de Cambio
+        </button>
+
+        <span class="nav-label">Finanzas y RRHH</span>
+        <button class="nav-item" type="button" data-page="libro">
+          📒 Libro Contable
+        </button>
+        <button class="nav-item" type="button" data-page="marcacion">
+          🕐 Marcación de Asistencia
+        </button>
+
+        <span class="nav-label">Administración</span>
+        <button class="nav-item" type="button" data-page="bitacora">
+          📘 Bitácora
+        </button>
+        <button class="nav-item" type="button" data-page="reportes">
+          📈 Reportes
+        </button>
+        <button class="nav-item" type="button" data-page="configuracion">
+          ⚙️ Configuración
+        </button>
+      </nav>
+
+      <div class="session-box">
+        <button class="logout-btn" type="button" id="logoutBtn">
+          ⏻ Cerrar sesión
+        </button>
+        <small>Salir del panel administrativo</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-mobile" type="button" id="btnMenu">☰</button>
+          <div class="topbar-text">
+            <h1 id="pageTitle">Dashboard General</h1>
+            <p id="pageSub">
+              Administra todos tus módulos desde una sola pantalla amplia
+            </p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="date-pill" id="dateNow">--</div>
+          <button
+            class="theme-btn"
+            type="button"
+            id="themeBtn"
+            title="Cambiar tema"
+          >
+            🌙
+          </button>
+        </div>
+      </header>
+
+      <section class="content-area">
+        <section class="workspace expanded">
+          <div class="workspace-head">
+            <div class="workspace-title-box">
+              <h3 id="workspaceTitle">Vista rápida del sistema</h3>
+              <p id="workspaceDesc">
+                Selecciona un módulo para abrirlo en pantalla completa dentro
+                del panel.
+              </p>
+            </div>
+
+            <div class="window-actions">
+              <button
+                class="back-dashboard-btn hidden"
+                type="button"
+                id="btnBackDashboard"
+              >
+                Dashboard
+              </button>
+              <button type="button" id="btnRefresh" title="Recargar módulo">
+                ⟳
+              </button>
+              <button
+                type="button"
+                id="btnNewTab"
+                title="Abrir en nueva pestaña"
+              >
+                ↗
+              </button>
+              <button type="button" id="btnCloseFrame" title="Cerrar módulo">
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-grid" id="dashboardView">
+            <!-- Fila 1 — Operaciones -->
+            <article class="module-card" onclick="openModule('trabajadores')">
+              <div class="module-icon">👥</div>
+              <h4>Trabajadores</h4>
+              <p>
+                Gestión de trabajadores, sesiones, asistencia, KPIs, historial y
+                bitácora.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('inventario')">
+              <div class="module-icon">📦</div>
+              <h4>Inventario</h4>
+              <p>
+                Registro, edición, stock, códigos, productos y auditoría de
+                cambios.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('ventas')">
+              <div class="module-icon">🧾</div>
+              <h4>Ventas</h4>
+              <p>
+                Comprobantes, clientes, reclamos, ventas y seguimiento
+                comercial.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('cambio')">
+              <div class="module-icon">💱</div>
+              <h4>Tipo de Cambio</h4>
+              <p>Control de bancos, monedas, historial, motivos y gráficos.</p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <!-- Fila 2 — Finanzas y RRHH -->
+            <article class="module-card" onclick="openModule('libro')">
+              <div class="module-icon">📒</div>
+              <h4>Libro Contable</h4>
+              <p>
+                Asientos, libro diario, mayor, balances, CxC, CxP, reportes
+                financieros y auditoría completa.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('marcacion')">
+              <div class="module-icon">🕐</div>
+              <h4>Marcación de Asistencia</h4>
+              <p>
+                Control de ingresos y salidas por credenciales, reconocimiento
+                facial y huella dactilar.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <!-- Fila 3 — Admin interno -->
+            <article class="module-card" onclick="openInternal('bitacora')">
+              <div class="module-icon">📘</div>
+              <h4>Bitácora</h4>
+              <p>
+                Registro de acciones: quién lo creó, hora, trabajador afectado,
+                acción y motivo.
+              </p>
+              <span>Ver bitácora →</span>
+            </article>
+          </div>
+
+          <div class="internal-panel hidden" id="internalPanel"></div>
+          <iframe id="moduleFrame" class="module-frame hidden" src=""></iframe>
+        </section>
+      </section>
+    </main>
+
+    <div class="modal hidden" id="workerModal">
+      <div class="modal-card large">
+        <div class="modal-head">
+          <h3 id="workerModalTitle">Crear trabajador</h3>
+          <button type="button" onclick="closeWorkerModal()">×</button>
+        </div>
+
+        <form id="workerForm" class="worker-form">
+          <input type="hidden" id="workerId" />
+
+          <div class="form-grid">
+            <label>Nombre <input id="firstName" required /></label>
+            <label>Apellidos <input id="lastName" required /></label>
+            <label
+              >Tipo de documento
+              <select id="docType" required>
+                <option value="DNI">DNI</option>
+                <option value="CE">Carnet de extranjería</option>
+                <option value="Pasaporte">Pasaporte</option>
+              </select>
+            </label>
+            <label>Número de documento <input id="docNumber" required /></label>
+            <label
+              >Género
+              <select id="gender" required>
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </label>
+            <label
+              >Correo electrónico <input id="email" type="email" required
+            /></label>
+            <label>Celular <input id="phone" required /></label>
+            <label
+              >Rol
+              <select id="role" required>
+                <option value="admin">Administrador</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="almacen">Almacén</option>
+                <option value="contabilidad">Contabilidad</option>
+              </select>
+            </label>
+            <label
+              >Contraseña <input id="password" type="password" required
+            /></label>
+            <label
+              >Horario de trabajo
+              <input id="schedule" placeholder="Lun-Vie 08:00 - 17:00" required
+            /></label>
+            <label
+              >Domicilio
+              <input
+                id="homeType"
+                placeholder="Casa, departamento, habitación..."
+            /></label>
+            <label
+              >Dirección de domicilio <input id="address" required
+            /></label>
+            <label>Cumpleaños <input id="birthday" type="date" /></label>
+            <label
+              >Contacto de emergencia <input id="emergencyName" required
+            /></label>
+            <label
+              >Número de emergencia <input id="emergencyPhone" required
+            /></label>
+            <label
+              >Estatus
+              <select id="status" required>
+                <option value="activo">Activo</option>
+                <option value="suspendido">Suspendido</option>
+                <option value="desconectado">Desconectado</option>
+                <option value="cesado">Cesado</option>
+              </select>
+            </label>
+          </div>
+
+          <label
+            >Motivo / observación para bitácora
+            <textarea
+              id="workerReason"
+              placeholder="Ejemplo: creación inicial del trabajador, actualización de datos, cambio de rol..."
+              required
+            ></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn-light"
+              onclick="closeWorkerModal()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              Guardar trabajador
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="attendanceModal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>Registrar asistencia</h3>
+          <button type="button" onclick="closeAttendanceModal()">×</button>
+        </div>
+
+        <form id="attendanceForm" class="worker-form">
+          <input type="hidden" id="attendanceWorkerId" />
+
+          <label>Trabajador <input id="attendanceWorkerName" disabled /></label>
+          <label
+            >Tipo de registro
+            <select id="attendanceType">
+              <option value="asistencia">Asistencia</option>
+              <option value="tardanza">Tardanza</option>
+              <option value="falta">Falta</option>
+              <option value="salida_temprana">Salida temprana</option>
+              <option value="permiso">Permiso</option>
+            </select>
+          </label>
+          <label
+            >Fecha <input id="attendanceDate" type="date" required
+          /></label>
+          <label>Hora <input id="attendanceTime" type="time" required /></label>
+          <label
+            >Horas por deber
+            <input id="hoursDebt" type="number" min="0" step="0.5" value="0"
+          /></label>
+          <label
+            >Horas justificadas
+            <input
+              id="justifiedHours"
+              type="number"
+              min="0"
+              step="0.5"
+              value="0"
+          /></label>
+          <label
+            >Motivo / observación
+            <textarea
+              id="attendanceReason"
+              required
+              placeholder="Ejemplo: llegó 15 minutos tarde por tráfico..."
+            ></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn-light"
+              onclick="closeAttendanceModal()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">Registrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="historyModal">
+      <div class="modal-card large">
+        <div class="modal-head">
+          <h3 id="historyTitle">Historial del trabajador</h3>
+          <button type="button" onclick="closeHistoryModal()">×</button>
+        </div>
+        <div class="history-body" id="historyBody"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <script src="control.js"></script>
+  </body>
+</html>

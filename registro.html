@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A&M — Sistema de Gestión de Inventario</title>
+    <link rel="stylesheet" href="registro.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── LOGOUT MODAL STYLES ── */
+      .logout-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .logout-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .logout-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        max-width: 380px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        transform: scale(0.96) translateY(12px);
+        transition: transform 0.22s;
+        overflow: hidden;
+      }
+      .logout-overlay.open .logout-box {
+        transform: none;
+      }
+      .logout-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .logout-head h3 {
+        font-family: "Syne", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .logout-close-btn {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: all 0.15s;
+      }
+      .logout-close-btn:hover {
+        background: rgba(224, 82, 82, 0.15);
+        color: var(--danger);
+      }
+      .logout-body {
+        padding: 1.75rem 1.5rem;
+        text-align: center;
+      }
+      .logout-body .big-icon {
+        font-size: 44px;
+        display: block;
+        margin-bottom: 1rem;
+      }
+      .logout-body p {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .logout-body strong {
+        color: var(--text-primary);
+      }
+      .logout-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.625rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: var(--bg-surface);
+      }
+      .btn-do-logout {
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "DM Sans", sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      .btn-do-logout:hover {
+        opacity: 0.88;
+        transform: translateY(-1px);
+      }
+      .btn-do-logout svg {
+        width: 14px;
+        height: 14px;
+      }
+      /* ── LOGOUT BUTTON IN SIDEBAR ── */
+      .sidebar-logout-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(224, 82, 82, 0.1);
+        border: 1px solid rgba(224, 82, 82, 0.25);
+        border-radius: var(--radius-sm);
+        color: #f87171;
+        font-size: 12.5px;
+        font-weight: 600;
+        font-family: "DM Sans", sans-serif;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin-top: auto;
+      }
+      .sidebar-logout-btn:hover {
+        background: var(--danger);
+        color: #fff;
+        border-color: var(--danger);
+      }
+      .sidebar-logout-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">⚡</div>
+        <span class="logo-text">A&M</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">PRINCIPAL</div>
+        <a href="#" class="nav-item active" data-section="dashboard">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-section="catalogo">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M4 6h16M4 12h16M4 18h7" />
+            <path d="M15 15l5 5M20 15l-5 5" />
+          </svg>
+          <span>Catálogo</span>
+          <span class="nav-badge" id="badge-catalogo">0</span>
+        </a>
+        <a href="#" class="nav-item" data-section="inventario">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              d="M20 7H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"
+            />
+            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+            <line x1="12" y1="12" x2="12" y2="16" />
+            <line x1="10" y1="14" x2="14" y2="14" />
+          </svg>
+          <span>Inventario</span>
+        </a>
+        <a href="#" class="nav-item" data-section="productos">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"
+            />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+          <span>Productos</span>
+        </a>
+
+        <div class="nav-label" style="margin-top: 24px">ANÁLISIS</div>
+        <a href="#" class="nav-item" data-section="reportes">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span>Reportes</span>
+        </a>
+
+        <div class="nav-label" style="margin-top: 24px">SISTEMA</div>
+        <a href="#" class="nav-item" data-section="configuracion">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"
+            />
+          </svg>
+          <span>Configuración</span>
+        </a>
+      </nav>
+
+      <div
+        class="sidebar-footer"
+        style="
+          padding: 14px 16px;
+          border-top: 1px solid var(--border-light);
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div class="user-avatar-small">A</div>
+          <div class="user-info-small">
+            <span class="user-name-small">Administrador</span>
+            <span class="user-role-small">Super Admin</span>
+          </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="confirmLogout()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="mainContent">
+      <!-- HEADER -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle" id="sidebarToggle">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div class="search-bar">
+            <svg
+              class="search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              id="globalSearch"
+              placeholder="Buscar productos, códigos, categorías…"
+            />
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="topbar-btn notif-btn" id="notifBtn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span class="notif-dot" id="notifDot"></span>
+          </button>
+          <button class="btn-add-product" id="btnAddProduct">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nuevo Producto
+          </button>
+          <!-- LOGOUT BUTTON IN TOPBAR -->
+          <button
+            onclick="confirmLogout()"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              background: rgba(224, 82, 82, 0.1);
+              border: 1px solid rgba(224, 82, 82, 0.25);
+              border-radius: 8px;
+              padding: 7px 13px;
+              color: #f87171;
+              font-size: 12.5px;
+              font-weight: 600;
+              font-family: &quot;DM Sans&quot;, sans-serif;
+              cursor: pointer;
+              transition: all 0.15s;
+              white-space: nowrap;
+            "
+            onmouseover="
+              this.style.background = '#dc2626';
+              this.style.color = '#fff';
+            "
+            onmouseout="
+              this.style.background = 'rgba(224,82,82,.1)';
+              this.style.color = '#f87171';
+            "
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="width: 14px; height: 14px"
+            >
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Salir
+          </button>
+          <div class="user-profile">
+            <div class="user-avatar">A</div>
+            <div class="user-details">
+              <span class="user-name">Administrador</span>
+              <span class="user-role">Super Admin</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- PAGE CONTENT -->
+      <div class="page-content">
+        <!-- ===== DASHBOARD SECTION ===== -->
+        <section class="section active" id="section-dashboard">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Dashboard</h1>
+              <p class="section-subtitle">
+                Visión general del inventario y métricas del sistema
+              </p>
+            </div>
+            <div class="section-date" id="currentDate"></div>
+          </div>
+          <div class="stats-grid" id="statsGrid"></div>
+          <div class="alerts-container" id="alertsContainer"></div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <div class="chart-header"><h3>Estado del Inventario</h3></div>
+              <div class="donut-wrap">
+                <svg
+                  class="donut-svg"
+                  id="donutChart"
+                  viewBox="0 0 200 200"
+                ></svg>
+                <div class="donut-legend" id="donutLegend"></div>
+              </div>
+            </div>
+            <div class="chart-card" style="flex: 1.5">
+              <div class="chart-header"><h3>Top Categorías por Valor</h3></div>
+              <div class="bar-chart-wrap" id="barChart"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-header"><h3>Alertas Críticas</h3></div>
+              <div class="alerts-list" id="criticalAlerts"></div>
+            </div>
+          </div>
+          <div class="recent-card">
+            <div class="chart-header">
+              <h3>Productos Recientes</h3>
+              <button class="btn-link" onclick="navigate('catalogo')">
+                Ver todos →
+              </button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="recentTable">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== CATÁLOGO SECTION ===== -->
+        <section class="section" id="section-catalogo">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Catálogo de Productos</h1>
+              <p class="section-subtitle">
+                Gestión completa de todos los productos
+              </p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" id="btnExportExcel">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                  />
+                  <polyline points="14 2 14 8 20 8" /></svg
+                >Excel
+              </button>
+              <button class="btn-secondary" id="btnExportPDF">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                  />
+                  <polyline points="14 2 14 8 20 8" /></svg
+                >PDF
+              </button>
+              <button class="btn-primary" id="btnAddProduct2">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" /></svg
+                >Agregar
+              </button>
+            </div>
+          </div>
+          <div class="filters-panel">
+            <div class="filters-row">
+              <div class="filter-group">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="filterName"
+                  placeholder="Buscar por nombre…"
+                />
+              </div>
+              <div class="filter-group">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="filterCode"
+                  placeholder="Buscar por código…"
+                />
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterCategory">
+                  <option value="">Todas las categorías</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterSubcategory">
+                  <option value="">Subcategorías</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterBrand">
+                  <option value="">Todas las marcas</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterProveedor">
+                  <option value="">Todos los proveedores</option>
+                </select>
+              </div>
+            </div>
+            <div class="filters-row">
+              <div class="filter-group">
+                <select class="filter-select" id="filterOrigen">
+                  <option value="">Todos los orígenes</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <input
+                  type="number"
+                  class="filter-input"
+                  id="filterPriceMin"
+                  placeholder="Precio mínimo"
+                />
+              </div>
+              <div class="filter-group">
+                <input
+                  type="number"
+                  class="filter-input"
+                  id="filterPriceMax"
+                  placeholder="Precio máximo"
+                />
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterSort">
+                  <option value="">Ordenar por…</option>
+                  <option value="name-asc">Nombre A→Z</option>
+                  <option value="name-desc">Nombre Z→A</option>
+                  <option value="price-asc">Precio ↑</option>
+                  <option value="price-desc">Precio ↓</option>
+                  <option value="stock-asc">Stock ↑</option>
+                  <option value="stock-desc">Stock ↓</option>
+                </select>
+              </div>
+              <div class="filter-checkboxes">
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterExpired" /> Vencidos</label
+                >
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterNoStock" /> Sin stock</label
+                >
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterDiscount" /> En
+                  oferta</label
+                >
+              </div>
+              <button class="btn-ghost" id="btnClearFilters">
+                Limpiar filtros
+              </button>
+            </div>
+          </div>
+          <div class="toolbar">
+            <span class="results-count" id="resultsCount">0 productos</span>
+            <div class="view-toggle">
+              <button class="view-btn active" id="viewGrid" title="Vista grid">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+              </button>
+              <button class="view-btn" id="viewList" title="Vista lista">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </button>
+              <button class="view-btn" id="viewTable" title="Vista tabla">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                  <line x1="9" y1="9" x2="9" y2="21" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="productGrid" class="products-grid"></div>
+          <div
+            id="productList"
+            class="products-list"
+            style="display: none"
+          ></div>
+          <div id="productTable" class="table-wrap" style="display: none">
+            <table class="data-table full-table">
+              <thead>
+                <tr>
+                  <th>IMG</th>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Cat.</th>
+                  <th>Marca</th>
+                  <th>Stock</th>
+                  <th>P.Venta</th>
+                  <th>P.Compra</th>
+                  <th>Desc.</th>
+                  <th>Vence</th>
+                  <th>Proveedor</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="fullTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ===== INVENTARIO ===== -->
+        <section class="section" id="section-inventario">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Control de Inventario</h1>
+              <p class="section-subtitle">Monitoreo de stock y movimientos</p>
+            </div>
+          </div>
+          <div class="stats-grid" id="invStats"></div>
+          <div class="charts-row">
+            <div class="chart-card" style="flex: 2">
+              <div class="chart-header">
+                <h3>Productos con Stock Crítico</h3>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Categoría</th>
+                      <th>Stock Actual</th>
+                      <th>Estado</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="critStockBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-header"><h3>Resumen de Categorías</h3></div>
+              <div id="catSummary" class="cat-summary-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== PRODUCTOS ===== -->
+        <section class="section" id="section-productos">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Gestión de Productos</h1>
+              <p class="section-subtitle">
+                Administra todos los productos del sistema
+              </p>
+            </div>
+            <button class="btn-primary" id="btnAddProduct3">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" /></svg
+              >Nuevo Producto
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Marca</th>
+                  <th>Stock</th>
+                  <th>Precio Venta</th>
+                  <th>Estado</th>
+                  <th>F. Vencimiento</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="prodMgmtBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ===== REPORTES ===== -->
+        <section class="section" id="section-reportes">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Reportes</h1>
+              <p class="section-subtitle">Análisis y exportación de datos</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" id="btnReportExcel">
+                Exportar Excel</button
+              ><button class="btn-secondary" id="btnReportPDF">
+                Exportar PDF
+              </button>
+            </div>
+          </div>
+          <div class="stats-grid" id="reportStats"></div>
+          <div class="charts-row">
+            <div class="chart-card" style="flex: 1.5">
+              <div class="chart-header"><h3>Valor por Categoría</h3></div>
+              <div id="reportBarChart" class="bar-chart-wrap"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-header"><h3>Productos por Estado</h3></div>
+              <div class="donut-wrap">
+                <svg
+                  class="donut-svg"
+                  id="reportDonut"
+                  viewBox="0 0 200 200"
+                ></svg>
+                <div class="donut-legend" id="reportDonutLegend"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== CONFIGURACIÓN ===== -->
+        <section class="section" id="section-configuracion">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Configuración</h1>
+              <p class="section-subtitle">
+                Administra los parámetros del sistema
+              </p>
+            </div>
+          </div>
+          <div class="config-grid">
+            <div class="config-card">
+              <h3>Categorías</h3>
+              <div class="config-list" id="configCategories"></div>
+              <div class="config-add-row">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="newCategoryInput"
+                  placeholder="Nueva categoría…"
+                /><button class="btn-primary small" id="btnAddCategory">
+                  Agregar
+                </button>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3>Marcas</h3>
+              <div class="config-list" id="configBrands"></div>
+              <div class="config-add-row">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="newBrandInput"
+                  placeholder="Nueva marca…"
+                /><button class="btn-primary small" id="btnAddBrand">
+                  Agregar
+                </button>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3>Proveedores</h3>
+              <div class="config-list" id="configProviders"></div>
+              <div class="config-add-row">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="newProviderInput"
+                  placeholder="Nuevo proveedor…"
+                /><button class="btn-primary small" id="btnAddProvider">
+                  Agregar
+                </button>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3>Orígenes</h3>
+              <div class="config-list" id="configOrigins"></div>
+              <div class="config-add-row">
+                <input
+                  type="text"
+                  class="filter-input"
+                  id="newOriginInput"
+                  placeholder="Nuevo origen…"
+                /><button class="btn-primary small" id="btnAddOrigin">
+                  Agregar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ===== MODAL PRODUCTO ===== -->
+    <div class="modal-overlay" id="productModal">
+      <div class="modal large">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modalTitle">Nuevo Producto</h2>
+          <button class="modal-close" id="modalClose">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="productForm" autocomplete="off">
+            <input type="hidden" id="productId" />
+            <div class="form-section-title">Imagen del Producto</div>
+            <div class="image-upload-area" id="imageUploadArea">
+              <img id="imagePreview" src="" alt="" style="display: none" />
+              <div class="image-placeholder" id="imagePlaceholder">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" /></svg
+                ><span>Subir imagen</span><small>URL o click para subir</small>
+              </div>
+              <input
+                type="file"
+                id="imageFile"
+                accept="image/*"
+                style="display: none"
+              />
+            </div>
+            <div class="form-group" style="margin-top: 8px">
+              <input
+                type="text"
+                class="form-input"
+                id="imageUrl"
+                placeholder="O ingresa URL de imagen…"
+              />
+            </div>
+            <div class="form-section-title">Información Básica</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Nombre *</label
+                ><input
+                  type="text"
+                  class="form-input"
+                  id="fNombre"
+                  required
+                  placeholder="Nombre del producto"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Código *</label
+                ><input
+                  type="text"
+                  class="form-input"
+                  id="fCodigo"
+                  required
+                  placeholder="SKU-001"
+                  oninput="onCodigoInput()"
+                />
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Categoría *</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fCategoria" required>
+                    <option value="">Seleccionar…</option></select
+                  ><button
+                    type="button"
+                    class="btn-plus"
+                    data-modal="categoria"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Subcategoría</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fSubcategoria">
+                    <option value="">Seleccionar…</option></select
+                  ><button
+                    type="button"
+                    class="btn-plus"
+                    data-modal="subcategoria"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Marca</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fMarca">
+                    <option value="">Seleccionar…</option></select
+                  ><button type="button" class="btn-plus" data-modal="marca">
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Tamaño</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fTamano">
+                    <option value="">Seleccionar…</option></select
+                  ><button type="button" class="btn-plus" data-modal="tamano">
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Unidad</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fUnidad">
+                    <option value="">Seleccionar…</option></select
+                  ><button type="button" class="btn-plus" data-modal="unidad">
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Color</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fColor">
+                    <option value="">Seleccionar…</option></select
+                  ><button type="button" class="btn-plus" data-modal="color">
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="code-change-notice" id="codeChangeNotice">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="
+                  width: 15px;
+                  height: 15px;
+                  flex-shrink: 0;
+                  margin-top: 1px;
+                "
+              >
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" /></svg
+              >El código será actualizado. Se guardará en el historial con fecha
+              y motivo.
+            </div>
+            <div class="code-reason-group" id="codeReasonGroup">
+              <label class="code-reason-label"
+                >💬 Motivo del cambio de código *</label
+              ><input
+                type="text"
+                class="form-input"
+                id="fCodigoMotivo"
+                placeholder="Ej: Recodificación del proveedor…"
+              />
+            </div>
+            <div class="form-section-title">Precios y Stock</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Precio de Venta *</label
+                ><input
+                  type="number"
+                  class="form-input"
+                  id="fPrecioVenta"
+                  required
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Precio de Compra *</label
+                ><input
+                  type="number"
+                  class="form-input"
+                  id="fPrecioCompra"
+                  required
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Stock Actual *</label
+                ><input
+                  type="number"
+                  class="form-input"
+                  id="fStock"
+                  required
+                  placeholder="0"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cantidad Compra</label
+                ><input
+                  type="number"
+                  class="form-input"
+                  id="fCantidadCompra"
+                  placeholder="0"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Descuento (%)</label
+                ><input
+                  type="number"
+                  class="form-input"
+                  id="fDescuento"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div class="form-section-title">Proveedor y Origen</div>
+            <div class="form-grid">
+              <div class="form-group with-btn">
+                <label class="form-label">Proveedor</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fProveedor">
+                    <option value="">Seleccionar…</option></select
+                  ><button
+                    type="button"
+                    class="btn-plus"
+                    data-modal="proveedor"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group with-btn">
+                <label class="form-label">Origen</label>
+                <div class="input-with-btn">
+                  <select class="form-select" id="fOrigen">
+                    <option value="">Seleccionar…</option></select
+                  ><button type="button" class="btn-plus" data-modal="origen">
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha de Compra</label
+                ><input type="date" class="form-input" id="fFechaCompra" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha de Vencimiento</label
+                ><input type="date" class="form-input" id="fFechaVence" />
+              </div>
+            </div>
+            <div class="form-section-title">Información Adicional</div>
+            <div class="form-group full">
+              <label class="form-label">Descripción</label
+              ><textarea
+                class="form-input textarea"
+                id="fInfo"
+                placeholder="Descripción del producto…"
+                rows="3"
+              ></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modalCancel">Cancelar</button
+          ><button class="btn-primary" id="modalSave">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+              />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" /></svg
+            >Guardar Producto
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DETALLE -->
+    <div class="modal-overlay" id="detailModal">
+      <div class="modal xlarge">
+        <div class="modal-header">
+          <h2 class="modal-title">Detalle del Producto</h2>
+          <button class="modal-close" id="detailClose">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="detailClose2">Cerrar</button
+          ><button class="btn-primary" id="detailEditBtn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+              <path
+                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+              /></svg
+            >Editar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DELETE -->
+    <div class="modal-overlay" id="deleteModal">
+      <div class="modal small">
+        <div class="modal-header">
+          <h2 class="modal-title">Eliminar Producto</h2>
+          <button class="modal-close" id="deleteClose">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-secondary); margin-bottom: 8px">
+            ¿Estás seguro de que deseas eliminar este producto?
+          </p>
+          <p
+            class="delete-product-name"
+            id="deleteProductName"
+            style="font-weight: 600; color: var(--text-primary)"
+          ></p>
+          <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px">
+            Esta acción no se puede deshacer.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="deleteCancelBtn">Cancelar</button
+          ><button class="btn-danger" id="deleteConfirmBtn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg
+            >Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL ADD OPTION -->
+    <div class="modal-overlay" id="addOptionModal">
+      <div class="modal small">
+        <div class="modal-header">
+          <h2 class="modal-title" id="addOptionTitle">Agregar Opción</h2>
+          <button class="modal-close" id="addOptionClose">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label" id="addOptionLabel">Nombre</label
+          ><input
+            type="text"
+            class="form-input"
+            id="addOptionInput"
+            placeholder="Escribe el nombre…"
+          />
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="addOptionCancel">Cancelar</button
+          ><button class="btn-primary" id="addOptionConfirm">Agregar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LOGOUT MODAL ===== -->
+    <div class="logout-overlay" id="logoutModal">
+      <div class="logout-box">
+        <div class="logout-head">
+          <h3>Cerrar sesión</h3>
+          <button class="logout-close-btn" onclick="closeLogoutModal()">
+            ✕
+          </button>
+        </div>
+        <div class="logout-body">
+          <span class="big-icon">🔓</span>
+          <p>
+            <strong>¿Deseas cerrar tu sesión?</strong><br />Serás redirigido a
+            la pantalla de inicio de sesión.
+          </p>
+        </div>
+        <div class="logout-footer">
+          <button class="btn-ghost" onclick="closeLogoutModal()">
+            Cancelar
+          </button>
+          <button class="btn-do-logout" onclick="doLogout()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="registro.js"></script>
+    <script>
+      /* ── LOGOUT SYSTEM ── */
+      function confirmLogout() {
+        document.getElementById("logoutModal").classList.add("open");
+      }
+      function closeLogoutModal() {
+        document.getElementById("logoutModal").classList.remove("open");
+      }
+      function doLogout() {
+        closeLogoutModal();
+        var t = document.createElement("div");
+        t.style.cssText =
+          'position:fixed;bottom:20px;right:20px;z-index:99999;background:#dc2626;color:#fff;padding:12px 20px;border-radius:12px;font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.4);animation:fadeInUp .3s ease';
+        t.innerHTML = "🔓 Cerrando sesión...";
+        document.body.appendChild(t);
+        setTimeout(function () {
+          window.location.href = "login.html";
+        }, 900);
+      }
+      document
+        .getElementById("logoutModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeLogoutModal();
+        });
+    </script>
+  </body>
+</html>
