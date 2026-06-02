@@ -889,36 +889,37 @@
         <div class="modal-body">
           <form id="productForm" autocomplete="off">
             <input type="hidden" id="productId" />
-            <div class="form-section-title">Imagen del Producto</div>
-            <div class="image-upload-area" id="imageUploadArea">
-              <img id="imagePreview" src="" alt="" style="display: none" />
-              <div class="image-placeholder" id="imagePlaceholder">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" /></svg
-                ><span>Subir imagen</span><small>URL o click para subir</small>
+
+            <!-- LAYOUT: imagen izquierda + formulario derecha -->
+            <div class="modal-layout">
+
+              <!-- COLUMNA IMAGEN -->
+              <div class="modal-img-col">
+                <div class="form-section-title">Imagen</div>
+                <div class="image-upload-area" id="imageUploadArea">
+                  <img id="imagePreview" src="" alt="" style="display:none" />
+                  <div class="image-placeholder" id="imagePlaceholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span>Subir imagen</span>
+                    <small>Click o arrastra aquí</small>
+                  </div>
+                  <input type="file" id="imageFile" accept="image/*" style="display:none" />
+                </div>
+                <input
+                  type="text"
+                  class="form-input"
+                  id="imageUrl"
+                  placeholder="O pega una URL…"
+                  style="margin-top:8px"
+                />
               </div>
-              <input
-                type="file"
-                id="imageFile"
-                accept="image/*"
-                style="display: none"
-              />
-            </div>
-            <div class="form-group" style="margin-top: 8px">
-              <input
-                type="text"
-                class="form-input"
-                id="imageUrl"
-                placeholder="O ingresa URL de imagen…"
-              />
-            </div>
+
+              <!-- COLUMNA FORMULARIO -->
+              <div class="modal-form-col">
             <div class="form-section-title">Información Básica</div>
             <div class="form-grid">
               <div class="form-group">
@@ -1142,6 +1143,10 @@
                 rows="3"
               ></textarea>
             </div>
+
+              </div><!-- /modal-form-col -->
+            </div><!-- /modal-layout -->
+
           </form>
         </div>
         <div class="modal-footer">

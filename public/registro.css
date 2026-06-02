@@ -1446,10 +1446,30 @@ body {
 }
 
 /* IMAGE UPLOAD */
+/* ── Layout imagen + formulario ── */
+.modal-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.modal-img-col {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.modal-form-col {
+  min-width: 0;
+}
+
 .image-upload-area {
   border: 1.5px dashed var(--border);
   border-radius: var(--radius);
-  height: 140px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1458,6 +1478,7 @@ body {
   position: relative;
   overflow: hidden;
   background: var(--bg-input);
+  width: 100%;
 }
 
 .image-upload-area:hover { border-color: var(--accent-dim); }
@@ -1469,15 +1490,26 @@ body {
   gap: 8px;
   color: var(--text-muted);
   pointer-events: none;
+  text-align: center;
+  padding: 12px;
 }
 
-.image-placeholder svg { width: 32px; height: 32px; }
-.image-placeholder span { font-size: 14px; font-weight: 500; }
+.image-placeholder svg { width: 36px; height: 36px; }
+.image-placeholder span { font-size: 13px; font-weight: 500; }
 .image-placeholder small { font-size: 11px; }
 
 #imagePreview {
-  width: 100%; height: 100%;
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--bg-input);
+}
+
+@media (max-width: 640px) {
+  .modal-layout {
+    grid-template-columns: 1fr;
+  }
+  .image-upload-area { height: 160px; }
 }
 
 /* ===================== DETAIL MODAL BODY ===================== */
