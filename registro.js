@@ -196,30 +196,39 @@ function getStatus(p) {
   return { label: "Activo", cls: "success" };
 }
 
-const STORAGE_KEY = "am_inventory_products_v2";
-
-function saveToStorage() {
+async function loadFromAPI() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(State.products));
-  } catch (err) {
-    console.warn("No se pudo guardar en localStorage:", err);
-  }
-}
+    const [products, catalogs] = await Promise.all([
+      API.products.list(),
+      API.catalogs.list(),
+    ]);
 
-function loadFromStorage() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return null;
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : null;
+    // Agregar emoji por defecto a cada producto
+    products.forEach((p, i) => {
+      if (!p.emoji) p.emoji = EMOJIS[i % EMOJIS.length];
+      if (!p.auditLog) p.auditLog = [];
+    });
+
+    State.products = products;
+
+    // Poblar opciones desde la BD
+    if (catalogs) {
+      State.options.categorias = catalogs.categorias.map((c) => c.name);
+      State.options.subcategorias = catalogs.subcategorias.map((c) => c.name);
+      State.options.marcas = catalogs.marcas.map((c) => c.name);
+      State.options.proveedores = catalogs.proveedores.map((c) => c.name);
+      State.options.origenes = catalogs.origenes.map((c) => c.name);
+      State.options.colores = catalogs.colores.map((c) => c.name);
+      State.options.tamanos = catalogs.tamanos.map((c) => c.name);
+      State.options.unidades = catalogs.unidades.map((c) => c.name);
+      State._catalogIds = catalogs; // guardar IDs para referencias
+    }
   } catch (err) {
-    console.warn("No se pudo leer localStorage:", err);
-    return null;
+    console.warn("No se pudo cargar desde API, usando datos en memoria:", err);
   }
 }
 
 function refreshAfterProductChange() {
-  saveToStorage();
   applyFilters();
   populateFilterDropdowns();
   renderDashboard();
@@ -1503,7 +1512,7 @@ function openEdit(id) {
   openModal(id);
 }
 
-function saveProduct() {
+async function saveProduct() {
   const nombre = document.getElementById("fNombre").value.trim();
   const codigoNuevo = document.getElementById("fCodigo").value.trim();
   const cat = document.getElementById("fCategoria").value;
@@ -1511,14 +1520,7 @@ function saveProduct() {
   const compra = parseFloat(document.getElementById("fPrecioCompra").value);
   const stock = parseInt(document.getElementById("fStock").value);
 
-  if (
-    !nombre ||
-    !codigoNuevo ||
-    !cat ||
-    isNaN(precio) ||
-    isNaN(compra) ||
-    isNaN(stock)
-  ) {
+  if (!nombre || !cat || isNaN(precio) || isNaN(compra) || isNaN(stock)) {
     toast("Completa los campos requeridos (*)", "warning");
     return;
   }
@@ -1526,20 +1528,18 @@ function saveProduct() {
   const codigoOriginal =
     document.getElementById("fCodigo").dataset.originalCode || "";
   const codeChanged =
-    !!State.editingId && codigoNuevo !== codigoOriginal && !!codigoOriginal;
+    !!State.editingId && codigoNuevo && codigoNuevo !== codigoOriginal && !!codigoOriginal;
+  const codeMotivo = document.getElementById("fCodigoMotivo").value.trim();
 
-  if (codeChanged) {
-    const motivo = document.getElementById("fCodigoMotivo").value.trim();
-    if (!motivo) {
-      toast("Ingresa el motivo del cambio de código", "warning");
-      document.getElementById("fCodigoMotivo").focus();
-      return;
-    }
+  if (codeChanged && !codeMotivo) {
+    toast("Ingresa el motivo del cambio de código", "warning");
+    document.getElementById("fCodigoMotivo").focus();
+    return;
   }
 
   const data = {
     nombre,
-    codigo: codigoNuevo,
+    codigo: codigoNuevo || undefined,
     categoria: document.getElementById("fCategoria").value,
     subcategoria: document.getElementById("fSubcategoria").value,
     marca: document.getElementById("fMarca").value,
@@ -1547,8 +1547,7 @@ function saveProduct() {
     unidad: document.getElementById("fUnidad").value,
     color: document.getElementById("fColor").value,
     info: document.getElementById("fInfo").value,
-    cantidadCompra:
-      parseInt(document.getElementById("fCantidadCompra").value) || 0,
+    cantidadCompra: parseInt(document.getElementById("fCantidadCompra").value) || 0,
     stock,
     precioVenta: precio,
     precioCompra: compra,
@@ -1558,59 +1557,32 @@ function saveProduct() {
     proveedor: document.getElementById("fProveedor").value,
     origen: document.getElementById("fOrigen").value,
     imageUrl: document.getElementById("imageUrl").value.trim(),
+    codigoMotivo: codeMotivo || undefined,
   };
 
-  if (State.editingId) {
-    const idx = State.products.findIndex((p) => p.id === State.editingId);
-    if (idx !== -1) {
-      const oldP = State.products[idx];
-      const codeMotivo = document.getElementById("fCodigoMotivo").value.trim();
+  // Deshabilitar botón mientras guarda
+  const saveBtn = document.getElementById("modalSave");
+  saveBtn.disabled = true;
 
-      // Construir entradas de auditoría basadas en diffs
-      const newAuditEntries = buildAuditEntries(
-        oldP,
-        { ...oldP, ...data },
-        codeMotivo,
-      );
-
-      State.products[idx] = {
-        ...oldP,
-        ...data,
-        emoji: oldP.emoji,
-        createdAt: oldP.createdAt,
-        auditLog: [...(oldP.auditLog || []), ...newAuditEntries],
-      };
-
+  try {
+    if (State.editingId) {
+      await API.products.update(State.editingId, data);
       toast(`Producto "${nombre}" actualizado`, "success");
-      if (codeChanged)
-        toast(`Código: ${codigoOriginal} → ${codigoNuevo}`, "info");
+      if (codeChanged) toast(`Código: ${codigoOriginal} → ${codigoNuevo}`, "info");
+    } else {
+      const created = await API.products.create(data);
+      toast(`Producto "${nombre}" agregado (${created.codigo})`, "success");
     }
-  } else {
-    const newProduct = {
-      ...data,
-      id: genId(),
-      emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-      createdAt: new Date().toISOString().split("T")[0],
-      auditLog: [],
-    };
 
-    // Entrada inicial de creación
-    newProduct.auditLog.push(
-      createAuditEntry(
-        AUDIT_TYPES.CREATE,
-        "Producto creado",
-        `Código inicial asignado: ${newProduct.codigo}`,
-        [],
-        newProduct.imageUrl || null,
-      ),
-    );
-
-    State.products.unshift(newProduct);
-    toast(`Producto "${nombre}" agregado`, "success");
+    closeModal();
+    // Recargar lista completa desde API
+    await loadFromAPI();
+    refreshAfterProductChange();
+  } catch (err) {
+    toast(err.message || "Error al guardar producto", "danger");
+  } finally {
+    saveBtn.disabled = false;
   }
-
-  closeModal();
-  refreshAfterProductChange();
 }
 
 /* ============= DELETE ============= */
@@ -1621,13 +1593,19 @@ function confirmDelete(id) {
   document.getElementById("deleteModal").classList.add("open");
 }
 
-function doDelete() {
+async function doDelete() {
   if (!State.deletingId) return;
-  State.products = State.products.filter((p) => p.id !== State.deletingId);
+  const id = State.deletingId;
   State.deletingId = null;
   document.getElementById("deleteModal").classList.remove("open");
-  refreshAfterProductChange();
-  toast("Producto eliminado", "danger");
+  try {
+    await API.products.remove(id);
+    State.products = State.products.filter((p) => p.id !== id);
+    refreshAfterProductChange();
+    toast("Producto eliminado", "danger");
+  } catch (err) {
+    toast(err.message || "Error al eliminar producto", "danger");
+  }
 }
 
 /* ============= ADD OPTION MODAL ============= */
@@ -1667,7 +1645,7 @@ function openAddOption(type) {
   document.getElementById("addOptionModal").classList.add("open");
 }
 
-function confirmAddOption() {
+async function confirmAddOption() {
   const val = document.getElementById("addOptionInput").value.trim();
   if (!val) {
     toast("Escribe un nombre válido", "warning");
@@ -1679,22 +1657,28 @@ function confirmAddOption() {
     toast("Ya existe esta opción", "warning");
     return;
   }
-  State.options[cfg.key].push(val);
-  document.getElementById("addOptionModal").classList.remove("open");
-  populateFormSelects();
-  const selectMap = {
-    categoria: "fCategoria",
-    subcategoria: "fSubcategoria",
-    marca: "fMarca",
-    tamano: "fTamano",
-    unidad: "fUnidad",
-    color: "fColor",
-    proveedor: "fProveedor",
-    origen: "fOrigen",
-  };
-  const sel = document.getElementById(selectMap[type]);
-  if (sel) sel.value = val;
-  toast(`"${val}" agregado exitosamente`, "success");
+
+  try {
+    await API.catalogs.add(cfg.key, val);
+    State.options[cfg.key].push(val);
+    document.getElementById("addOptionModal").classList.remove("open");
+    populateFormSelects();
+    const selectMap = {
+      categoria: "fCategoria",
+      subcategoria: "fSubcategoria",
+      marca: "fMarca",
+      tamano: "fTamano",
+      unidad: "fUnidad",
+      color: "fColor",
+      proveedor: "fProveedor",
+      origen: "fOrigen",
+    };
+    const sel = document.getElementById(selectMap[type]);
+    if (sel) sel.value = val;
+    toast(`"${val}" agregado exitosamente`, "success");
+  } catch (err) {
+    toast(err.message || "Error al agregar opción", "danger");
+  }
 }
 
 /* ============= EXPORT ============= */
@@ -1803,8 +1787,14 @@ function handleGlobalSearch(val) {
 }
 
 /* ============= INIT ============= */
-function init() {
-  State.products = loadFromStorage() || generateMockProducts();
+async function init() {
+  if (!API.requireAuth()) return;
+
+  // Mostrar loading
+  document.getElementById("statsGrid").innerHTML =
+    '<div style="color:var(--text-muted);padding:20px">Cargando...</div>';
+
+  await loadFromAPI();
   State.filtered = [...State.products];
 
   // Navigation

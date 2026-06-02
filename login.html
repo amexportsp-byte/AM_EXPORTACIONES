@@ -737,7 +737,7 @@
         }
       });
 
-      function handleLogin() {
+      async function handleLogin() {
         var username = userInput.value.trim();
         var pass = passInput.value;
 
@@ -781,18 +781,57 @@
 
         btnLogin.classList.add("loading");
 
-        setTimeout(function () {
+        try {
+          var res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username, password: pass }),
+          });
+
+          var data = await res.json();
+
           spinner.style.display = "none";
-
           btnLabel.textContent = "Acceder al sistema";
-
           btnLogin.classList.remove("loading");
 
-          successBox.classList.add("show");
+          if (!res.ok) {
+            userErr.textContent = data.error || "Credenciales incorrectas";
+            userErr.classList.add("show");
+            userInput.classList.add("invalid");
+            passInput.classList.add("invalid");
+            return;
+          }
 
+          // Guardar token y datos del trabajador
+          localStorage.setItem("am_token", data.token);
+          localStorage.setItem("am_worker", JSON.stringify(data.worker));
+
+          successBox.classList.add("show");
           userInput.value = "";
           passInput.value = "";
-        }, 2000);
+
+          // Redirigir según rol
+          setTimeout(function () {
+            var role = data.worker.role;
+            if (role === "admin" || role === "supervisor") {
+              window.location.href = "control.html";
+            } else if (role === "cajero" || role === "vendedor") {
+              window.location.href = "venta.html";
+            } else if (role === "almacen") {
+              window.location.href = "registro.html";
+            } else if (role === "contabilidad") {
+              window.location.href = "libro.html";
+            } else {
+              window.location.href = "control.html";
+            }
+          }, 1200);
+        } catch (err) {
+          spinner.style.display = "none";
+          btnLabel.textContent = "Acceder al sistema";
+          btnLogin.classList.remove("loading");
+          userErr.textContent = "Error de conexión con el servidor";
+          userErr.classList.add("show");
+        }
       }
     </script>
   </body>
