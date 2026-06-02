@@ -196,6 +196,30 @@ function getStatus(p) {
   return { label: "Activo", cls: "success" };
 }
 
+/* ── AUDITORÍA PERSISTENTE (localStorage por producto) ── */
+const AUDIT_KEY = "am_audit_v1";
+
+function loadAuditLog(productId) {
+  try {
+    const all = JSON.parse(localStorage.getItem(AUDIT_KEY) || "{}");
+    return all[productId] || [];
+  } catch { return []; }
+}
+
+function saveAuditLog(productId, entries) {
+  try {
+    const all = JSON.parse(localStorage.getItem(AUDIT_KEY) || "{}");
+    all[productId] = entries;
+    localStorage.setItem(AUDIT_KEY, JSON.stringify(all));
+  } catch {}
+}
+
+function appendAuditLog(productId, newEntries) {
+  if (!newEntries.length) return;
+  const current = loadAuditLog(productId);
+  saveAuditLog(productId, [...current, ...newEntries]);
+}
+
 async function loadFromAPI() {
   try {
     const [products, catalogs] = await Promise.all([
@@ -203,10 +227,10 @@ async function loadFromAPI() {
       API.catalogs.list(),
     ]);
 
-    // Agregar emoji por defecto a cada producto
+    // Agregar emoji y cargar historial desde localStorage
     products.forEach((p, i) => {
       if (!p.emoji) p.emoji = EMOJIS[i % EMOJIS.length];
-      if (!p.auditLog) p.auditLog = [];
+      p.auditLog = loadAuditLog(p.id); // persiste entre recargas
     });
 
     State.products = products;
@@ -1588,18 +1612,34 @@ async function saveProduct() {
   const saveBtn = document.getElementById("modalSave");
   saveBtn.disabled = true;
 
-  console.log("[saveProduct] editingId:", State.editingId);
-  console.log("[saveProduct] data enviada:", JSON.stringify(data));
-
   try {
     if (State.editingId) {
-      const res = await API.products.update(State.editingId, data);
-      console.log("[saveProduct] respuesta servidor:", res);
+      // Construir entradas de auditoría ANTES de guardar
+      const oldP = State.products.find((x) => x.id === State.editingId);
+      const newAuditEntries = oldP
+        ? buildAuditEntries(oldP, { ...oldP, ...data }, codeMotivo)
+        : [];
+
+      await API.products.update(State.editingId, data);
+
+      // Persistir auditoría en localStorage
+      appendAuditLog(State.editingId, newAuditEntries);
+
       toast(`Producto "${nombre}" actualizado`, "success");
       if (codeChanged) toast(`Código: ${codigoOriginal} → ${codigoNuevo}`, "info");
     } else {
       const created = await API.products.create(data);
-      console.log("[saveProduct] producto creado:", created);
+
+      // Entrada inicial de creación
+      const initEntry = createAuditEntry(
+        AUDIT_TYPES.CREATE,
+        "Producto creado",
+        `Código asignado: ${created.codigo}`,
+        [],
+        data.imageUrl || null,
+      );
+      saveAuditLog(created.id, [initEntry]);
+
       toast(`Producto "${nombre}" agregado (${created.codigo})`, "success");
     }
 
@@ -1630,6 +1670,12 @@ async function doDelete() {
   try {
     await API.products.remove(id);
     State.products = State.products.filter((p) => p.id !== id);
+    // Limpiar auditoría del producto eliminado
+    try {
+      const all = JSON.parse(localStorage.getItem(AUDIT_KEY) || "{}");
+      delete all[id];
+      localStorage.setItem(AUDIT_KEY, JSON.stringify(all));
+    } catch {}
     refreshAfterProductChange();
     toast("Producto eliminado", "danger");
   } catch (err) {
