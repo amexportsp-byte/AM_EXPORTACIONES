@@ -4748,6 +4748,14 @@
         renderResumenVenta(S._ventaTemp);
         abrirModal("modalResumenVenta");
       }
+      // Formatea un pago mostrando divisa original + equivalente en PEN
+      function fmtPago(p) {
+        if (p.moneda === "PEN" || !p.moneda) return fmt(p.monto);
+        const simb = MONEDAS[p.moneda]?.simbolo || p.moneda;
+        const orig = p.montoOriginal != null ? p.montoOriginal : p.monto;
+        return `${simb} ${parseFloat(orig).toFixed(2)} <span style="color:var(--text-muted);font-size:11px;font-weight:400">(≈ ${fmt(p.monto)})</span>`;
+      }
+
       function renderResumenVenta(v) {
         const t = v.totales;
         document.getElementById("resumenVentaBody").innerHTML =
@@ -4759,7 +4767,7 @@
             })
             .join(
               "",
-            )}</tbody></table><div class="rv-totals"><div class="rv-tot-row"><span>Subtotal s/IGV</span><span>${fmt(t.subtotalSIGV)}</span></div><div class="rv-tot-row"><span>IGV (18%)</span><span>${fmt(t.igv)}</span></div><div class="rv-tot-row"><span>Descuentos</span><span style="color:var(--success)">- ${fmt(t.descProd + t.descuentoG)}</span></div><div class="rv-tot-row main"><span>TOTAL</span><span>${fmt(t.totalFinal)}</span></div></div><div style="margin-top:12px"><div class="rv-sec-title">Pagos</div>${v.pagos.map((p) => `<div class="rv-line"><span>${p.icon} ${p.nombre}</span><strong>${fmt(p.monto)}</strong></div>`).join("")}</div>`;
+            )}</tbody></table><div class="rv-totals"><div class="rv-tot-row"><span>Subtotal s/IGV</span><span>${fmt(t.subtotalSIGV)}</span></div><div class="rv-tot-row"><span>IGV (18%)</span><span>${fmt(t.igv)}</span></div><div class="rv-tot-row"><span>Descuentos</span><span style="color:var(--success)">- ${fmt(t.descProd + t.descuentoG)}</span></div><div class="rv-tot-row main"><span>TOTAL</span><span>${fmt(t.totalFinal)}</span></div></div><div style="margin-top:12px"><div class="rv-sec-title">Pagos</div>${v.pagos.map((p) => `<div class="rv-line"><span>${p.icon} ${p.nombre}</span><strong>${fmtPago(p)}</strong></div>`).join("")}</div>`;
       }
       async function emitirComprobante() {
         const v = S._ventaTemp;
@@ -4911,7 +4919,12 @@
             })
             .join(
               "",
-            )}</tbody></table></div></div><div style="margin-bottom:16px"><div class="rv-sec-title">Pagos</div>${c.pagos.map((p, i) => `<div class="monto-row" style="margin-bottom:6px"><div class="monto-label"><span class="m-icon">${p.icon}</span>${p.nombre}</div><div class="monto-wrap"><span class="m-prefix">S/</span><input type="number" class="monto-input" id="det-pago-${i}" value="${p.monto.toFixed(2)}" step="0.01"></div></div>`).join("")}</div><div class="rv-totals" style="margin-bottom:20px"><div class="rv-tot-row"><span>Subtotal s/IGV</span><span id="det-subtotal-show">${fmt(c.totales.subtotalSIGV)}</span></div><div class="rv-tot-row"><span>IGV (18%)</span><span id="det-igv-show">${fmt(c.totales.igv)}</span></div><div class="rv-tot-row"><span>Descuentos</span><span id="det-desc-show" style="color:var(--success)">- ${fmt(c.totales.descProd + c.totales.descuentoG)}</span></div><div class="rv-tot-row main"><span>TOTAL</span><span id="det-total-show">${fmt(c.totales.totalFinal)}</span></div></div>${renderAuditSection(c.auditLog, "all", "setAuditFiltroComp")}`;
+            )}</tbody></table></div></div><div style="margin-bottom:16px"><div class="rv-sec-title">Pagos</div>${c.pagos.map((p, i) => {
+              const simb = (p.moneda && p.moneda !== "PEN") ? (MONEDAS[p.moneda]?.simbolo || p.moneda) : "S/";
+              const val = (p.moneda && p.moneda !== "PEN" && p.montoOriginal != null) ? parseFloat(p.montoOriginal).toFixed(2) : p.monto.toFixed(2);
+              const equiv = (p.moneda && p.moneda !== "PEN") ? `<span style="font-size:11px;color:var(--text-muted);margin-left:6px">≈ ${fmt(p.monto)}</span>` : "";
+              return `<div class="monto-row" style="margin-bottom:6px"><div class="monto-label"><span class="m-icon">${p.icon}</span>${p.nombre}</div><div class="monto-wrap"><span class="m-prefix">${simb}</span><input type="number" class="monto-input" id="det-pago-${i}" value="${val}" step="0.01"></div>${equiv}</div>`;
+            }).join("")}</div><div class="rv-totals" style="margin-bottom:20px"><div class="rv-tot-row"><span>Subtotal s/IGV</span><span id="det-subtotal-show">${fmt(c.totales.subtotalSIGV)}</span></div><div class="rv-tot-row"><span>IGV (18%)</span><span id="det-igv-show">${fmt(c.totales.igv)}</span></div><div class="rv-tot-row"><span>Descuentos</span><span id="det-desc-show" style="color:var(--success)">- ${fmt(c.totales.descProd + c.totales.descuentoG)}</span></div><div class="rv-tot-row main"><span>TOTAL</span><span id="det-total-show">${fmt(c.totales.totalFinal)}</span></div></div>${renderAuditSection(c.auditLog, "all", "setAuditFiltroComp")}`;
         S._detalleComp = c;
         abrirModal("modalDetalle");
       }
@@ -5058,7 +5071,7 @@
           })
           .join("");
         document.getElementById("printArea").innerHTML =
-          `<div class="print-doc"><div class="print-header"><div class="print-company">🏢 A&M EXPORTACIONES</div><div class="print-comp-num">${c.numero}</div><div style="font-size:11px;color:#666;margin-top:3px">${c.fecha}</div></div><div style="margin-bottom:12px"><strong>CLIENTE</strong><br>${c.cliente.tipoDoc}: ${c.cliente.numDoc}<br>${c.cliente.nombre}<br>${c.cliente.email !== "—" ? c.cliente.email : ""}</div><table class="print-table"><thead><tr><th>Producto</th><th>Código</th><th>Cant.</th><th>P.Unit.</th><th>Desc.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table><div class="print-totals"><div class="print-line"><span>Subtotal s/IGV</span><span>S/ ${c.totales.subtotalSIGV.toFixed(2)}</span></div><div class="print-line"><span>IGV 18%</span><span>S/ ${c.totales.igv.toFixed(2)}</span></div><div class="print-line"><span>Descuentos</span><span style="color:green">- S/ ${(c.totales.descProd + c.totales.descuentoG).toFixed(2)}</span></div><div class="print-line print-total-main"><span><strong>TOTAL</strong></span><strong>S/ ${c.totales.totalFinal.toFixed(2)}</strong></div><br>${c.pagos.map((p) => `<div class="print-line"><span>${p.icon} ${p.nombre}</span><span>S/ ${p.monto.toFixed(2)}</span></div>`).join("")}</div><div class="print-footer">Gracias por su preferencia · A&M EXPORTACIONES · ${c.fecha}</div></div>`;
+          `<div class="print-doc"><div class="print-header"><div class="print-company">🏢 A&M EXPORTACIONES</div><div class="print-comp-num">${c.numero}</div><div style="font-size:11px;color:#666;margin-top:3px">${c.fecha}</div></div><div style="margin-bottom:12px"><strong>CLIENTE</strong><br>${c.cliente.tipoDoc}: ${c.cliente.numDoc}<br>${c.cliente.nombre}<br>${c.cliente.email !== "—" ? c.cliente.email : ""}</div><table class="print-table"><thead><tr><th>Producto</th><th>Código</th><th>Cant.</th><th>P.Unit.</th><th>Desc.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table><div class="print-totals"><div class="print-line"><span>Subtotal s/IGV</span><span>S/ ${c.totales.subtotalSIGV.toFixed(2)}</span></div><div class="print-line"><span>IGV 18%</span><span>S/ ${c.totales.igv.toFixed(2)}</span></div><div class="print-line"><span>Descuentos</span><span style="color:green">- S/ ${(c.totales.descProd + c.totales.descuentoG).toFixed(2)}</span></div><div class="print-line print-total-main"><span><strong>TOTAL</strong></span><strong>S/ ${c.totales.totalFinal.toFixed(2)}</strong></div><br>${c.pagos.map((p) => { const s = (p.moneda && p.moneda !== "PEN") ? (MONEDAS[p.moneda]?.simbolo || p.moneda) + " " + parseFloat(p.montoOriginal||p.monto).toFixed(2) + " (≈ S/ " + p.monto.toFixed(2) + ")" : "S/ " + p.monto.toFixed(2); return `<div class="print-line"><span>${p.icon} ${p.nombre}</span><span>${s}</span></div>`; }).join("")}</div><div class="print-footer">Gracias por su preferencia · A&M EXPORTACIONES · ${c.fecha}</div></div>`;
         window.print();
       }
 
