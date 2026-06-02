@@ -1588,21 +1588,26 @@ async function saveProduct() {
   const saveBtn = document.getElementById("modalSave");
   saveBtn.disabled = true;
 
+  console.log("[saveProduct] editingId:", State.editingId);
+  console.log("[saveProduct] data enviada:", JSON.stringify(data));
+
   try {
     if (State.editingId) {
-      await API.products.update(State.editingId, data);
+      const res = await API.products.update(State.editingId, data);
+      console.log("[saveProduct] respuesta servidor:", res);
       toast(`Producto "${nombre}" actualizado`, "success");
       if (codeChanged) toast(`Código: ${codigoOriginal} → ${codigoNuevo}`, "info");
     } else {
       const created = await API.products.create(data);
+      console.log("[saveProduct] producto creado:", created);
       toast(`Producto "${nombre}" agregado (${created.codigo})`, "success");
     }
 
     closeModal();
-    // Recargar lista completa desde API
     await loadFromAPI();
     refreshAfterProductChange();
   } catch (err) {
+    console.error("[saveProduct] ERROR:", err);
     toast(err.message || "Error al guardar producto", "danger");
   } finally {
     saveBtn.disabled = false;

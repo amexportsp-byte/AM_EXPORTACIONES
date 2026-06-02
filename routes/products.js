@@ -216,8 +216,8 @@ router.put("/:id", auth, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("PUT /products/:id:", err);
-    res.status(500).json({ error: "Error al actualizar producto" });
+    console.error("PUT /products/:id:", err.message, err.detail || "");
+    res.status(500).json({ error: "Error al actualizar: " + err.message });
   }
 });
 
