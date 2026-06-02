@@ -4007,13 +4007,9 @@
       };
 
       async function cargarDatosVenta() {
+        // Cargar productos y clientes por separado para que uno no bloquee al otro
         try {
-          const [productos, clientes] = await Promise.all([
-            API.products.list(),
-            API.clients.list(),
-          ]);
-
-          // Mapear productos al formato que usa venta.html
+          const productos = await API.products.list();
           PRODUCTOS_DB = productos
             .filter((p) => p.status !== "inactivo" && p.status !== "descontinuado")
             .map((p) => ({
@@ -4032,10 +4028,21 @@
               descripcion: p.info || "",
               fecha_ingreso: p.fechaCompra || "",
             }));
+          S.productosFiltrados = [...PRODUCTOS_DB];
+          initFiltros();
+          renderProductos();
+          calcularTotales();
+        } catch (err) {
+          console.error("Error cargando productos:", err);
+          toast("⚠️ Error al cargar productos: " + err.message, "warning");
+        }
 
-          // Mapear clientes al formato que usa venta.html
+        // Clientes (independiente — no bloquea productos)
+        try {
+          const clientes = await API.clients.list();
           CLIENTES_DB = clientes.map((c) => ({
             id: c.id,
+            _dbId: c.id,
             tipoDoc: c.document_type,
             numDoc: c.document_number || "",
             nombre: c.first_name || c.business_name || "",
@@ -4044,15 +4051,8 @@
             celular: c.phone || "",
             auditLog: [],
           }));
-
-          // Actualizar estado y re-renderizar
-          S.productosFiltrados = [...PRODUCTOS_DB];
-          initFiltros();
-          renderProductos();
-          calcularTotales();
         } catch (err) {
-          console.error("Error cargando datos de venta:", err);
-          toast("⚠️ Error al cargar productos del servidor", "warning");
+          console.error("Error cargando clientes:", err);
         }
       }
       let numReclamo = 1;
