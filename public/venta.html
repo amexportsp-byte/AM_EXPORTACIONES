@@ -4607,12 +4607,23 @@
           chip.classList.remove("selected");
         } else {
           const m = METODOS_PAGO.find((x) => x.id === id);
+          const moneda = m?.moneda || "PEN";
           S.metodosSeleccionados.add(id);
-          S.montosPago[id] = {
-            montoOriginal: 0,
-            moneda: m?.moneda || "PEN",
-            montoPEN: 0,
-          };
+
+          // Auto-calcular monto pendiente en la divisa seleccionada
+          const totalPEN = S._totales?.totalFinal || 0;
+          const yaPagadoPEN = Object.values(S.montosPago)
+            .reduce((a, b) => a + (b?.montoPEN || 0), 0);
+          const pendientePEN = Math.max(0, totalPEN - yaPagadoPEN);
+
+          // Convertir el pendiente a la divisa del método
+          const tc = TIPO_CAMBIO[moneda] || 1;
+          const montoOriginal = moneda === "PEN"
+            ? parseFloat(pendientePEN.toFixed(2))
+            : parseFloat((pendientePEN / tc).toFixed(2));
+          const montoPEN = convertirAPEN(montoOriginal, moneda);
+
+          S.montosPago[id] = { montoOriginal, moneda, montoPEN };
           chip.classList.add("selected");
         }
         renderMetodosMontos();
