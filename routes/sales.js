@@ -124,6 +124,54 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+// GET /api/sales/:id — detalle completo de una venta
+router.get("/:id", auth, async (req, res) => {
+  try {
+    // Venta principal + cliente + trabajador
+    const { rows: saleRows } = await pool.query(
+      `SELECT s.*,
+              c.document_type AS client_doc_type,
+              c.document_number AS client_doc_num,
+              c.first_name AS client_first_name,
+              c.last_name AS client_last_name,
+              c.email AS client_email,
+              c.phone AS client_phone,
+              w.first_name || ' ' || w.last_name AS worker_name
+       FROM sales s
+       LEFT JOIN clients c ON s.client_id = c.id
+       LEFT JOIN workers w ON s.worker_id = w.id
+       WHERE s.id = $1`,
+      [req.params.id]
+    );
+    if (!saleRows[0]) return res.status(404).json({ error: "Venta no encontrada" });
+    const sale = saleRows[0];
+
+    // Ítems / productos
+    const { rows: items } = await pool.query(
+      `SELECT sd.*, p.image_url
+       FROM sale_details sd
+       LEFT JOIN products p ON sd.product_id = p.id
+       WHERE sd.sale_id = $1 ORDER BY sd.created_at`,
+      [req.params.id]
+    );
+
+    // Pagos
+    const { rows: payments } = await pool.query(
+      `SELECT sp.*, pm.name AS method_name, pm.code AS method_code,
+              pm.type AS method_type, pm.currency AS method_currency
+       FROM sale_payments sp
+       JOIN payment_methods pm ON sp.payment_method_id = pm.id
+       WHERE sp.sale_id = $1`,
+      [req.params.id]
+    );
+
+    res.json({ ...sale, items, payments });
+  } catch (err) {
+    console.error("GET /sales/:id:", err);
+    res.status(500).json({ error: "Error al obtener venta" });
+  }
+});
+
 // GET /api/sales/payment-methods
 router.get("/payment-methods", auth, async (req, res) => {
   try {

@@ -85,6 +85,7 @@ const API = {
 
   sales: {
     list() { return API.get("/api/sales"); },
+    get(id) { return API.get(`/api/sales/${id}`); },
     create(data) { return API.post("/api/sales", data); },
   },
 

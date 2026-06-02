@@ -4876,39 +4876,82 @@
         document.getElementById("fTipoDocComp").value = "";
         renderTablaComprobantes();
       }
+      function mapSaleToComp(v) {
+        // Mapear items de BD al formato local
+        const items = (v.items || []).map((d) => ({
+          id: d.id,
+          prodId: d.product_id,
+          nombre: d.product_name,
+          codigo: d.product_code,
+          cantidad: parseInt(d.quantity),
+          precio: parseFloat(d.unit_price),
+          descuento: parseFloat(d.discount_pct) || 0,
+          emoji: "📦",
+          imageUrl: d.image_url || "",
+          marca: "",
+        }));
+
+        // Mapear pagos de BD al formato local
+        const pagos = (v.payments || []).map((p) => {
+          const moneda = p.method_currency || "PEN";
+          const simb = MONEDAS[moneda]?.simbolo || moneda;
+          return {
+            id: p.method_code || p.payment_method_id,
+            nombre: p.method_name || "Pago",
+            icon: moneda === "USD" ? "💵" : moneda === "EUR" ? "💶" : moneda === "JPY" ? "💴" : "💰",
+            moneda,
+            montoOriginal: parseFloat(p.amount),
+            monto: parseFloat(p.amount_pen) || parseFloat(p.amount),
+            tipoCambio: parseFloat(p.exchange_rate) || 1,
+          };
+        });
+
+        const subtotal = parseFloat(v.subtotal) || 0;
+        const discount = parseFloat(v.discount) || 0;
+        const igv = parseFloat(v.igv) || 0;
+        const total = parseFloat(v.total) || 0;
+
+        return {
+          id: v.id,
+          numero: v.sale_number,
+          fecha: new Date(v.sale_date).toLocaleString("es-PE"),
+          cliente: {
+            tipoDoc: v.client_doc_type || "DNI",
+            numDoc: v.client_doc_num || v.client_doc || "—",
+            nombre: v.client_name || (v.client_first_name ? `${v.client_first_name} ${v.client_last_name || ""}`.trim() : "Sin cliente"),
+            email: v.client_email || "—",
+          },
+          items,
+          totales: {
+            importeBase: subtotal + discount,
+            descProd: discount,
+            descuentoG: 0,
+            subtotalSIGV: subtotal,
+            igv,
+            totalFinal: total,
+            qtyTotal: items.reduce((a, i) => a + i.cantidad, 0),
+          },
+          pagos,
+          auditLog: [],
+          _fromDB: true,
+        };
+      }
+
       async function cargarYRenderComprobantes() {
         try {
           const ventas = await API.sales.list();
-          // Mapear ventas de BD al formato de comprobante local
-          const fromDB = ventas.map((v) => ({
-            id: v.id,
-            numero: v.sale_number,
-            fecha: new Date(v.sale_date).toLocaleString("es-PE"),
-            cliente: {
-              tipoDoc: v.client_doc_type || "—",
-              numDoc: v.client_doc || v.client_doc_num || "—",
-              nombre: v.client_name || "Sin cliente",
-              email: "—",
-            },
-            items: [],           // detalle no disponible en lista
-            totales: {
-              importeBase: parseFloat(v.subtotal) || 0,
-              descProd: parseFloat(v.discount) || 0,
-              descuentoG: 0,
-              subtotalSIGV: parseFloat(v.subtotal) - parseFloat(v.discount || 0),
-              igv: parseFloat(v.igv) || 0,
-              totalFinal: parseFloat(v.total) || 0,
-              qtyTotal: 0,
-            },
-            pagos: [],
-            auditLog: [],
-            _fromDB: true,
-          }));
+          // Cargar detalles completos de cada venta (en paralelo, máx 10)
+          const detalles = await Promise.all(
+            ventas.slice(0, 50).map((v) =>
+              API.sales.get(v.id).catch(() => v)
+            )
+          );
+          const fromDB = detalles.map(mapSaleToComp);
 
-          // Combinar: primero las nuevas en memoria, luego las de BD que no estén ya
-          const memIds = new Set(S.comprobantes.map((c) => c.numero));
+          // Combinar: en memoria primero, luego de BD sin duplicar
+          const memIds = new Set(S.comprobantes.filter((c) => !c._fromDB).map((c) => c.numero));
           const merged = [
-            ...S.comprobantes,
+            ...S.comprobantes.filter((c) => !c._fromDB),
             ...fromDB.filter((c) => !memIds.has(c.numero)),
           ];
           merged.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
