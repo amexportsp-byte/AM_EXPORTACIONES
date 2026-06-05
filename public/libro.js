@@ -10,6 +10,12 @@
 
 'use strict';
 
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 /* ════════════════════════════════════════════════════════
    1. CLAVES LOCALSTORAGE COMPARTIDAS
 ════════════════════════════════════════════════════════ */
@@ -1042,7 +1048,7 @@ function renderDashboard() {
           <td class="mono">${a.correlativo}</td>
           <td>${fechaCorta(a.fecha)}</td>
           <td><span class="badge badge-navy">${a.codCuenta||'—'}</span></td>
-          <td style="max-width:180px;font-size:12px">${a.glosa||'—'}</td>
+          <td style="max-width:180px;font-size:12px">${esc(a.glosa||'—')}</td>
           <td><span class="badge ${badgeTipo(a.tipo)}">${a.tipo||'—'}</span></td>
           <td style="color:var(--verde)">${a.debe>0?dinero(a.debe):'—'}</td>
           <td style="color:var(--rojo)">${a.haber>0?dinero(a.haber):'—'}</td>
@@ -1453,7 +1459,7 @@ function renderLibroDiario() {
     <td class="mono">${a.correlativo}</td>
     <td>${fechaCorta(a.fecha)}</td>
     <td><span class="badge badge-navy">${a.codCuenta||'—'}</span></td>
-    <td style="max-width:180px;font-size:12px">${a.glosa||'—'}</td>
+    <td style="max-width:180px;font-size:12px">${esc(a.glosa||'—')}</td>
     <td style="font-size:11px">${a.tipoDoc?`${a.tipoDoc} ${a.serie||''}-${a.numero||''}`:'—'}</td>
     <td style="color:var(--verde)">${a.debe>0?dinero(a.debe):'—'}</td>
     <td style="color:var(--rojo)">${a.haber>0?dinero(a.haber):'—'}</td>
@@ -1713,12 +1719,12 @@ function renderTablaVentas() {
   tbody.innerHTML=datos.map(v=>`<tr>
     <td>${fechaCorta(v.fecha)}</td>
     <td>
-      <div style="font-weight:600">${v.cliente||'—'}</div>
+      <div style="font-weight:600">${esc(v.cliente||'—')}</div>
       ${v._fuente==='venta'?'<span class="badge badge-morado" style="font-size:9px">módulo ventas</span>':''}
     </td>
     <td style="font-size:11px;font-family:monospace">${v.ruc||'—'}</td>
     <td style="font-size:11px">${v.tipoComp||''} ${v.serie||''}-${v.numero||''}</td>
-    <td style="font-size:12px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.producto||'—'}</td>
+    <td style="font-size:12px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.producto||'—')}</td>
     <td>${dinero(v.subtotal)}</td>
     <td>${dinero(v.igv)}</td>
     <td style="font-weight:700">${dinero(v.total)}</td>
@@ -1893,11 +1899,11 @@ function renderTablaCompras(){
   const tbody=document.getElementById('cuerpoCompras'); if(!tbody)return;
   if(!datos.length){tbody.innerHTML=`<tr><td colspan="12"><div class="tabla-vacia"><i class="fa fa-shopping-cart"></i><p>Sin compras</p></div></td></tr>`;return;}
   tbody.innerHTML=datos.map(c=>`<tr>
-    <td>${fechaCorta(c.fecha)}</td><td>${c.proveedor||'—'}</td>
-    <td style="font-size:11px;font-family:monospace">${c.ruc||'—'}</td>
-    <td style="font-size:11px">${c.tipoComp||''} ${c.serie||''}-${c.numero||''}</td>
-    <td><span class="badge badge-gris">${c.categoria||'—'}</span></td>
-    <td style="font-size:12px">${c.descripcion||'—'}</td>
+    <td>${fechaCorta(c.fecha)}</td><td>${esc(c.proveedor||'—')}</td>
+    <td style="font-size:11px;font-family:monospace">${esc(c.ruc||'—')}</td>
+    <td style="font-size:11px">${esc(c.tipoComp||'')} ${esc(c.serie||'')}-${esc(c.numero||'')}</td>
+    <td><span class="badge badge-gris">${esc(c.categoria||'—')}</span></td>
+    <td style="font-size:12px">${esc(c.descripcion||'—')}</td>
     <td>${dinero(c.subtotal)}</td><td>${dinero(c.igv)}</td>
     <td style="font-weight:700">${dinero(c.total)}</td>
     <td><span class="badge ${badgePago(c.estadoPago)}">${c.estadoPago||'—'}</span></td>

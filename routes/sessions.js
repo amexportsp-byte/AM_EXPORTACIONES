@@ -194,6 +194,9 @@ router.post("/heartbeat", auth, async (req, res) => {
    Usa auth normal (token en cabecera).
 ══════════════════════════════════════════════════════════════ */
 router.post("/admin-close-page", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
+
   const { worker_id, tab_id } = req.body || {};
   if (!worker_id || !tab_id) return res.status(400).json({ error: "Faltan worker_id o tab_id" });
 

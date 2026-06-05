@@ -1,37 +1,19 @@
 "use strict";
 
-/**
- * static-auth.js — Protección de archivos estáticos
- *
- * Intercepta peticiones de .html / .js / .css antes de que express.static
- * las sirva. Si el archivo no es público Y no hay una cookie de sesión válida,
- * devuelve 403 (para JS/CSS) o redirige al login (para HTML).
- *
- * Funciona sin cookie-parser: lee req.headers.cookie manualmente.
- * Usa el mismo JWT_SECRET que el resto del sistema.
- */
+const jwt    = require("jsonwebtoken");
+const crypto = require("crypto");
+const path   = require("path");
+const pool   = require("../db");
 
-const jwt  = require("jsonwebtoken");
-const path = require("path");
-
-/* ── Archivos que SIEMPRE son accesibles sin sesión ── */
+/* ── Archivos siempre accesibles sin sesión ── */
 const ARCHIVOS_PUBLICOS = new Set([
-  // Página de acceso y estilos/scripts inline (login.html no carga CSS externo)
   "login.html",
-
-  // Tienda pública (vitrina)
-  "inicio.html",
-  "inicio.js",
-  "inicio.css",
-
-  // Guard: debe cargarse incluso antes de validar sesión
+  "inicio.html", "inicio.js", "inicio.css",
   "auth-guard.js",
 ]);
 
-/* Extensiones que queremos proteger */
 const EXTENSIONES_PROTEGIDAS = new Set([".html", ".js", ".css"]);
 
-/* ── Parseo manual de cookies ── */
 function parseCookie(header, name) {
   if (!header) return null;
   const entry = header
@@ -42,43 +24,56 @@ function parseCookie(header, name) {
   return decodeURIComponent(entry.slice(name.length + 1));
 }
 
-/* ── Middleware principal ── */
-module.exports = function staticAuth(req, res, next) {
+function clearCookie(res) {
+  res.setHeader("Set-Cookie", "am_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/");
+}
+
+function bloquear(res, ext) {
+  if (ext === ".html") return res.redirect(302, "/login.html");
+  res.status(403).end();
+}
+
+module.exports = async function staticAuth(req, res, next) {
   const ext      = path.extname(req.path).toLowerCase();
   const filename = path.basename(req.path);
 
-  // 1. Extensión no protegida (imágenes, fuentes, etc.) → pasar directamente
+  // Extensión no protegida (imágenes, fuentes, etc.)
   if (!EXTENSIONES_PROTEGIDAS.has(ext)) return next();
 
-  // 2. Archivo en lista blanca pública → pasar directamente
+  // Archivo público (login, tienda, auth-guard)
   if (ARCHIVOS_PUBLICOS.has(filename)) return next();
 
-  // 3. Verificar cookie de sesión
   const token = parseCookie(req.headers.cookie, "am_session");
 
-  if (!token) {
-    return bloquear(req, res, ext);
-  }
+  if (!token) return bloquear(res, ext);
 
   try {
+    // 1. Verificar firma y expiración del JWT
     jwt.verify(token, process.env.JWT_SECRET);
-    return next(); // Token válido → servir el archivo
+
+    // 2. Para HTML: verificar que la sesión siga activa en BD
+    //    Esto bloquea acceso aunque el JWT sea criptográficamente válido
+    //    si la sesión fue revocada (logout, nuevo login, admin-revoke)
+    if (ext === ".html") {
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const { rows } = await pool.query(
+        `SELECT id FROM worker_sessions
+         WHERE token_hash = $1 AND status = 'activo' AND expires_at > NOW()
+         LIMIT 1`,
+        [tokenHash]
+      );
+      if (!rows.length) {
+        clearCookie(res);
+        return bloquear(res, ext);
+      }
+    }
+
+    // Evitar que el navegador cachee páginas protegidas
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    return next();
   } catch {
-    // Token inválido o expirado → limpiar cookie y bloquear
-    res.setHeader(
-      "Set-Cookie",
-      "am_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/"
-    );
-    return bloquear(req, res, ext);
+    clearCookie(res);
+    return bloquear(res, ext);
   }
 };
-
-/* Decide la respuesta según el tipo de archivo */
-function bloquear(req, res, ext) {
-  if (ext === ".html") {
-    // Para páginas HTML: redirigir al login
-    return res.redirect(302, "/login.html");
-  }
-  // Para JS / CSS: 403 vacío (el auth-guard ya habrá redirigido antes)
-  res.status(403).end();
-}

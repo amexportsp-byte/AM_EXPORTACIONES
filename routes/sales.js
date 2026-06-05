@@ -202,6 +202,8 @@ router.post("/clients", auth, async (req, res) => {
 
 // PUT /api/sales/:id — actualizar totales y detalles de una venta
 router.put("/:id", auth, async (req, res) => {
+  if (!["admin", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

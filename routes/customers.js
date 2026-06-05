@@ -63,18 +63,27 @@ router.post("/register", async (req, res) => {
   if (!doc_type || !doc_number || !first_name || !last_name || !email)
     return res.status(400).json({ error: "Nombre, apellidos y correo son obligatorios" });
 
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!emailRe.test(email.trim()))
+    return res.status(400).json({ error: "Correo electrónico no válido" });
+
+  const docClean = doc_number.trim().replace(/\s+/g, "");
+  if (!docClean || docClean.length < 6 || docClean.length > 20 || !/^[A-Za-z0-9-]+$/.test(docClean))
+    return res.status(400).json({ error: "Número de documento no válido" });
+
   try {
     // Documento no duplicado
     const dupDoc = await pool.query(
       "SELECT id FROM clients WHERE document_type=$1 AND document_number=$2 AND deleted_at IS NULL",
-      [doc_type, doc_number]
+      [doc_type, docClean]
     );
     if (dupDoc.rows.length)
       return res.status(400).json({ error: "Ese número de documento ya está registrado" });
 
     // Email no duplicado
+    const emailClean = email.trim().toLowerCase();
     const dupEmail = await pool.query(
-      "SELECT id FROM clients WHERE email=$1 AND deleted_at IS NULL", [email]
+      "SELECT id FROM clients WHERE email=$1 AND deleted_at IS NULL", [emailClean]
     );
     if (dupEmail.rows.length)
       return res.status(400).json({ error: "Ese correo electrónico ya está registrado" });
@@ -82,12 +91,12 @@ router.post("/register", async (req, res) => {
     const { rows: [client] } = await pool.query(
       `INSERT INTO clients (document_type, document_number, first_name, last_name, email, phone, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'activo') RETURNING id`,
-      [doc_type, doc_number, first_name.trim(), last_name.trim(), email.trim(), phone || null]
+      [doc_type, docClean, first_name.trim(), last_name.trim(), emailClean, phone || null]
     );
 
     const name  = `${first_name.trim()} ${last_name.trim()}`;
-    const token = makeToken({ client_id: client.id, email: email.trim(), name });
-    res.status(201).json({ token, name, email: email.trim() });
+    const token = makeToken({ client_id: client.id, email: emailClean, name });
+    res.status(201).json({ token, name, email: emailClean });
   } catch (err) {
     console.error("POST /customers/register:", err);
     res.status(500).json({ error: "Error al crear cuenta" });
@@ -167,6 +176,54 @@ router.get("/orders", custAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /customers/orders:", err);
     res.status(500).json({ error: "Error al obtener pedidos" });
+  }
+});
+
+// ─────────────────────────────────────────────
+// DELETE /api/customers/me  (protegido) — GDPR
+// Anonimiza y marca la cuenta como eliminada.
+// Conserva el registro para integridad contable
+// pero borra todos los datos personales.
+// ─────────────────────────────────────────────
+router.delete("/me", custAuth, async (req, res) => {
+  const clientId = req.customer.client_id;
+  const db = await pool.connect();
+  try {
+    await db.query("BEGIN");
+
+    // Anonimizar datos personales (no borrado físico → integridad contable)
+    await db.query(
+      `UPDATE clients SET
+         first_name    = 'ELIMINADO',
+         last_name     = '',
+         email         = NULL,
+         phone         = NULL,
+         address       = NULL,
+         district      = NULL,
+         city          = NULL,
+         document_number = CONCAT('DEL-', id::text),
+         deleted_at    = NOW(),
+         updated_at    = NOW()
+       WHERE id = $1`,
+      [clientId]
+    );
+
+    // Invalidar cuenta de acceso al portal si existe
+    await db.query(
+      `UPDATE client_accounts
+         SET status = 'eliminado', updated_at = NOW()
+       WHERE client_id = $1`,
+      [clientId]
+    ).catch(() => {}); // tabla puede no existir en todos los entornos
+
+    await db.query("COMMIT");
+    res.json({ ok: true, message: "Cuenta eliminada. Tus datos personales han sido borrados." });
+  } catch (err) {
+    await db.query("ROLLBACK");
+    console.error("DELETE /customers/me:", err);
+    res.status(500).json({ error: "Error al eliminar cuenta" });
+  } finally {
+    db.release();
   }
 });
 

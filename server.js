@@ -5,12 +5,67 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* ─── Middleware global ─── */
-app.use(cors());
+/* ─── Seguridad: cabeceras HTTP ─── */
+app.use(helmet({
+  contentSecurityPolicy: false, // Se desactiva para no romper el frontend actual
+  crossOriginEmbedderPolicy: false,
+}));
+
+/* ─── CORS: solo orígenes permitidos ─── */
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : ["http://localhost:3000", "http://localhost:3001"];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error("Origen no permitido por CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+}));
+
+/* ─── Monitoreo de seguridad: log estructurado de eventos críticos (ISO A.8.16) ─── */
+function secLog(type, req, detail) {
+  const ip  = req.ip || req.headers["x-forwarded-for"] || "-";
+  const ua  = (req.headers["user-agent"] || "-").slice(0, 120);
+  console.warn(`[SEC] ${type} | ip=${ip} | url=${req.originalUrl} | ${detail} | ua=${ua}`);
+}
+
+/* ─── Rate limiting global: 200 req/min por IP ─── */
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes, intente en un momento." },
+  handler(req, res, next, options) {
+    secLog("RATE_LIMIT_GLOBAL", req, "límite global excedido");
+    res.status(options.statusCode).json(options.message);
+  },
+}));
+
+/* ─── Rate limiting estricto para login: 10 intentos/15 min ─── */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos de login, espere 15 minutos." },
+  handler(req, res, next, options) {
+    secLog("RATE_LIMIT_LOGIN", req, "brute force bloqueado");
+    res.status(options.statusCode).json(options.message);
+  },
+});
+app.use("/api/auth/login", loginLimiter);
+app.use("/api/customers/login", loginLimiter);
+
 app.use(express.json());
 
 /* ─── Protección de archivos estáticos ─── */
@@ -70,6 +125,18 @@ app.use("/api/customers",         require("./routes/customers"));
 app.use("/api/admin/customers",   require("./routes/admin-customers"));
 app.use("/api/delivery-orders",   require("./routes/delivery-orders"));
 
+/* ─── Monitoreo post-rutas: log de 403 / acceso denegado (ISO A.8.16) ─── */
+app.use((req, res, next) => {
+  const orig = res.json.bind(res);
+  res.json = function (body) {
+    if (res.statusCode === 403) {
+      secLog("ACCESS_DENIED_403", req, `body=${JSON.stringify(body).slice(0, 120)}`);
+    }
+    return orig(body);
+  };
+  next();
+});
+
 /* ─── Raíz: redirige a la tienda pública ─── */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "inicio.html"));
@@ -82,6 +149,19 @@ app.get("*", (req, res) => {
 
 /* ─── Migraciones automáticas al arrancar ─── */
 const pool = require("./db");
+
+// Tabla de auditoría de intentos de login (ISO A.12.4)
+pool.query(`
+  CREATE TABLE IF NOT EXISTS login_attempts (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    username    VARCHAR(100) NOT NULL,
+    ip_address  VARCHAR(100),
+    success     BOOLEAN      NOT NULL DEFAULT FALSE,
+    detail      VARCHAR(100),
+    attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`).then(() => console.log("✓  Migración: login_attempts OK"))
+  .catch(err => console.error("✗  Migración login_attempts:", err.message));
 pool.query(`ALTER TABLE client_accounts ADD COLUMN IF NOT EXISTS reset_code VARCHAR(128)`)
   .then(() => console.log("✓  Migración: client_accounts.reset_code OK"))
   .catch(err => console.error("✗  Migración client_accounts.reset_code:", err.message));

@@ -43,6 +43,16 @@ router.get("/:id/audit", auth, async (req, res) => {
 router.post("/", auth, async (req, res) => {
   const { document_type, document_number, first_name, last_name,
           business_name, email, phone, address, district, city } = req.body;
+
+  if (!document_number || document_number.trim().length < 6)
+    return res.status(400).json({ error: "Número de documento no válido" });
+
+  if (email) {
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRe.test(email.trim()))
+      return res.status(400).json({ error: "Correo electrónico no válido" });
+  }
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -117,6 +127,8 @@ router.put("/:id", auth, async (req, res) => {
 
 // DELETE /api/clients/:id
 router.delete("/:id", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   try {
     const { rows } = await pool.query(
       "UPDATE clients SET deleted_at = NOW() WHERE id = $1 RETURNING document_number",

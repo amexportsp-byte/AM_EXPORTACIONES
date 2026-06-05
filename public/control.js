@@ -1,3 +1,9 @@
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const modules = {
   dashboard:   { title:'Dashboard General',         sub:'Administra todos tus módulos desde una sola pantalla amplia',              file:'' },
   trabajadores:{ title:'Trabajadores',              sub:'Gestión de trabajadores, sesiones, asistencia, KPIs y bitácora',           file:'trabajadores.html' },
@@ -446,15 +452,15 @@ function renderWorkerTabContent(){
       <tr>
         <td>
           <div class="worker-name-cell">
-            <strong>${w.firstName} ${w.lastName}</strong>
-            <small>${w.email}</small>
+            <strong>${esc(w.firstName)} ${esc(w.lastName)}</strong>
+            <small>${esc(w.email)}</small>
             <span class="audit-pill">📘 ${workerHistory().filter(h=>h.workerId===w.id).length} registros</span>
           </div>
         </td>
-        <td>${w.docType}: ${w.docNumber}<br><small>${w.gender}</small></td>
-        <td>${w.phone}<br><small>${w.address || 'Sin dirección'}</small></td>
-        <td><span class="badge info">${w.role}</span></td>
-        <td>${w.schedule}</td>
+        <td>${esc(w.docType)}: ${esc(w.docNumber)}<br><small>${esc(w.gender)}</small></td>
+        <td>${esc(w.phone)}<br><small>${esc(w.address || 'Sin dirección')}</small></td>
+        <td><span class="badge info">${esc(w.role)}</span></td>
+        <td>${esc(w.schedule)}</td>
         <td>${statusBadge(w.status)}</td>
         <td>${sessionBadge(w.session)}</td>
         <td>
@@ -486,14 +492,14 @@ function renderWorkerTabContent(){
 
     const rows = attData.map(a=>`
       <tr>
-        <td><strong>${a.workerName}</strong></td>
+        <td><strong>${esc(a.workerName)}</strong></td>
         <td>${attendanceBadge(a.type)}</td>
         <td>${a.date}</td>
         <td>${a.time}</td>
         <td>${Number(a.hoursDebt||0).toFixed(1)} h</td>
         <td>${Number(a.justifiedHours||0).toFixed(1)} h</td>
-        <td>${a.reason}</td>
-        <td>${a.createdBy}</td>
+        <td>${esc(a.reason)}</td>
+        <td>${esc(a.createdBy)}</td>
         <td>${a.createdAt}</td>
       </tr>`).join('');
 
@@ -509,7 +515,7 @@ function renderWorkerTabContent(){
       const pct = s.total ? Math.round((s.asistencias/s.total)*100) : 0;
       return `
         <tr>
-          <td><strong>${w.firstName} ${w.lastName}</strong><br><small>${w.role}</small></td>
+          <td><strong>${esc(w.firstName)} ${esc(w.lastName)}</strong><br><small>${esc(w.role)}</small></td>
           <td>${pct}%<div class="progress-line"><span style="width:${pct}%"></span></div></td>
           <td>${s.asistencias}</td>
           <td>${s.tardanzas}</td>
@@ -537,11 +543,11 @@ function renderSessionsPanel(){
   const data=workers();
   const rows=data.map(w=>`
     <tr>
-      <td><strong>${w.firstName} ${w.lastName}</strong><br><small>${w.email}</small></td>
-      <td>${w.role}</td>
+      <td><strong>${esc(w.firstName)} ${esc(w.lastName)}</strong><br><small>${esc(w.email)}</small></td>
+      <td>${esc(w.role)}</td>
       <td>${sessionBadge(w.session)}</td>
-      <td>${w.lastAccess || '—'}</td>
-      <td>${w.status}</td>
+      <td>${esc(w.lastAccess || '—')}</td>
+      <td>${esc(w.status)}</td>
       <td>
         <div class="action-row">
           ${w.session==='online'

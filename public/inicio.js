@@ -3,6 +3,15 @@
 // Sin chatbot · WhatsApp Checkout · Color #E89E48
 // ================================================
 
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ===== PRODUCTOS (cargados desde la DB) =====
 let products = [];
 
@@ -875,8 +884,8 @@ function renderProducts(list = products, containerId = 'productGrid') {
       ${Math.random() > 0.7 ? '<div class="ai-badge-card">🤖 IA Top</div>' : ''}
       <div class="product-img">${_prodImgHtml(p)}</div>
       <div class="product-card-body">
-        <p class="prod-brand">${p.brand || 'A&M'}</p>
-        <h3>${p.name}</h3>
+        <p class="prod-brand">${esc(p.brand || 'A&M')}</p>
+        <h3>${esc(p.name)}</h3>
         <div class="price-divider"></div>
         <div class="price-row">
           <span class="price">S/ ${price.toFixed(2)}</span>
@@ -922,8 +931,8 @@ function renderRelated(currentProd) {
         ${disc > 0 ? `<div class="related-card-disc">-${disc}%</div>` : ''}
         <div class="related-card-img">${imgHtml}</div>
         <div class="related-card-body">
-          <div class="related-card-brand">${p.brand}</div>
-          <div class="related-card-name">${p.name}</div>
+          <div class="related-card-brand">${esc(p.brand)}</div>
+          <div class="related-card-name">${esc(p.name)}</div>
           <div class="related-card-price">S/ ${p.price.toFixed(2)}</div>
           <button class="related-card-btn" onclick="addToCart('${p.id}');event.stopPropagation()">🛒 Agregar</button>
         </div>
@@ -977,8 +986,8 @@ function renderCart() {
     d.innerHTML = `
       <div class="drawer-item-icon">${imgContent}</div>
       <div class="drawer-item-info">
-        <div class="drawer-item-name">${it.name.slice(0,38)}${it.name.length>38?'...':''}</div>
-        <div class="drawer-item-brand">${it.brand}</div>
+        <div class="drawer-item-name">${esc(it.name.slice(0,38))}${it.name.length>38?'...':''}</div>
+        <div class="drawer-item-brand">${esc(it.brand)}</div>
         <div class="drawer-item-price">S/ ${(it.price*it.qty).toFixed(2)}</div>
         <div class="drawer-item-controls">
           <button class="dqb" onclick="changeQty('${it.id}',-1)">-</button>
@@ -1012,8 +1021,8 @@ function renderCartPage() {
     d.innerHTML = `
       <div class="item-icon">${imgContent}</div>
       <div class="item-info">
-        <div class="item-brand">${it.brand}</div>
-        <div class="item-name">${it.name}</div>
+        <div class="item-brand">${esc(it.brand)}</div>
+        <div class="item-name">${esc(it.name)}</div>
         <div style="color:#aaa;font-size:12px">S/ ${it.price.toFixed(2)} c/u</div>
       </div>
       <div class="item-actions">
@@ -1450,7 +1459,7 @@ function refreshAIRecs() {
           : `<span style="font-size:36px">${p.icon||'📦'}</span>`}
       </div>
       <div class="ai-rec-info">
-        <div class="ai-rec-name">${p.name}</div>
+        <div class="ai-rec-name">${esc(p.name)}</div>
         <div class="ai-rec-price">S/ ${p.price.toFixed(2)}</div>
       </div>
     </div>`).join('');

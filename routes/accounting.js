@@ -104,7 +104,7 @@ router.post("/entries", auth, async (req, res) => {
     res.status(201).json(mapAsiento(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear asiento: " + err.message });
+    res.status(500).json({ error: "Error al crear asiento" });
   }
 });
 
@@ -132,7 +132,7 @@ router.put("/entries/:id", auth, async (req, res) => {
     res.json(mapAsiento(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar asiento: " + err.message });
+    res.status(500).json({ error: "Error al actualizar asiento" });
   }
 });
 
@@ -279,7 +279,7 @@ router.get("/ventas-from-sales", auth, async (req, res) => {
     res.json(ventas);
   } catch (err) {
     console.error("ventas-from-sales error:", err);
-    res.status(500).json({ error: "Error al obtener ventas del módulo ventas: " + err.message });
+    res.status(500).json({ error: "Error al obtener ventas del módulo ventas" });
   }
 });
 
@@ -302,7 +302,7 @@ router.post("/libro-ventas", auth, async (req, res) => {
     res.status(201).json(mapVenta(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear venta: " + err.message });
+    res.status(500).json({ error: "Error al crear venta" });
   }
 });
 
@@ -327,7 +327,7 @@ router.put("/libro-ventas/:id", auth, async (req, res) => {
     res.json(mapVenta(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar venta: " + err.message });
+    res.status(500).json({ error: "Error al actualizar venta" });
   }
 });
 
@@ -398,7 +398,7 @@ router.post("/libro-compras", auth, async (req, res) => {
     res.status(201).json(mapCompra(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear compra: " + err.message });
+    res.status(500).json({ error: "Error al crear compra" });
   }
 });
 
@@ -422,7 +422,7 @@ router.put("/libro-compras/:id", auth, async (req, res) => {
     res.json(mapCompra(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar compra: " + err.message });
+    res.status(500).json({ error: "Error al actualizar compra" });
   }
 });
 
@@ -493,7 +493,7 @@ router.post("/libro-gastos", auth, async (req, res) => {
     res.status(201).json(mapGasto(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear gasto: " + err.message });
+    res.status(500).json({ error: "Error al crear gasto" });
   }
 });
 
@@ -517,7 +517,7 @@ router.put("/libro-gastos/:id", auth, async (req, res) => {
     res.json(mapGasto(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar gasto: " + err.message });
+    res.status(500).json({ error: "Error al actualizar gasto" });
   }
 });
 
@@ -582,7 +582,7 @@ router.post("/libro-inversiones", auth, async (req, res) => {
     res.status(201).json(mapInversion(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear inversión: " + err.message });
+    res.status(500).json({ error: "Error al crear inversión" });
   }
 });
 
@@ -604,7 +604,7 @@ router.put("/libro-inversiones/:id", auth, async (req, res) => {
     res.json(mapInversion(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar inversión: " + err.message });
+    res.status(500).json({ error: "Error al actualizar inversión" });
   }
 });
 
@@ -670,7 +670,7 @@ router.post("/libro-cxc", auth, async (req, res) => {
     res.status(201).json(mapCxc(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear CxC: " + err.message });
+    res.status(500).json({ error: "Error al crear CxC" });
   }
 });
 
@@ -692,7 +692,7 @@ router.put("/libro-cxc/:id", auth, async (req, res) => {
     res.json(mapCxc(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar CxC: " + err.message });
+    res.status(500).json({ error: "Error al actualizar CxC" });
   }
 });
 
@@ -758,7 +758,7 @@ router.post("/libro-cxp", auth, async (req, res) => {
     res.status(201).json(mapCxp(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al crear CxP: " + err.message });
+    res.status(500).json({ error: "Error al crear CxP" });
   }
 });
 
@@ -780,7 +780,7 @@ router.put("/libro-cxp/:id", auth, async (req, res) => {
     res.json(mapCxp(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al actualizar CxP: " + err.message });
+    res.status(500).json({ error: "Error al actualizar CxP" });
   }
 });
 

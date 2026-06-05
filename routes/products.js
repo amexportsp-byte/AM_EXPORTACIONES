@@ -135,6 +135,9 @@ router.get("/", auth, async (req, res) => {
 
 // POST /api/products
 router.post("/", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+
   const {
     nombre, categoria, subcategoria, marca, proveedor, origen,
     color, tamano, unidad, info, cantidadCompra, stock,
@@ -187,6 +190,9 @@ router.post("/", auth, async (req, res) => {
 
 // PUT /api/products/:id
 router.put("/:id", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+
   const {
     nombre, codigo, categoria, subcategoria, marca, proveedor, origen,
     color, tamano, unidad, info, cantidadCompra, stock,
@@ -255,12 +261,14 @@ router.put("/:id", auth, async (req, res) => {
     appEvents.emit("products_updated");
   } catch (err) {
     console.error("PUT /products/:id:", err.message, err.detail || "");
-    res.status(500).json({ error: "Error al actualizar: " + err.message });
+    res.status(500).json({ error: "Error al actualizar producto" });
   }
 });
 
 // DELETE /api/products/:id
 router.delete("/:id", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   try {
     await pool.query(
       "UPDATE products SET deleted_at = NOW(), status = 'inactivo' WHERE id = $1",

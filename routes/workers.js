@@ -25,6 +25,8 @@ router.get("/", auth, async (req, res) => {
 
 // GET /api/workers/audit-all  — debe ir ANTES de /:id para que Express no lo capture como ID
 router.get("/audit-all", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   try {
     const { rows } = await pool.query(
       `SELECT
@@ -72,6 +74,8 @@ router.get("/:id", auth, async (req, res) => {
 
 // POST /api/workers
 router.post("/", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   const {
     first_name, last_name, document_type, document_number,
     gender, birthday, email, phone, address, antecedentes,
@@ -112,6 +116,8 @@ router.post("/", auth, async (req, res) => {
 
 // PUT /api/workers/:id  — actualiza y registra auditoría automáticamente
 router.put("/:id", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   const {
     first_name, last_name, document_type, document_number,
     gender, birthday, email, phone, address, antecedentes,
@@ -273,6 +279,8 @@ router.post("/:id/audit", auth, async (req, res) => {
 
 // DELETE /api/workers/:id
 router.delete("/:id", auth, async (req, res) => {
+  if (req.worker.role !== "admin")
+    return res.status(403).json({ error: "Sin autorización" });
   try {
     await pool.query(
       "UPDATE workers SET deleted_at = NOW(), status = 'cesado' WHERE id = $1",
