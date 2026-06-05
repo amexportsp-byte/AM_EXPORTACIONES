@@ -70,7 +70,12 @@ app.use("/api/customers",         require("./routes/customers"));
 app.use("/api/admin/customers",   require("./routes/admin-customers"));
 app.use("/api/delivery-orders",   require("./routes/delivery-orders"));
 
-/* ─── Fallback: todo lo que no sea API sirve el login ─── */
+/* ─── Raíz: redirige a la tienda pública ─── */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "inicio.html"));
+});
+
+/* ─── Fallback: cualquier ruta desconocida sirve el login ─── */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });

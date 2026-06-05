@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="auth-guard.js"></script>
+  <script src="api.js"></script>
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>A&amp;M — Gestión de Pedidos</title>
   <link rel="icon" type="image/png"
@@ -1782,6 +1783,11 @@ async function cancelOrderWorker(id) {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 (async function init() {
+  // Verificar permiso de acceso a esta página — bloquea si no tiene permiso
+  if (typeof API !== 'undefined') {
+    API.startHeartbeat('pedidos.html', 'Pedidos de Entrega');
+    await API.requirePageAccess('pedidos.html');
+  }
   await loadWorkersList();
   await Promise.all([loadOrders(), loadAlerts()]);
   setInterval(() => { loadOrders(); loadAlerts(); }, 60000);
