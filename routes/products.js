@@ -1,8 +1,9 @@
 "use strict";
 
-const router = require("express").Router();
-const pool = require("../db");
-const auth = require("../middleware/auth");
+const router     = require("express").Router();
+const pool       = require("../db");
+const auth       = require("../middleware/auth");
+const appEvents  = require("../events");
 
 // Helpers
 async function findOrCreate(table, field, value, extra = {}) {
@@ -38,12 +39,46 @@ async function nextProductCode() {
   return "PRO" + String(rows[0].seq).padStart(10, "0");
 }
 
+// GET /api/products/public — sin autenticación (tienda web pública)
+router.get("/public", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT p.id, p.product_code, p.name, p.description,
+              p.sale_price, p.discount, p.stock, p.image_url,
+              c.name AS categoria, b.name AS marca, s.name AS subcategoria
+       FROM products p
+       LEFT JOIN categories    c ON p.category_id    = c.id
+       LEFT JOIN subcategories s ON p.subcategory_id = s.id
+       LEFT JOIN brands        b ON p.brand_id       = b.id
+       WHERE p.deleted_at IS NULL AND p.stock > 0
+         AND (c.visible IS NULL OR c.visible = TRUE)
+       ORDER BY p.created_at DESC`
+    );
+    res.json(rows.map(p => ({
+      id:           p.id,
+      codigo:       p.product_code,
+      nombre:       p.name,
+      descripcion:  p.description  || "",
+      precioVenta:  parseFloat(p.sale_price),
+      descuento:    parseFloat(p.discount) || 0,
+      stock:        p.stock,
+      imageUrl:     p.image_url    || "",
+      categoria:    p.categoria    || "",
+      subcategoria: p.subcategoria || "",
+      marca:        p.marca        || "",
+    })));
+  } catch (err) {
+    console.error("GET /products/public:", err);
+    res.status(500).json({ error: "Error al obtener productos" });
+  }
+});
+
 // GET /api/products
 router.get("/", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT p.*,
-              c.name AS categoria, s.name AS subcategoria,
+              c.name AS categoria, c.visible AS cat_visible, s.name AS subcategoria,
               b.name AS marca, su.business_name AS proveedor,
               o.name AS origen, co.name AS color,
               sz.name AS tamano, u.name AS unidad
@@ -80,6 +115,7 @@ router.get("/", auth, async (req, res) => {
       fechaVence: p.expiration_date ? p.expiration_date.toISOString().split("T")[0] : "",
       imageUrl: p.image_url || "",
       status: p.status,
+      cat_visible: p.cat_visible !== false,
       createdAt: p.created_at,
       category_id: p.category_id,
       subcategory_id: p.subcategory_id,
@@ -142,6 +178,7 @@ router.post("/", auth, async (req, res) => {
       );
     }
     res.status(201).json({ id: rows[0].id, codigo: rows[0].product_code });
+    appEvents.emit("products_updated");
   } catch (err) {
     console.error("POST /products:", err);
     res.status(500).json({ error: "Error al crear producto" });
@@ -215,6 +252,7 @@ router.put("/:id", auth, async (req, res) => {
        req.worker.id, req.params.id]
     );
     res.json({ ok: true });
+    appEvents.emit("products_updated");
   } catch (err) {
     console.error("PUT /products/:id:", err.message, err.detail || "");
     res.status(500).json({ error: "Error al actualizar: " + err.message });
@@ -229,6 +267,7 @@ router.delete("/:id", auth, async (req, res) => {
       [req.params.id]
     );
     res.json({ ok: true });
+    appEvents.emit("products_updated");
   } catch (err) {
     console.error("DELETE /products/:id:", err);
     res.status(500).json({ error: "Error al eliminar producto" });

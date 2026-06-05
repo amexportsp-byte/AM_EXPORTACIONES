@@ -426,12 +426,15 @@ function cambiarFiltroAudit(tipo, containerId, btn) {
 const _auditLogsActuales = {};
 
 /* ════════════════════════════════════════════════════════
-   6. LOCALSTORAGE — GUARDAR / CARGAR
+   6. PERSISTENCIA — API + localStorage fallback
 ════════════════════════════════════════════════════════ */
+
+/* Config persistida en localStorage (solo datos empresa) */
 function guardarEnStorage() {
-  try { localStorage.setItem(LS_LIBRO, JSON.stringify(BD)); } catch(e) { console.warn('Error guardando'); }
+  try { localStorage.setItem('AM_LIBRO_CONFIG', JSON.stringify(BD.config)); } catch(e) {}
 }
 
+/* Fallback legacy si la API no responde */
 function cargarDesdeStorage() {
   try {
     const raw = localStorage.getItem(LS_LIBRO);
@@ -439,105 +442,120 @@ function cargarDesdeStorage() {
       const parsed = JSON.parse(raw);
       BD = { ...BD, ...parsed };
     }
-  } catch(e) { console.warn('Error cargando localStorage'); }
+  } catch(e) { console.warn('[libro] Error leyendo localStorage'); }
 }
 
-/* Lee ventas sincronizadas desde venta.html */
+/* Carga inicial desde la API (async) */
+async function cargarDesdeAPI() {
+  try {
+    const resultados = await Promise.allSettled([
+      API.get('/api/accounting/entries'),
+      API.get('/api/accounting/libro-ventas'),
+      API.get('/api/accounting/ventas-from-sales'),
+      API.get('/api/accounting/libro-compras'),
+      API.get('/api/accounting/libro-gastos'),
+      API.get('/api/accounting/libro-inversiones'),
+      API.get('/api/accounting/libro-cxc'),
+      API.get('/api/accounting/libro-cxp'),
+    ]);
+
+    const [asientos, ventasLibro, ventasSales, compras, gastos, inversiones, cxc, cxp] = resultados;
+
+    if (asientos.status === 'fulfilled')    BD.asientos  = asientos.value  || [];
+    if (ventasLibro.status === 'fulfilled') BD.ventas    = ventasLibro.value || [];
+    if (ventasSales.status === 'fulfilled') {
+      const idsActuales = new Set(BD.ventas.map(v => v.id));
+      (ventasSales.value || []).forEach(v => { if (!idsActuales.has(v.id)) BD.ventas.push(v); });
+    }
+    if (compras.status === 'fulfilled')     BD.compras    = compras.value    || [];
+    if (gastos.status === 'fulfilled')      BD.gastos     = gastos.value     || [];
+    if (inversiones.status === 'fulfilled') BD.inversiones = inversiones.value || [];
+    if (cxc.status === 'fulfilled')         BD.cxcExtra   = cxc.value        || [];
+    if (cxp.status === 'fulfilled')         BD.cxpExtra   = cxp.value        || [];
+
+    // Productos del almacén (localStorage) complementan inversiones
+    sincronizarProductosAlmacen();
+
+    // Config desde localStorage
+    try {
+      const cfgRaw = localStorage.getItem('AM_LIBRO_CONFIG');
+      if (cfgRaw) BD.config = { ...BD.config, ...JSON.parse(cfgRaw) };
+    } catch(e) {}
+
+    // Actualizar usuario desde sesión activa
+    const worker = API.getWorker();
+    if (worker) {
+      const nombre = worker.first_name + ' ' + (worker.last_name || '');
+      BD.config.usuario  = nombre;
+      BD.config.contador = nombre;
+    }
+
+    console.log(`[libro] API: ${BD.asientos.length} asientos, ${BD.ventas.length} ventas, ${BD.compras.length} compras, ${BD.gastos.length} gastos`);
+  } catch(e) {
+    console.warn('[libro] Error cargando desde API, usando localStorage como fallback', e);
+    cargarDesdeStorage();
+    sincronizarVentasExternas();
+    sincronizarProductosAlmacen();
+  }
+}
+
+/* Lee ventas de venta.html desde localStorage (fallback cuando API falla) */
 function sincronizarVentasExternas() {
   try {
     const raw = localStorage.getItem(LS_VENTAS);
     if (!raw) return;
     const ventasExt = JSON.parse(raw);
     if (!Array.isArray(ventasExt)) return;
-
-    // Integrar ventas externas: no duplicar por id
     const idsActuales = new Set(BD.ventas.filter(v=>v._fuente==='venta').map(v=>v.id));
     let nuevas = 0;
     ventasExt.forEach(comp => {
       if (idsActuales.has(comp.id)) return;
-      // Convertir estructura de comprobante de venta.html → estructura de libro.js
       const totalComp = comp.totales?.totalFinal || 0;
       const igvComp   = comp.totales?.igv || 0;
       const subComp   = comp.totales?.subtotalSIGV || 0;
       BD.ventas.unshift({
-        id:          comp.id,
-        _fuente:     'venta',
-        fecha:       comp.fecha ? comp.fecha.split(',')[0].split('/').reverse().join('-') : hoy(),
-        fechaOriginal: comp.fecha,
-        cliente:     comp.cliente?.nombre || '—',
-        ruc:         comp.cliente?.numDoc || '—',
-        tipoDoc:     comp.cliente?.tipoDoc || '—',
-        tipoComp:    'Comprobante',
-        serie:       '',
-        numero:      comp.numero || '',
-        producto:    comp.items?.map(i=>i.nombre).join(', ') || '—',
-        cantidad:    comp.items?.reduce((s,i)=>s+(i.cantidad||0),0) || 0,
-        precioUnit:  0,
-        subtotal:    subComp,
-        igv:         igvComp,
-        total:       totalComp,
-        medioPago:   comp.pagos?.map(p=>p.nombre).join(', ') || '—',
-        estadoPago:  'cobrado',
-        cuenta:      '7011',
-        auditLog:    [crearEntradaAudit(AUDIT.CREAR,'Venta importada desde módulo de ventas',`Comprobante: ${comp.numero}`)],
-        createdAt:   comp.fecha || new Date().toISOString(),
+        id: comp.id, _fuente: 'venta',
+        fecha: comp.fecha ? comp.fecha.split(',')[0].split('/').reverse().join('-') : hoy(),
+        cliente: comp.cliente?.nombre || '—', ruc: comp.cliente?.numDoc || '—',
+        tipoComp: 'Comprobante', serie: '', numero: comp.numero || '',
+        producto: comp.items?.map(i=>i.nombre).join(', ') || '—',
+        cantidad: comp.items?.reduce((s,i)=>s+(i.cantidad||0),0) || 0,
+        precioUnit: 0, subtotal: subComp, igv: igvComp, total: totalComp,
+        medioPago: comp.pagos?.map(p=>p.nombre).join(', ') || '—',
+        estadoPago: 'cobrado', cuenta: '7011', auditLog: [], createdAt: new Date().toISOString(),
       });
       nuevas++;
     });
-    if (nuevas > 0) {
-      guardarEnStorage();
-      console.log(`[libro.js] ${nuevas} venta(s) sincronizadas desde venta.html`);
-    }
-  } catch(e) { console.warn('Error sincronizando ventas:', e); }
+    if (nuevas > 0) console.log(`[libro] ${nuevas} venta(s) sincronizadas desde localStorage`);
+  } catch(e) { console.warn('Error sincronizando ventas localStorage:', e); }
 }
 
-/* Lee productos desde registro.js → los convierte en inversiones */
+/* Lee productos del almacén y los fusiona como inversiones (solo _fuente=almacen) */
 function sincronizarProductosAlmacen() {
   try {
     const raw = localStorage.getItem(LS_ALMACEN);
     if (!raw) return;
     const productos = JSON.parse(raw);
     if (!Array.isArray(productos)) return;
-
-    // Generar inversiones a partir de productos de almacén
     const invAlmacen = productos.map(p => ({
-      id:          'alm_' + p.id,
-      _fuente:     'almacen',
-      fecha:       p.fechaCompra || p.createdAt?.split('T')[0] || hoy(),
-      tipo:        p.categoria || 'Mercadería',
-      nombre:      p.nombre || '—',
-      codigo:      p.codigo || '—',
-      monto:       (p.precioCompra || 0) * (p.cantidadCompra || p.stock || 1),
-      precioCompra: p.precioCompra || 0,
-      precioVenta:  p.precioVenta || 0,
-      stock:        p.stock || 0,
-      cantidadCompra: p.cantidadCompra || 0,
-      fuente:       p.proveedor || 'Almacén',
-      retornoEsp:   (p.precioVenta || 0) * (p.stock || 0),
-      retornoReal:  0,
-      plazo:        'Según rotación',
-      estado:       p.stock > 0 ? 'activa' : 'sin stock',
-      obs:          p.info || '',
-      createdAt:    p.createdAt || new Date().toISOString(),
+      id: 'alm_' + p.id, _fuente: 'almacen',
+      fecha: p.fechaCompra || p.createdAt?.split('T')[0] || hoy(),
+      tipo: p.categoria || 'Mercadería', nombre: p.nombre || '—',
+      monto: (p.precioCompra || 0) * (p.cantidadCompra || p.stock || 1),
+      fuente: p.proveedor || 'Almacén',
+      retornoEsp: (p.precioVenta || 0) * (p.stock || 0), retornoReal: 0,
+      plazo: 'Según rotación', estado: p.stock > 0 ? 'activa' : 'sin stock',
+      obs: p.info || '', auditLog: [], createdAt: p.createdAt || new Date().toISOString(),
     }));
-
-    // Reemplazar inversiones de almacén
     BD.inversiones = [
       ...BD.inversiones.filter(i => i._fuente !== 'almacen'),
       ...invAlmacen,
     ];
-    guardarEnStorage();
-    console.log(`[libro.js] ${invAlmacen.length} producto(s) de almacén sincronizados como inversiones`);
   } catch(e) { console.warn('Error sincronizando almacén:', e); }
 }
 
-/* Sincronización periódica cada 60 segundos */
-setInterval(() => {
-  sincronizarVentasExternas();
-  sincronizarProductosAlmacen();
-}, 60000);
-
-setInterval(guardarEnStorage, 30000);
+/* Sincronización periódica: productos del almacén cada 60 s */
+setInterval(sincronizarProductosAlmacen, 60000);
 
 /* ════════════════════════════════════════════════════════
    7. DATOS DE PRUEBA
@@ -720,11 +738,23 @@ function cargarDatosPrueba() {
 /* ════════════════════════════════════════════════════════
    8. INICIALIZACIÓN
 ════════════════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', () => {
-  cargarDesdeStorage();
-  sincronizarVentasExternas();
-  sincronizarProductosAlmacen();
-  if (!BD.ventas.length && !BD.asientos.length) cargarDatosPrueba();
+window.addEventListener('DOMContentLoaded', async () => {
+  API.startHeartbeat("libro.html", "Libro Contable");
+
+  // Mostrar pantalla de carga
+  document.body.insertAdjacentHTML('afterbegin',
+    `<div id="libroOverlay" style="position:fixed;inset:0;background:var(--superficie,#fff);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:12px">
+       <div style="width:48px;height:48px;border:4px solid var(--dorado,#C49A2A);border-top-color:transparent;border-radius:50%;animation:libroSpin .8s linear infinite"></div>
+       <div style="font-family:sans-serif;color:var(--texto3,#888);font-size:13px">Cargando libro contable…</div>
+     </div>
+     <style>@keyframes libroSpin{to{transform:rotate(360deg)}}</style>`
+  );
+
+  await cargarDesdeAPI();
+
+  // Quitar overlay
+  document.getElementById('libroOverlay')?.remove();
+
   actualizarFechaTopbar();
   setInterval(actualizarFechaTopbar, 60000);
   actualizarInfoEmpresa();
@@ -732,11 +762,12 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDashboard();
   renderExportaciones();
   renderConfigForm();
+
   // Cerrar modales con Escape
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-bg.abierto').forEach(m=>m.classList.remove('abierto'));
   });
-  // Cerrar modales al hacer click en el fondo
+  // Cerrar modales al hacer clic en el fondo
   document.querySelectorAll('.modal-bg').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('abierto'); });
   });
@@ -1283,7 +1314,7 @@ function limpiarFormAsiento() {
   const c=document.getElementById('fCorrelativo'); if(c)c.value=siguienteCorrelativo();
 }
 
-function guardarAsiento() {
+async function guardarAsiento() {
   const datos = {
     correlativo: leerCampo('fCorrelativo'), fecha:leerCampo('fFecha'), tipo:leerCampo('fTipo'),
     estado:leerCampo('fEstado'), glosa:leerCampo('fGlosa'), usuario:leerCampo('fUsuario'),
@@ -1299,56 +1330,65 @@ function guardarAsiento() {
   if(!datos.codCuenta){toast('El código de cuenta es obligatorio','error');return;}
   if(datos.monto<=0&&datos.debe<=0&&datos.haber<=0){toast('El monto debe ser mayor a cero','error');return;}
   if(!datos.monto) datos.monto=Math.max(datos.debe,datos.haber);
-  datos.updatedAt=new Date().toISOString();
 
-  if(idEditando) {
-    const idx=BD.asientos.findIndex(a=>a.id===idEditando);
-    if(idx>=0){
-      const antes={...BD.asientos[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{glosa:'Glosa',codCuenta:'Cuenta',debe:'Debe',haber:'Haber',monto:'Monto',estado:'Estado',tipo:'Tipo',medioPago:'Medio Pago',rucDni:'RUC/DNI',nombreCP:'Cliente/Proveedor',centro:'Centro Costo',obs:'Observaciones'});
-      BD.asientos[idx]={...BD.asientos[idx],...datos};
-      if(!BD.asientos[idx].auditLog) BD.asientos[idx].auditLog=[];
-      if(diffs.length) {
-        BD.asientos[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${datos.usuario||BD.config.usuario}`,diffs));
-      } else {
-        BD.asientos[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',`Abierto y guardado por ${datos.usuario||BD.config.usuario}`));
-      }
+  try {
+    let resultado;
+    if(idEditando) {
+      const existing=BD.asientos.find(a=>a.id===idEditando)||{};
+      const diffs=calcDiffsAudit(existing,datos,{glosa:'Glosa',codCuenta:'Cuenta',debe:'Debe',haber:'Haber',monto:'Monto',estado:'Estado',tipo:'Tipo',medioPago:'Medio Pago',rucDni:'RUC/DNI',nombreCP:'Cliente/Proveedor',centro:'Centro Costo',obs:'Observaciones'});
+      const newLog=[...(existing.auditLog||[])];
+      newLog.push(diffs.length
+        ? crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${datos.usuario||BD.config.usuario}`,diffs)
+        : crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',`Abierto y guardado por ${datos.usuario||BD.config.usuario}`));
+      resultado=await API.put(`/api/accounting/entries/${idEditando}`,{...datos,auditLog:newLog});
+      const idx=BD.asientos.findIndex(a=>a.id===idEditando);
+      if(idx>=0) BD.asientos[idx]=resultado; else BD.asientos.unshift(resultado);
       toast('Asiento actualizado','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Asiento registrado',`Cuenta: ${datos.codCuenta} — ${datos.glosa}`)];
+      resultado=await API.post('/api/accounting/entries',{...datos,auditLog});
+      BD.asientos.unshift(resultado);
+      toast('Asiento registrado','exito');
     }
-  } else {
-    if(BD.asientos.find(a=>a.correlativo===datos.correlativo)) datos.correlativo=siguienteCorrelativo();
-    datos.id=generarId(); datos.createdAt=new Date().toISOString();
-    datos.auditLog=[crearEntradaAudit(AUDIT.CREAR,'Asiento registrado',`Cuenta: ${datos.codCuenta} — ${datos.glosa}`)];
-    BD.asientos.unshift(datos);
-    toast('Asiento registrado','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalAsiento'); renderDashboard();
-  // re-render si estamos en libro diario
-  if(document.getElementById('s-libroDiario')?.classList.contains('activo')) renderLibroDiario();
+    cerrarModal('modalAsiento'); renderDashboard();
+    if(document.getElementById('s-libroDiario')?.classList.contains('activo')) renderLibroDiario();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function eliminarAsiento(id) {
   const a=BD.asientos.find(x=>x.id===id);
-  mostrarConfirm('Eliminar Asiento',`¿Eliminar asiento #${a?.correlativo}?`,()=>{
-    BD.asientos=BD.asientos.filter(x=>x.id!==id);
-    guardarEnStorage(); renderLibroDiario(); renderDashboard(); toast('Asiento eliminado','alerta');
+  mostrarConfirm('Eliminar Asiento',`¿Eliminar asiento #${a?.correlativo}?`,async()=>{
+    try {
+      await API.delete(`/api/accounting/entries/${id}`);
+      BD.asientos=BD.asientos.filter(x=>x.id!==id);
+      renderLibroDiario(); renderDashboard(); toast('Asiento eliminado','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
 function anularAsiento(id) {
   const a=BD.asientos.find(x=>x.id===id);
-  mostrarConfirm('Anular Asiento',`¿Anular asiento #${a?.correlativo}?`,()=>{
-    a.estado='anulado'; a.updatedAt=new Date().toISOString();
-    if(!a.auditLog)a.auditLog=[];
-    a.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Asiento anulado'));
-    guardarEnStorage(); renderLibroDiario(); toast('Asiento anulado','alerta');
+  mostrarConfirm('Anular Asiento',`¿Anular asiento #${a?.correlativo}?`,async()=>{
+    try {
+      const newLog=[...(a.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Asiento anulado')];
+      const resultado=await API.put(`/api/accounting/entries/${id}`,{...a,estado:'anulado',auditLog:newLog});
+      const idx=BD.asientos.findIndex(x=>x.id===id);
+      if(idx>=0) BD.asientos[idx]=resultado;
+      renderLibroDiario(); toast('Asiento anulado','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
-function duplicarAsiento(id) {
+async function duplicarAsiento(id) {
   const orig=BD.asientos.find(x=>x.id===id); if(!orig)return;
-  BD.asientos.unshift({...orig,id:generarId(),correlativo:siguienteCorrelativo(),fecha:hoy(),estado:'registrado',auditLog:[crearEntradaAudit(AUDIT.CREAR,'Asiento duplicado desde #'+orig.correlativo)],createdAt:new Date().toISOString()});
-  guardarEnStorage(); renderLibroDiario(); toast('Asiento duplicado','exito');
+  try {
+    const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Asiento duplicado desde #'+orig.correlativo)];
+    const copia={...orig,correlativo:siguienteCorrelativo(),fecha:hoy(),estado:'registrado',auditLog};
+    delete copia.id; delete copia.createdAt; delete copia.updatedAt;
+    const resultado=await API.post('/api/accounting/entries',copia);
+    BD.asientos.unshift(resultado);
+    renderLibroDiario(); toast('Asiento duplicado','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function verDetalleAsiento(id) {
@@ -1746,7 +1786,7 @@ function calcTotalVenta() {
   [['vSubtotal',sub],['vIgv',igv],['vTotal',tot]].forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val.toFixed(2);});
 }
 
-function guardarVenta(id='') {
+async function guardarVenta(id='') {
   const datos={
     fecha:leerCampo('vFecha'),cliente:leerCampo('vCliente'),ruc:leerCampo('vRuc'),
     tipoComp:leerCampo('vTipoComp'),serie:leerCampo('vSerie'),numero:leerCampo('vNumero'),
@@ -1755,27 +1795,27 @@ function guardarVenta(id='') {
     medioPago:leerCampo('vMedioPago'),estadoPago:leerCampo('vEstadoPago'),cuenta:'7011',
   };
   if(!datos.fecha||!datos.cliente||!datos.producto||datos.total<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.ventas.findIndex(v=>v.id===id);
-    if(idx>=0){
-      const antes={...BD.ventas[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{cliente:'Cliente',ruc:'RUC',producto:'Producto',cantidad:'Cantidad',precioUnit:'Precio Unit.',subtotal:'Subtotal',igv:'IGV',total:'Total',estadoPago:'Estado Pago',medioPago:'Medio Pago'});
-      BD.ventas[idx]={...BD.ventas[idx],...datos};
-      if(!BD.ventas[idx].auditLog) BD.ventas[idx].auditLog=[];
-      if(diffs.length) {
-        BD.ventas[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs));
-      } else {
-        BD.ventas[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',`Abierto y guardado por ${BD.config.usuario}`));
-      }
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.ventas.find(v=>v.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{cliente:'Cliente',ruc:'RUC',producto:'Producto',cantidad:'Cantidad',precioUnit:'Precio Unit.',subtotal:'Subtotal',igv:'IGV',total:'Total',estadoPago:'Estado Pago',medioPago:'Medio Pago'});
+      const newLog=[...(existing.auditLog||[])];
+      newLog.push(diffs.length
+        ? crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs)
+        : crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',''));
+      resultado=await API.put(`/api/accounting/libro-ventas/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.ventas.findIndex(v=>v.id===id);
+      if(idx>=0) BD.ventas[idx]=resultado;
       toast('Venta actualizada','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Venta registrada',`Cliente: ${datos.cliente}`)];
+      resultado=await API.post('/api/accounting/libro-ventas',{...datos,auditLog});
+      BD.ventas.unshift(resultado);
+      toast('Venta registrada','exito');
     }
-  } else {
-    const nueva={...datos,id:generarId(),_fuente:'libro',createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'Venta registrada',`Cliente: ${datos.cliente}`)]};
-    BD.ventas.unshift(nueva);
-    toast('Venta registrada','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalVenta'); renderSeccionVentas();
+    cerrarModal('modalVenta'); renderSeccionVentas();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function verAuditVenta(id) {
@@ -1799,9 +1839,12 @@ function verAuditVenta(id) {
 
 function eliminarVenta(id) {
   const v=BD.ventas.find(x=>x.id===id);
-  mostrarConfirm('Eliminar Venta',`¿Eliminar venta de "${v?.cliente}"?`,()=>{
-    BD.ventas=BD.ventas.filter(v=>v.id!==id);
-    guardarEnStorage(); renderSeccionVentas(); toast('Venta eliminada','alerta');
+  mostrarConfirm('Eliminar Venta',`¿Eliminar venta de "${v?.cliente}"?`,async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-ventas/${id}`);
+      BD.ventas=BD.ventas.filter(v=>v.id!==id);
+      renderSeccionVentas(); toast('Venta eliminada','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -1908,33 +1951,34 @@ function calcTotalCompra(){
   if(iEl)iEl.value=igv.toFixed(2); if(tEl)tEl.value=tot.toFixed(2);
 }
 
-function guardarCompra(id=''){
+async function guardarCompra(id=''){
   const datos={fecha:leerCampo('cFecha'),proveedor:leerCampo('cProveedor'),ruc:leerCampo('cRuc'),
     tipoComp:leerCampo('cTipoComp'),serie:leerCampo('cSerie'),numero:leerCampo('cNumero'),
     categoria:leerCampo('cCategoria'),descripcion:leerCampo('cDescripcion'),
     subtotal:leerNumero('cSubtotal'),igv:leerNumero('cIgv'),total:leerNumero('cTotal'),
     medioPago:leerCampo('cMedioPago'),estadoPago:leerCampo('cEstadoPago'),cuenta:'6011'};
   if(!datos.fecha||!datos.proveedor||!datos.descripcion||datos.total<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.compras.findIndex(c=>c.id===id);
-    if(idx>=0){
-      const antes={...BD.compras[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{proveedor:'Proveedor',ruc:'RUC',categoria:'Categoría',descripcion:'Descripción',subtotal:'Subtotal',igv:'IGV',total:'Total',medioPago:'Medio Pago',estadoPago:'Estado Pago'});
-      BD.compras[idx]={...BD.compras[idx],...datos};
-      if(!BD.compras[idx].auditLog) BD.compras[idx].auditLog=[];
-      if(diffs.length) {
-        BD.compras[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs));
-      } else {
-        BD.compras[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',`Abierto y guardado por ${BD.config.usuario}`));
-      }
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.compras.find(c=>c.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{proveedor:'Proveedor',ruc:'RUC',categoria:'Categoría',descripcion:'Descripción',subtotal:'Subtotal',igv:'IGV',total:'Total',medioPago:'Medio Pago',estadoPago:'Estado Pago'});
+      const newLog=[...(existing.auditLog||[])];
+      newLog.push(diffs.length
+        ? crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs)
+        : crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',''));
+      resultado=await API.put(`/api/accounting/libro-compras/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.compras.findIndex(c=>c.id===id);
+      if(idx>=0) BD.compras[idx]=resultado;
       toast('Compra actualizada','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Compra registrada',`Proveedor: ${datos.proveedor}`)];
+      resultado=await API.post('/api/accounting/libro-compras',{...datos,auditLog});
+      BD.compras.unshift(resultado);
+      toast('Compra registrada','exito');
     }
-  } else {
-    BD.compras.unshift({...datos,id:generarId(),createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'Compra registrada',`Proveedor: ${datos.proveedor}`)]});
-    toast('Compra registrada','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalCompra'); renderSeccionCompras();
+    cerrarModal('modalCompra'); renderSeccionCompras();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function verAuditCompra(id){
@@ -1958,9 +2002,12 @@ function verAuditCompra(id){
 
 function eliminarCompra(id){
   const c=BD.compras.find(x=>x.id===id);
-  mostrarConfirm('Eliminar Compra',`¿Eliminar compra de "${c?.proveedor}"?`,()=>{
-    BD.compras=BD.compras.filter(c=>c.id!==id);
-    guardarEnStorage(); renderSeccionCompras(); toast('Compra eliminada','alerta');
+  mostrarConfirm('Eliminar Compra',`¿Eliminar compra de "${c?.proveedor}"?`,async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-compras/${id}`);
+      BD.compras=BD.compras.filter(c=>c.id!==id);
+      renderSeccionCompras(); toast('Compra eliminada','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -2057,33 +2104,34 @@ function calcTotalGasto(){
   if(iEl)iEl.value=igv.toFixed(2); if(tEl)tEl.value=tot.toFixed(2);
 }
 
-function guardarGasto(id=''){
+async function guardarGasto(id=''){
   const datos={fecha:leerCampo('gFecha'),categoria:leerCampo('gCategoria'),descripcion:leerCampo('gDescripcion'),
     proveedor:leerCampo('gProveedor'),tipoComp:leerCampo('gTipoComp'),serie:leerCampo('gSerie'),
     numero:leerCampo('gNumero'),subtotal:leerNumero('gSubtotal'),igv:leerNumero('gIgv'),
     total:leerNumero('gTotal'),medioPago:leerCampo('gMedioPago'),estadoPago:leerCampo('gEstadoPago'),
     centro:leerCampo('gCentro'),cuenta:'94'};
   if(!datos.fecha||!datos.descripcion||datos.total<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.gastos.findIndex(g=>g.id===id);
-    if(idx>=0){
-      const antes={...BD.gastos[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{categoria:'Categoría',descripcion:'Descripción',proveedor:'Proveedor',subtotal:'Subtotal',igv:'IGV',total:'Total',medioPago:'Medio Pago',estadoPago:'Estado Pago',centro:'Centro Costo'});
-      BD.gastos[idx]={...BD.gastos[idx],...datos};
-      if(!BD.gastos[idx].auditLog) BD.gastos[idx].auditLog=[];
-      if(diffs.length) {
-        BD.gastos[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs));
-      } else {
-        BD.gastos[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',`Abierto y guardado por ${BD.config.usuario}`));
-      }
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.gastos.find(g=>g.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{categoria:'Categoría',descripcion:'Descripción',proveedor:'Proveedor',subtotal:'Subtotal',igv:'IGV',total:'Total',medioPago:'Medio Pago',estadoPago:'Estado Pago',centro:'Centro Costo'});
+      const newLog=[...(existing.auditLog||[])];
+      newLog.push(diffs.length
+        ? crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,`Editado por ${BD.config.usuario}`,diffs)
+        : crearEntradaAudit(AUDIT.EDITAR,'Revisado sin cambios',''));
+      resultado=await API.put(`/api/accounting/libro-gastos/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.gastos.findIndex(g=>g.id===id);
+      if(idx>=0) BD.gastos[idx]=resultado;
       toast('Gasto actualizado','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Gasto registrado',`Categoría: ${datos.categoria}`)];
+      resultado=await API.post('/api/accounting/libro-gastos',{...datos,auditLog});
+      BD.gastos.unshift(resultado);
+      toast('Gasto registrado','exito');
     }
-  } else {
-    BD.gastos.unshift({...datos,id:generarId(),createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'Gasto registrado',`Categoría: ${datos.categoria}`)]});
-    toast('Gasto registrado','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalGasto'); renderSeccionGastos();
+    cerrarModal('modalGasto'); renderSeccionGastos();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function verAuditGasto(id){
@@ -2107,9 +2155,12 @@ function verAuditGasto(id){
 
 function eliminarGasto(id){
   const g=BD.gastos.find(x=>x.id===id);
-  mostrarConfirm('Eliminar Gasto',`¿Eliminar gasto "${g?.descripcion}"?`,()=>{
-    BD.gastos=BD.gastos.filter(g=>g.id!==id);
-    guardarEnStorage(); renderSeccionGastos(); toast('Gasto eliminado','alerta');
+  mostrarConfirm('Eliminar Gasto',`¿Eliminar gasto "${g?.descripcion}"?`,async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-gastos/${id}`);
+      BD.gastos=BD.gastos.filter(g=>g.id!==id);
+      renderSeccionGastos(); toast('Gasto eliminado','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -2201,27 +2252,30 @@ function abrirModalInversion(id=null) {
   abrirModal('modalInversion');
 }
 
-function guardarInversion(id=''){
+async function guardarInversion(id=''){
   const datos={fecha:leerCampo('iFecha'),tipo:leerCampo('iTipo'),nombre:leerCampo('iNombre'),
     monto:leerNumero('iMonto'),fuente:leerCampo('iFuente'),retornoEsp:leerNumero('iRetEsp'),
     retornoReal:leerNumero('iRetReal'),plazo:leerCampo('iPlazo'),estado:leerCampo('iEstado'),obs:leerCampo('iObs')};
   if(!datos.fecha||!datos.nombre||datos.monto<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.inversiones.findIndex(i=>i.id===id);
-    if(idx>=0){
-      const antes={...BD.inversiones[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{nombre:'Nombre',monto:'Monto',retornoReal:'Retorno Real',estado:'Estado'});
-      BD.inversiones[idx]={...BD.inversiones[idx],...datos};
-      if(!BD.inversiones[idx].auditLog)BD.inversiones[idx].auditLog=[];
-      if(diffs.length)BD.inversiones[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.inversiones.find(i=>i.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{nombre:'Nombre',monto:'Monto',retornoReal:'Retorno Real',estado:'Estado'});
+      const newLog=[...(existing.auditLog||[])];
+      if(diffs.length) newLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+      resultado=await API.put(`/api/accounting/libro-inversiones/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.inversiones.findIndex(i=>i.id===id);
+      if(idx>=0) BD.inversiones[idx]=resultado;
       toast('Inversión actualizada','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'Inversión registrada',`Tipo: ${datos.tipo}`)];
+      resultado=await API.post('/api/accounting/libro-inversiones',{...datos,auditLog});
+      BD.inversiones.unshift(resultado);
+      toast('Inversión registrada','exito');
     }
-  } else {
-    BD.inversiones.unshift({...datos,id:generarId(),_fuente:'libro',createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'Inversión registrada',`Tipo: ${datos.tipo}`)]});
-    toast('Inversión registrada','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalInversion'); renderSeccionInversiones();
+    cerrarModal('modalInversion'); renderSeccionInversiones();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function verAuditInversion(id){
@@ -2246,9 +2300,12 @@ function verAuditInversion(id){
 
 function eliminarInversion(id){
   const inv=BD.inversiones.find(x=>x.id===id);
-  mostrarConfirm('Eliminar Inversión',`¿Eliminar inversión "${inv?.nombre}"?`,()=>{
-    BD.inversiones=BD.inversiones.filter(i=>i.id!==id);
-    guardarEnStorage(); renderSeccionInversiones(); toast('Inversión eliminada','alerta');
+  mostrarConfirm('Eliminar Inversión',`¿Eliminar inversión "${inv?.nombre}"?`,async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-inversiones/${id}`);
+      BD.inversiones=BD.inversiones.filter(i=>i.id!==id);
+      renderSeccionInversiones(); toast('Inversión eliminada','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -2352,12 +2409,20 @@ function renderCxc() {
   tbody.innerHTML=[...filasVentas,...filasExtra].join('');
 }
 
-function marcarVentaCobrada(id){
+async function marcarVentaCobrada(id){
   const v=BD.ventas.find(x=>x.id===id); if(!v)return;
-  v.estadoPago='cobrado';
-  if(!v.auditLog)v.auditLog=[];
-  v.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Marcado como cobrado','Actualizado desde CxC',[{campo:'Estado',antes:'pendiente',despues:'cobrado'}]));
-  guardarEnStorage(); renderCxc(); toast('Venta marcada como cobrada','exito');
+  try {
+    const newLog=[...(v.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Marcado como cobrado','Actualizado desde CxC',[{campo:'Estado',antes:v.estadoPago||'pendiente',despues:'cobrado'}])];
+    if(v._fuente==='libro'){
+      const resultado=await API.put(`/api/accounting/libro-ventas/${id}`,{...v,estadoPago:'cobrado',auditLog:newLog});
+      const idx=BD.ventas.findIndex(x=>x.id===id);
+      if(idx>=0) BD.ventas[idx]=resultado;
+    } else {
+      // Venta del módulo venta.html — solo actualizamos en memoria
+      v.estadoPago='cobrado'; v.auditLog=newLog;
+    }
+    renderCxc(); toast('Venta marcada como cobrada','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function abrirModalCxc(id=null) {
@@ -2396,7 +2461,7 @@ function calcSaldoCxc(){
   if(saldoEl)saldoEl.value=Math.max(0,total-cobrado).toFixed(2);
 }
 
-function guardarCxc(id=''){
+async function guardarCxc(id=''){
   if(!BD.cxcExtra)BD.cxcExtra=[];
   const datos={
     fecha:leerCampo('cxcFecha'),cliente:leerCampo('cxcCliente'),ruc:leerCampo('cxcRuc'),
@@ -2405,37 +2470,46 @@ function guardarCxc(id=''){
     vencimiento:leerCampo('cxcVencimiento'),estadoPago:leerCampo('cxcEstado'),tipo:'manual',
   };
   if(!datos.fecha||!datos.cliente||datos.total<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.cxcExtra.findIndex(c=>c.id===id);
-    if(idx>=0){
-      const antes={...BD.cxcExtra[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{cliente:'Cliente',total:'Total',cobrado:'Cobrado',saldo:'Saldo',estadoPago:'Estado'});
-      BD.cxcExtra[idx]={...BD.cxcExtra[idx],...datos};
-      if(!BD.cxcExtra[idx].auditLog)BD.cxcExtra[idx].auditLog=[];
-      if(diffs.length)BD.cxcExtra[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.cxcExtra.find(c=>c.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{cliente:'Cliente',total:'Total',cobrado:'Cobrado',saldo:'Saldo',estadoPago:'Estado'});
+      const newLog=[...(existing.auditLog||[])];
+      if(diffs.length) newLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+      resultado=await API.put(`/api/accounting/libro-cxc/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.cxcExtra.findIndex(c=>c.id===id);
+      if(idx>=0) BD.cxcExtra[idx]=resultado;
       toast('CxC actualizada','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'CxC registrada',`Cliente: ${datos.cliente}`)];
+      resultado=await API.post('/api/accounting/libro-cxc',{...datos,auditLog});
+      BD.cxcExtra.unshift(resultado);
+      toast('CxC registrada','exito');
     }
-  } else {
-    BD.cxcExtra.unshift({...datos,id:generarId(),createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'CxC registrada',`Cliente: ${datos.cliente}`)]});
-    toast('CxC registrada','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalCxc'); renderCxc();
+    cerrarModal('modalCxc'); renderCxc();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
-function marcarCxcCobrada(id){
+async function marcarCxcCobrada(id){
   const c=BD.cxcExtra.find(x=>x.id===id); if(!c)return;
-  c.cobrado=c.total; c.saldo=0; c.estadoPago='cobrado';
-  if(!c.auditLog)c.auditLog=[];
-  c.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Marcado como cobrado','',
-    [{campo:'Estado',antes:c.estadoPago||'pendiente',despues:'cobrado'},{campo:'Cobrado',antes:'0',despues:String(c.total)}]));
-  guardarEnStorage(); renderCxc(); toast('CxC marcada como cobrada','exito');
+  try {
+    const newLog=[...(c.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Marcado como cobrado','',
+      [{campo:'Estado',antes:c.estadoPago||'pendiente',despues:'cobrado'},{campo:'Cobrado',antes:'0',despues:String(c.total)}])];
+    const resultado=await API.put(`/api/accounting/libro-cxc/${id}`,{...c,cobrado:c.total,saldo:0,estadoPago:'cobrado',auditLog:newLog});
+    const idx=BD.cxcExtra.findIndex(x=>x.id===id);
+    if(idx>=0) BD.cxcExtra[idx]=resultado;
+    renderCxc(); toast('CxC marcada como cobrada','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function eliminarCxc(id){
-  mostrarConfirm('Eliminar CxC','¿Eliminar esta cuenta por cobrar?',()=>{
-    BD.cxcExtra=BD.cxcExtra.filter(c=>c.id!==id);
-    guardarEnStorage(); renderCxc(); toast('CxC eliminada','alerta');
+  mostrarConfirm('Eliminar CxC','¿Eliminar esta cuenta por cobrar?',async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-cxc/${id}`);
+      BD.cxcExtra=BD.cxcExtra.filter(c=>c.id!==id);
+      renderCxc(); toast('CxC eliminada','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -2484,20 +2558,26 @@ function renderCxp() {
   </tr>`).join('');
 }
 
-function marcarCompraPagada(id){
+async function marcarCompraPagada(id){
   const c=BD.compras.find(x=>x.id===id); if(!c)return;
-  c.estadoPago='pagado';
-  if(!c.auditLog)c.auditLog=[];
-  c.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado','Actualizado desde CxP'));
-  guardarEnStorage(); renderCxp(); toast('Compra marcada como pagada','exito');
+  try {
+    const newLog=[...(c.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado','Actualizado desde CxP')];
+    const resultado=await API.put(`/api/accounting/libro-compras/${id}`,{...c,estadoPago:'pagado',auditLog:newLog});
+    const idx=BD.compras.findIndex(x=>x.id===id);
+    if(idx>=0) BD.compras[idx]=resultado;
+    renderCxp(); toast('Compra marcada como pagada','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
-function marcarGastoPagado(id){
+async function marcarGastoPagado(id){
   const g=BD.gastos.find(x=>x.id===id); if(!g)return;
-  g.estadoPago='pagado';
-  if(!g.auditLog)g.auditLog=[];
-  g.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado','Actualizado desde CxP'));
-  guardarEnStorage(); renderCxp(); toast('Gasto marcado como pagado','exito');
+  try {
+    const newLog=[...(g.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado','Actualizado desde CxP')];
+    const resultado=await API.put(`/api/accounting/libro-gastos/${id}`,{...g,estadoPago:'pagado',auditLog:newLog});
+    const idx=BD.gastos.findIndex(x=>x.id===id);
+    if(idx>=0) BD.gastos[idx]=resultado;
+    renderCxp(); toast('Gasto marcado como pagado','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function abrirModalCxp(id=null) {
@@ -2537,7 +2617,7 @@ function calcSaldoCxp(){
   if(saldoEl)saldoEl.value=Math.max(0,total-pagado).toFixed(2);
 }
 
-function guardarCxp(id=''){
+async function guardarCxp(id=''){
   if(!BD.cxpExtra)BD.cxpExtra=[];
   const datos={
     fecha:leerCampo('cxpFecha'),proveedor:leerCampo('cxpProveedor'),ruc:leerCampo('cxpRuc'),
@@ -2546,37 +2626,46 @@ function guardarCxp(id=''){
     vencimiento:leerCampo('cxpVencimiento'),estadoPago:leerCampo('cxpEstado'),tipo:'manual',
   };
   if(!datos.fecha||!datos.proveedor||datos.total<=0){toast('Completa los campos obligatorios','error');return;}
-  if(id){
-    const idx=BD.cxpExtra.findIndex(c=>c.id===id);
-    if(idx>=0){
-      const antes={...BD.cxpExtra[idx]};
-      const diffs=calcDiffsAudit(antes,datos,{proveedor:'Proveedor',total:'Total',pagado:'Pagado',saldo:'Saldo',estadoPago:'Estado'});
-      BD.cxpExtra[idx]={...BD.cxpExtra[idx],...datos};
-      if(!BD.cxpExtra[idx].auditLog)BD.cxpExtra[idx].auditLog=[];
-      if(diffs.length)BD.cxpExtra[idx].auditLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+  try {
+    let resultado;
+    if(id){
+      const existing=BD.cxpExtra.find(c=>c.id===id)||{};
+      const diffs=calcDiffsAudit(existing,datos,{proveedor:'Proveedor',total:'Total',pagado:'Pagado',saldo:'Saldo',estadoPago:'Estado'});
+      const newLog=[...(existing.auditLog||[])];
+      if(diffs.length) newLog.push(crearEntradaAudit(AUDIT.EDITAR,`${diffs.length} campo(s) modificado(s)`,'',diffs));
+      resultado=await API.put(`/api/accounting/libro-cxp/${id}`,{...datos,auditLog:newLog});
+      const idx=BD.cxpExtra.findIndex(c=>c.id===id);
+      if(idx>=0) BD.cxpExtra[idx]=resultado;
       toast('CxP actualizada','exito');
+    } else {
+      const auditLog=[crearEntradaAudit(AUDIT.CREAR,'CxP registrada',`Proveedor: ${datos.proveedor}`)];
+      resultado=await API.post('/api/accounting/libro-cxp',{...datos,auditLog});
+      BD.cxpExtra.unshift(resultado);
+      toast('CxP registrada','exito');
     }
-  } else {
-    BD.cxpExtra.unshift({...datos,id:generarId(),createdAt:new Date().toISOString(),
-      auditLog:[crearEntradaAudit(AUDIT.CREAR,'CxP registrada',`Proveedor: ${datos.proveedor}`)]});
-    toast('CxP registrada','exito');
-  }
-  guardarEnStorage(); cerrarModal('modalCxp'); renderCxp();
+    cerrarModal('modalCxp'); renderCxp();
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
-function marcarCxpPagada(id){
+async function marcarCxpPagada(id){
   if(!BD.cxpExtra)return;
   const c=BD.cxpExtra.find(x=>x.id===id); if(!c)return;
-  c.pagado=c.total; c.saldo=0; c.estadoPago='pagado';
-  if(!c.auditLog)c.auditLog=[];
-  c.auditLog.push(crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado',''));
-  guardarEnStorage(); renderCxp(); toast('CxP marcada como pagada','exito');
+  try {
+    const newLog=[...(c.auditLog||[]),crearEntradaAudit(AUDIT.ESTADO,'Marcado como pagado','')];
+    const resultado=await API.put(`/api/accounting/libro-cxp/${id}`,{...c,pagado:c.total,saldo:0,estadoPago:'pagado',auditLog:newLog});
+    const idx=BD.cxpExtra.findIndex(x=>x.id===id);
+    if(idx>=0) BD.cxpExtra[idx]=resultado;
+    renderCxp(); toast('CxP marcada como pagada','exito');
+  } catch(err) { toast('Error: '+err.message,'error'); }
 }
 
 function eliminarCxp(id){
-  mostrarConfirm('Eliminar CxP','¿Eliminar esta cuenta por pagar?',()=>{
-    BD.cxpExtra=BD.cxpExtra.filter(c=>c.id!==id);
-    guardarEnStorage(); renderCxp(); toast('CxP eliminada','alerta');
+  mostrarConfirm('Eliminar CxP','¿Eliminar esta cuenta por pagar?',async()=>{
+    try {
+      await API.delete(`/api/accounting/libro-cxp/${id}`);
+      BD.cxpExtra=BD.cxpExtra.filter(c=>c.id!==id);
+      renderCxp(); toast('CxP eliminada','alerta');
+    } catch(err) { toast('Error: '+err.message,'error'); }
   });
 }
 
@@ -3031,11 +3120,14 @@ function renderConfigForm(){
     </div>`;
 }
 
-function sincronizarManual(){
-  sincronizarVentasExternas();
-  sincronizarProductosAlmacen();
-  renderConfigForm();
-  toast('Sincronización completada','exito');
+async function sincronizarManual(){
+  try {
+    await cargarDesdeAPI();
+    llenarSelectoresAnio();
+    renderDashboard();
+    renderConfigForm();
+    toast('Sincronización completada','exito');
+  } catch(e) { toast('Error al sincronizar','error'); }
 }
 
 function guardarConfig(){

@@ -2,9 +2,15 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script src="auth-guard.js"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>A&M Exportaciones — Centro de Cambio</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -1116,6 +1122,110 @@
           padding: 1rem;
         }
       }
+
+      /* DARK MODE TOGGLE BUTTON */
+      .btn-dark-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text2);
+        cursor: pointer;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .btn-dark-toggle:hover {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+
+      /* DARK MODE VARIABLES */
+      body.dark {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --surface2: #21262d;
+        --text: #e6edf3;
+        --text2: #8b949e;
+        --text3: #6e7681;
+        --border: #30363d;
+        --border2: #444c56;
+        --gold-pale: #261e00;
+      }
+      body.dark .topbar {
+        background: #161b22;
+        border-color: #30363d;
+      }
+      body.dark .card,
+      body.dark .metric-card,
+      body.dark .rate-card,
+      body.dark .bank-card {
+        background: #161b22;
+        border-color: #30363d;
+      }
+      body.dark .tabs {
+        background: #21262d;
+        border-color: #30363d;
+      }
+      body.dark .topbar-date {
+        background: #21262d;
+        border-color: #30363d;
+      }
+      body.dark input.inp,
+      body.dark select.inp,
+      body.dark textarea.inp {
+        background: #21262d;
+        color: #e6edf3;
+        border-color: #30363d;
+      }
+      body.dark input.inp:focus,
+      body.dark select.inp:focus,
+      body.dark textarea.inp:focus {
+        background: #161b22;
+        border-color: var(--gold);
+      }
+      body.dark .modal {
+        background: #161b22;
+        border-color: #30363d;
+      }
+      body.dark .modal-close {
+        background: #21262d;
+        border-color: #30363d;
+      }
+      body.dark .logout-box {
+        background: #161b22;
+      }
+      body.dark .logout-head,
+      body.dark .logout-footer {
+        background: #21262d;
+        border-color: #30363d;
+      }
+      body.dark thead {
+        background: #21262d;
+      }
+      body.dark .table-wrap {
+        border-color: #30363d;
+      }
+      body.dark tbody tr {
+        border-color: #30363d;
+      }
+      body.dark tbody tr:hover {
+        background: #21262d;
+      }
+      body.dark .btn-outline {
+        color: var(--text2);
+        border-color: var(--border2);
+      }
+      body.dark .btn-outline:hover {
+        background: var(--surface2);
+      }
+      body.dark .rate-card:hover {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
     </style>
   </head>
   <body>
@@ -1245,6 +1355,11 @@
           <div class="badge-live">
             <span class="dot-live"></span>Sistema activo
           </div>
+          <button class="btn-dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Modo nocturno / día">
+            <svg id="darkIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </button>
           <button class="topbar-logout" onclick="confirmLogout()">
             <svg
               viewBox="0 0 24 24"
@@ -1448,9 +1563,9 @@
                   <tr>
                     <th>Fecha / Hora</th>
                     <th>Moneda</th>
-                    <th>Tasa anterior</th>
-                    <th>Tasa nueva</th>
-                    <th>Variación</th>
+                    <th>Compra</th>
+                    <th>Venta</th>
+                    <th>Var. Venta</th>
                     <th>Banco ref.</th>
                     <th>Motivo</th>
                     <th>Registrado por</th>
@@ -1741,7 +1856,8 @@
                   <thead>
                     <tr>
                       <th>Moneda</th>
-                      <th>Tasa PEN</th>
+                      <th>Compra</th>
+                      <th>Venta</th>
                       <th>Banco ref.</th>
                       <th>Acciones</th>
                     </tr>
@@ -1775,23 +1891,10 @@
                 </div>
                 <div class="form-group">
                   <label class="lbl">Categoría del motivo</label>
-                  <select class="inp" id="obsCategory">
-                    <option value="petróleo">🛢️ Alza/Baja del petróleo</option>
-                    <option value="guerra">⚔️ Conflicto bélico</option>
-                    <option value="política">🏛️ Decisión política</option>
-                    <option value="banco_central">🏦 Banco central</option>
-                    <option value="exportación">
-                      📦 Variación exportaciones
-                    </option>
-                    <option value="retraso">⏱️ Retraso en operaciones</option>
-                    <option value="pandemia">🦠 Pandemia / emergencia</option>
-                    <option value="inflación">
-                      📈 Inflación / devaluación
-                    </option>
-                    <option value="tecnología">💻 Cambios tecnológicos</option>
-                    <option value="clima">🌪️ Fenómeno climático</option>
-                    <option value="otro">📝 Otro motivo</option>
-                  </select>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <select class="inp" id="obsCategory"></select>
+                    <button type="button" class="btn btn-outline" onclick="openAddCategoryModal()" title="Agregar nueva categoría" style="flex-shrink:0;padding:0.45rem 0.8rem;font-size:18px;line-height:1;font-weight:700">+</button>
+                  </div>
                 </div>
                 <div class="form-group">
                   <label class="lbl">Descripción detallada</label
@@ -1946,6 +2049,19 @@
 
       /* ======= ALL ORIGINAL cambio.html LOGIC ======= */
       var store = {
+        categories: [
+          { value: "petróleo",    label: "🛢️ Alza/Baja del petróleo" },
+          { value: "banco_central", label: "🏦 Decisión de banco central" },
+          { value: "política",    label: "🏛️ Decisión política" },
+          { value: "exportación", label: "📦 Variación exportaciones" },
+          { value: "guerra",      label: "⚔️ Conflicto bélico" },
+          { value: "inflación",   label: "📈 Inflación/devaluación" },
+          { value: "retraso",     label: "⏱️ Retraso en operaciones" },
+          { value: "pandemia",    label: "🦠 Pandemia / emergencia" },
+          { value: "tecnología",  label: "💻 Cambios tecnológicos" },
+          { value: "clima",       label: "🌪️ Fenómeno climático" },
+          { value: "otro",        label: "📝 Otro motivo" },
+        ],
         currencies: [
           {
             code: "USD",
@@ -1953,6 +2069,8 @@
             symbol: "$",
             flag: "🇺🇸",
             rate: 3.72,
+            rateSell: 3.72,
+            rateBuy: 3.65,
             bank: "BCP",
             country: "Estados Unidos",
             active: true,
@@ -1963,6 +2081,8 @@
             symbol: "€",
             flag: "🇪🇺",
             rate: 4.05,
+            rateSell: 4.05,
+            rateBuy: 3.97,
             bank: "BBVA",
             country: "Unión Europea",
             active: true,
@@ -1973,6 +2093,8 @@
             symbol: "¥",
             flag: "🇯🇵",
             rate: 0.0248,
+            rateSell: 0.0248,
+            rateBuy: 0.0241,
             bank: "Interbank",
             country: "Japón",
             active: true,
@@ -1983,6 +2105,8 @@
             symbol: "£",
             flag: "🇬🇧",
             rate: 4.72,
+            rateSell: 4.72,
+            rateBuy: 4.63,
             bank: "BCP",
             country: "Reino Unido",
             active: true,
@@ -2033,6 +2157,7 @@
         history: [],
         observations: [],
         editingCurrCode: null,
+        editingBankId: null,
         chartRange: 14,
         chartCurrency: "USD",
         dashChartCurrency: "USD",
@@ -2041,6 +2166,7 @@
 
       (function generateHistory() {
         var baseRates = { USD: 3.65, EUR: 3.95, JPY: 0.024, GBP: 4.6 };
+        var spreadPct = { USD: 0.019, EUR: 0.020, JPY: 0.028, GBP: 0.019 };
         var reasons = [
           { cat: "petróleo", msg: "Alza del precio del petróleo WTI" },
           { cat: "banco_central", msg: "FED mantiene tasas sin cambios" },
@@ -2067,22 +2193,28 @@
         var now = new Date();
         var id = 1;
         ["USD", "EUR", "JPY", "GBP"].forEach(function (code) {
-          var rate = baseRates[code];
+          var rateSell = baseRates[code];
+          var sp = spreadPct[code] || 0.019;
           for (var i = 365; i >= 0; i--) {
             var d = new Date(now);
             d.setDate(d.getDate() - i);
-            var prev = rate;
+            var prevSell = rateSell;
             var change =
               (Math.random() - 0.48) * (code === "JPY" ? 0.0004 : 0.018);
-            rate = Math.max(code === "JPY" ? 0.019 : 0.5, rate + change);
+            rateSell = Math.max(code === "JPY" ? 0.019 : 0.5, rateSell + change);
+            var rateBuy = parseFloat((rateSell * (1 - sp)).toFixed(code === "JPY" ? 5 : 4));
             if (Math.random() > 0.72) {
               var r = reasons[Math.floor(Math.random() * reasons.length)];
               store.history.push({
                 id: id++,
                 date: d.toISOString(),
                 currency: code,
-                prev: prev,
-                rate: rate,
+                prev: prevSell,
+                rate: rateSell,
+                rateSell: rateSell,
+                rateBuy: rateBuy,
+                prevSell: prevSell,
+                prevBuy: parseFloat((prevSell * (1 - sp)).toFixed(code === "JPY" ? 5 : 4)),
                 bank: banks[Math.floor(Math.random() * banks.length)],
                 category: r.cat,
                 reason: r.msg,
@@ -2093,7 +2225,11 @@
               var c = store.currencies.find(function (x) {
                 return x.code === code;
               });
-              if (c) c.rate = parseFloat(rate.toFixed(code === "JPY" ? 5 : 4));
+              if (c) {
+                c.rate = parseFloat(rateSell.toFixed(code === "JPY" ? 5 : 4));
+                c.rateSell = c.rate;
+                c.rateBuy = parseFloat((c.rate * (1 - sp)).toFixed(code === "JPY" ? 5 : 4));
+              }
             }
           }
         });
@@ -2219,7 +2355,9 @@
         }
       }
       window.onload = function () {
+        API.startHeartbeat("cambio.html", "Centro de Cambio");
         setDate();
+        // Render inmediato con datos en memoria (mientras carga la BD)
         buildConvSelects();
         buildBankCurrencySelect();
         buildObsCurrencySelect();
@@ -2243,6 +2381,8 @@
         document.getElementById("histTo").value = to
           .toISOString()
           .split("T")[0];
+        // Carga datos reales desde la BD
+        initCambioApp();
       };
       function setDate() {
         document.getElementById("currentDate").textContent =
@@ -2275,11 +2415,21 @@
           return x.code === code;
         });
         if (!c) return;
+        var buyRate = c.rateBuy !== undefined ? c.rateBuy : parseFloat((c.rate * 0.982).toFixed(code === "JPY" ? 5 : 4));
+        var sellRate = c.rate;
+        var useRate, modeLbl;
+        if (from === "PEN") {
+          useRate = sellRate;
+          modeLbl = "Venta (comprando " + code + ")";
+        } else {
+          useRate = buyRate;
+          modeLbl = "Compra (vendiendo " + code + ")";
+        }
         var result;
         if (from === "PEN") {
-          result = amt / c.rate;
+          result = amt / useRate;
         } else {
-          result = amt * c.rate;
+          result = amt * useRate;
         }
         document.getElementById("convResult").textContent =
           c.symbol +
@@ -2291,12 +2441,9 @@
           " " +
           code;
         document.getElementById("convDetail").textContent =
-          "1 " +
-          code +
-          " = S/ " +
-          fmtRate(c.rate, code) +
-          " | Banco ref.: " +
-          c.bank;
+          modeLbl + " | Compra: S/ " + fmtRate(buyRate, code) +
+          " · Venta: S/ " + fmtRate(sellRate, code) +
+          " | Banco: " + c.bank;
       }
       function swapConv() {
         calcConv();
@@ -2314,17 +2461,23 @@
           var isUp = chg >= 0;
           var card = document.createElement("div");
           card.className = "metric-card " + classes[i % 4];
+          var buyRate = c.rateBuy !== undefined ? c.rateBuy : c.rate * 0.982;
           card.innerHTML =
             '<div class="metric-label">' +
             c.code +
-            ' / PEN</div><div class="metric-value">S/ ' +
-            fmtRate(c.rate, c.code) +
-            '</div><div class="metric-sub"><span class="' +
+            ' / PEN</div>' +
+            '<div style="display:flex;gap:1rem;align-items:baseline;margin:.25rem 0 .1rem">' +
+              '<div><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Compra</div>' +
+              '<div style="font-family:Instrument Serif,serif;font-size:22px;color:var(--green)">S/ ' + fmtRate(buyRate, c.code) + '</div></div>' +
+              '<div><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Venta</div>' +
+              '<div style="font-family:Instrument Serif,serif;font-size:22px;color:var(--navy)">S/ ' + fmtRate(c.rate, c.code) + '</div></div>' +
+            '</div>' +
+            '<div class="metric-sub"><span class="' +
             (isUp ? "metric-up" : "metric-down") +
             '">' +
             (isUp ? "↑" : "↓") +
             Math.abs(chg).toFixed(2) +
-            '%</span><span style="color:var(--text3)">vs ayer</span></div><div class="metric-flag">' +
+            '%</span><span style="color:var(--text3)">vs ayer (venta)</span></div><div class="metric-flag">' +
             c.flag +
             "</div>";
           el.appendChild(card);
@@ -2342,6 +2495,7 @@
           var isUp = chg >= 0;
           var card = document.createElement("div");
           card.className = "rate-card";
+          var buyR = c.rateBuy !== undefined ? c.rateBuy : c.rate * 0.982;
           card.innerHTML =
             '<div class="rate-card-top"><span class="rate-flag">' +
             c.flag +
@@ -2354,14 +2508,19 @@
             c.code +
             '</div><div class="rate-name">' +
             c.name +
-            '</div><div class="rate-val">S/ ' +
-            fmtRate(c.rate, c.code) +
-            '</div><div class="rate-change" style="color:' +
+            '</div>' +
+            '<div style="display:flex;gap:1rem;margin:.5rem 0 .35rem">' +
+              '<div><div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)">Compra</div>' +
+              '<div style="font-family:Instrument Serif,serif;font-size:21px;color:var(--green)">S/ ' + fmtRate(buyR, c.code) + '</div></div>' +
+              '<div><div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)">Venta</div>' +
+              '<div style="font-family:Instrument Serif,serif;font-size:21px;color:var(--navy)">S/ ' + fmtRate(c.rate, c.code) + '</div></div>' +
+            '</div>' +
+            '<div class="rate-change" style="color:' +
             (isUp ? "var(--green)" : "var(--red)") +
             '">' +
             (isUp ? "↑" : "↓") +
             Math.abs(c.rate - prev).toFixed(4) +
-            " hoy</div>";
+            " hoy (venta)</div>";
           el.appendChild(card);
         });
       }
@@ -2467,6 +2626,7 @@
           var div = document.createElement("div");
           div.style.cssText =
             "display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border)";
+          var hBuy = h.rateBuy !== undefined ? h.rateBuy : h.rate * 0.982;
           div.innerHTML =
             '<span style="font-size:22px">' +
             c.flag +
@@ -2474,23 +2634,173 @@
             h.currency +
             '</div><div style="font-size:11px;color:var(--text3)">' +
             fmtDate(h.date) +
-            '</div></div><div style="text-align:right"><div class="tag ' +
-            (isUp ? "tag-green" : "tag-red") +
-            '">S/ ' +
-            fmtRate(h.rate, h.currency) +
-            '</div><div style="font-size:11px;color:var(--text3);margin-top:3px">' +
-            h.bank +
-            "</div></div>";
+            '</div></div><div style="text-align:right">' +
+            '<div style="font-size:11px;color:var(--text3)">C: <strong style="color:var(--green)">S/ ' + fmtRate(hBuy, h.currency) + '</strong></div>' +
+            '<div class="tag ' + (isUp ? "tag-green" : "tag-red") + '" style="margin-top:2px">V: S/ ' + fmtRate(h.rate, h.currency) + '</div>' +
+            '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + h.bank + "</div>" +
+            "</div>";
           el.appendChild(div);
         });
+      }
+      /* ===== DB INIT ===== */
+      function transformHistory(rows) {
+        var prevByCode = {};
+        var result = [];
+        var sorted = rows.slice().sort(function (a, b) {
+          return (
+            new Date(a.created_at || a.rate_date) -
+            new Date(b.created_at || b.rate_date)
+          );
+        });
+        sorted.forEach(function (r) {
+          var prev = prevByCode[r.code] || {};
+          var sell = parseFloat(r.sell_rate) || 0;
+          var buy = parseFloat(r.buy_rate) || 0;
+          var prevSell = parseFloat(prev.sell) || sell;
+          var prevBuy = parseFloat(prev.buy) || buy;
+          result.push({
+            id:       r.id,
+            date:     r.created_at || r.rate_date + "T12:00:00",
+            currency: r.code,
+            prev:     prevSell,
+            rate:     sell,
+            rateSell: sell,
+            rateBuy:  buy,
+            prevSell: prevSell,
+            prevBuy:  prevBuy,
+            bank:     r.bank_name || r.source || "—",
+            category: r.category  || "otro",
+            reason:   r.reason    || "Sin motivo registrado",
+            user:     r.worker_name || "Sistema",
+          });
+          prevByCode[r.code] = { sell: sell, buy: buy };
+        });
+        return result.reverse();
+      }
+
+      async function initCambioApp() {
+        try {
+          // 1. Tasas actuales por moneda
+          var latest = await API.get("/api/exchange-rates/latest");
+          if (latest.length > 0) {
+            store.currencies = latest.map(function (r) {
+              return {
+                id: r.currency_id,
+                code: r.code,
+                name: r.name,
+                symbol: r.symbol || r.code,
+                flag: r.flag || "💱",
+                rate: parseFloat(r.sell_rate) || 0,
+                rateSell: parseFloat(r.sell_rate) || 0,
+                rateBuy: parseFloat(r.buy_rate) || 0,
+                bank: r.bank_ref || "—",
+                country: "",
+                active: true,
+              };
+            });
+          }
+          // 2. Bancos
+          var banks = await API.get("/api/exchange-rates/banks");
+          if (banks.length > 0) {
+            store.banks = banks.map(mapBankRow);
+          }
+          // 3. Historial
+          var hist = await API.get("/api/exchange-rates");
+          if (hist.length > 0) {
+            store.history = transformHistory(hist);
+          }
+          // 4. Observaciones
+          var obs = await API.get("/api/exchange-rates/observations");
+          store.observations = obs.map(function (o) {
+            return {
+              id:       o.id,
+              date:     o.obs_date,          // columna real: obs_date
+              currency: o.currency_code || "ALL",
+              category: o.category      || "otro",
+              desc:     o.description   || "",
+              impact:   o.impact        || "bajo",
+              source:   o.source        || "",  // columna real: source
+            };
+          });
+        } catch (err) {
+          console.error("initCambioApp:", err);
+          // Si falla la BD, la UI sigue con los datos en memoria
+        }
+        // Re-render con datos reales
+        buildConvSelects();
+        buildBankCurrencySelect();
+        buildObsCurrencySelect();
+        buildHistTabs();
+        buildChartCurrencyTabs();
+        renderBankList();
+        renderCurrTable();
+        renderUpdateRateForm();
+        renderDashMetrics();
+        renderRateCards();
+        renderDashChart();
+        renderActivity();
+        renderLastUpdates();
+        renderObsList();
+      }
+
+      function mapBankRow(b) {
+        return {
+          id:       b.id,
+          name:     b.name,
+          code:     b.code,
+          acct:     b.account_number || "—",
+          currency: b.currency       || "USD",   // columna real es "currency"
+          color:    b.color          || "#0B1C35",
+          type:     b.bank_type      || "comercial",
+          notes:    b.notes          || "",
+        };
+      }
+
+      function getWorkerDisplayName() {
+        var w = API.getWorker();
+        if (!w) return "Sistema";
+        return (
+          w.full_name ||
+          w.name ||
+          ((w.first_name || "") + " " + (w.last_name || "")).trim() ||
+          "Sistema"
+        );
       }
       function renderUpdateRateForm() {
         var el = document.getElementById("updateRateForm");
         el.innerHTML = "";
+        var workerName = getWorkerDisplayName();
+        var catOptions = store.categories
+          .map(function (cat) {
+            return (
+              '<option value="' + cat.value + '">' + cat.label + "</option>"
+            );
+          })
+          .join("");
         var wrap = document.createElement("div");
         wrap.style.cssText = "display:flex;flex-direction:column;gap:1rem";
         wrap.innerHTML =
-          '<div class="form-group"><label class="lbl">Moneda</label><select class="inp" id="rateSelCurr" onchange="prefillRate()"></select></div><div class="form-grid" style="gap:.75rem"><div class="form-group"><label class="lbl">Tasa anterior</label><input class="inp" id="rateOld" readonly style="background:var(--surface2)"/></div><div class="form-group"><label class="lbl">Nueva tasa (1 moneda = ? PEN)</label><input type="number" class="inp" id="rateNew" placeholder="0.0000" step="0.0001"/></div></div><div class="form-group"><label class="lbl">Banco de referencia</label><select class="inp" id="rateBank"></select></div><div class="form-group"><label class="lbl">Categoría del motivo</label><select class="inp" id="rateCategory"><option value="petróleo">🛢️ Alza/Baja del petróleo</option><option value="banco_central">🏦 Decisión de banco central</option><option value="política">🏛️ Decisión política</option><option value="exportación">📦 Variación exportaciones</option><option value="guerra">⚔️ Conflicto bélico</option><option value="inflación">📈 Inflación/devaluación</option><option value="clima">🌪️ Fenómeno climático</option><option value="otro">📝 Otro</option></select></div><div class="form-group"><label class="lbl">Observación / motivo</label><textarea class="inp" id="rateReason" placeholder="Detalla el motivo..." rows="3"></textarea></div><div class="form-group"><label class="lbl">Registrado por</label><input class="inp" id="rateUser" value="J. Torres"/></div><button class="btn btn-gold" onclick="applyRate()">✓ Aplicar cambio de tasa</button>';
+          '<div class="form-group"><label class="lbl">Moneda</label><select class="inp" id="rateSelCurr" onchange="prefillRate()"></select></div>' +
+          '<div class="form-grid" style="gap:.75rem">' +
+            '<div class="form-group"><label class="lbl">Compra anterior</label><input class="inp" id="rateOldBuy" readonly style="background:var(--surface2)"/></div>' +
+            '<div class="form-group"><label class="lbl">Nueva compra (1 mon. = ? PEN)</label><input type="number" class="inp" id="rateNewBuy" placeholder="0.0000" step="0.0001"/></div>' +
+          '</div>' +
+          '<div class="form-grid" style="gap:.75rem">' +
+            '<div class="form-group"><label class="lbl">Venta anterior</label><input class="inp" id="rateOldSell" readonly style="background:var(--surface2)"/></div>' +
+            '<div class="form-group"><label class="lbl">Nueva venta (1 mon. = ? PEN)</label><input type="number" class="inp" id="rateNewSell" placeholder="0.0000" step="0.0001"/></div>' +
+          '</div>' +
+          '<div class="form-group"><label class="lbl">Banco de referencia</label><select class="inp" id="rateBank"></select></div>' +
+          '<div class="form-group"><label class="lbl">Categoría del motivo</label>' +
+            '<div style="display:flex;gap:8px;align-items:center">' +
+              '<select class="inp" id="rateCategory">' + catOptions + "</select>" +
+              '<button type="button" class="btn btn-outline" onclick="openAddCategoryModal()" title="Agregar nueva categoría" style="flex-shrink:0;padding:0.45rem 0.8rem;font-size:18px;line-height:1;font-weight:700">+</button>' +
+            "</div>" +
+          "</div>" +
+          '<div class="form-group"><label class="lbl">Observación / motivo</label><textarea class="inp" id="rateReason" placeholder="Detalla el motivo..." rows="3"></textarea></div>' +
+          '<div class="form-group"><label class="lbl">Registrado por</label><input class="inp" id="rateUser" value="' +
+          workerName.replace(/"/g, "&quot;") +
+          '" readonly style="background:var(--surface2)"/></div>' +
+          '<button class="btn btn-gold" onclick="applyRate()">✓ Aplicar cambio de tasa</button>';
         el.appendChild(wrap);
         var sel = document.getElementById("rateSelCurr");
         var bsel = document.getElementById("rateBank");
@@ -2513,19 +2823,31 @@
         var c = store.currencies.find(function (x) {
           return x.code === code;
         });
-        if (c)
-          document.getElementById("rateOld").value =
-            "S/ " + fmtRate(c.rate, code);
+        if (!c) return;
+        var buyEl = document.getElementById("rateOldBuy");
+        var sellEl = document.getElementById("rateOldSell");
+        var buyRate = c.rateBuy !== undefined ? c.rateBuy : parseFloat((c.rate * 0.982).toFixed(code === "JPY" ? 5 : 4));
+        if (buyEl) buyEl.value = "S/ " + fmtRate(buyRate, code);
+        if (sellEl) sellEl.value = "S/ " + fmtRate(c.rate, code);
       }
-      function applyRate() {
+      async function applyRate() {
         var code = document.getElementById("rateSelCurr").value;
-        var newR = parseFloat(document.getElementById("rateNew").value);
+        var newBuy = parseFloat(document.getElementById("rateNewBuy").value);
+        var newSell = parseFloat(document.getElementById("rateNewSell").value);
         var reason = document.getElementById("rateReason").value.trim();
         var bank = document.getElementById("rateBank").value;
         var cat = document.getElementById("rateCategory").value;
         var user = document.getElementById("rateUser").value || "Sistema";
-        if (!newR || newR <= 0) {
-          flashMsg("Ingresa una tasa válida", "error");
+        if (!newSell || newSell <= 0) {
+          flashMsg("Ingresa una tasa de venta válida", "error");
+          return;
+        }
+        if (!newBuy || newBuy <= 0) {
+          flashMsg("Ingresa una tasa de compra válida", "error");
+          return;
+        }
+        if (newBuy >= newSell) {
+          flashMsg("La tasa de compra debe ser menor a la de venta", "warning");
           return;
         }
         if (!reason) {
@@ -2535,23 +2857,46 @@
         var c = store.currencies.find(function (x) {
           return x.code === code;
         });
-        var prevR = c.rate;
-        c.rate = newR;
+        if (!c) { flashMsg("Moneda no encontrada", "error"); return; }
+        var prevSell = c.rate;
+        var prevBuy = c.rateBuy !== undefined ? c.rateBuy : parseFloat((c.rate * 0.982).toFixed(code === "JPY" ? 5 : 4));
+        var bankObj = store.banks.find(function (b) { return b.name === bank; });
+        try {
+          await API.post("/api/exchange-rates", {
+            currency_code: code,
+            buy_rate:  newBuy,
+            sell_rate: newSell,
+            source:    bank,
+            bank_id:   bankObj ? bankObj.id : null,
+            category:  cat,
+            reason:    reason,
+          });
+        } catch (err) {
+          flashMsg("Error al guardar en BD: " + (err.message || err), "error");
+          return;
+        }
+        c.rate = newSell;
+        c.rateSell = newSell;
+        c.rateBuy = newBuy;
         c.bank = bank;
         store.history.unshift({
           id: Date.now(),
           date: new Date().toISOString(),
           currency: code,
-          prev: prevR,
-          rate: newR,
+          prev: prevSell,
+          rate: newSell,
+          rateSell: newSell,
+          rateBuy: newBuy,
+          prevSell: prevSell,
+          prevBuy: prevBuy,
           bank: bank,
           category: cat,
           reason: reason,
           user: user,
         });
         flashMsg(
-          "Tasa de " + code + " actualizada a S/ " + fmtRate(newR, code),
-          "success",
+          code + " — Compra: S/ " + fmtRate(newBuy, code) + " | Venta: S/ " + fmtRate(newSell, code),
+          "success"
         );
         renderUpdateRateForm();
         renderLastUpdates();
@@ -2612,6 +2957,7 @@
           var chg = varPct(h.prev, h.rate);
           var isUp = chg >= 0;
           var tr = document.createElement("tr");
+          var hBuyRate = h.rateBuy !== undefined ? h.rateBuy : parseFloat((h.rate * 0.982).toFixed(h.currency === "JPY" ? 5 : 4));
           tr.innerHTML =
             '<td style="font-size:12px;white-space:nowrap">' +
             fmtDate(h.date) +
@@ -2619,11 +2965,10 @@
             c.flag +
             "</span> <strong>" +
             h.currency +
-            '</strong></td><td class="mono">S/ ' +
-            fmtRate(h.prev, h.currency) +
-            '</td><td class="mono">S/ ' +
-            fmtRate(h.rate, h.currency) +
-            '</td><td><span class="tag ' +
+            '</strong></td>' +
+            '<td class="mono" style="color:var(--green)">S/ ' + fmtRate(hBuyRate, h.currency) + '</td>' +
+            '<td class="mono">S/ ' + fmtRate(h.rate, h.currency) + '</td>' +
+            '<td><span class="tag ' +
             (isUp ? "tag-green" : "tag-red") +
             '">' +
             (isUp ? "▲" : "▼") +
@@ -2669,15 +3014,16 @@
             return h.currency === histFilter;
           });
         var csv =
-          "Fecha,Moneda,Tasa Anterior,Tasa Nueva,Variacion %,Banco,Categoria,Razon,Usuario\n";
+          "Fecha,Moneda,Compra,Venta,Var.Venta %,Banco,Categoria,Razon,Usuario\n";
         rows.forEach(function (h) {
+          var hBuyCSV = h.rateBuy !== undefined ? h.rateBuy : parseFloat((h.rate * 0.982).toFixed(h.currency === "JPY" ? 5 : 4));
           csv +=
             '"' +
             fmtDate(h.date) +
             '","' +
             h.currency +
             '",' +
-            fmtRate(h.prev, h.currency) +
+            fmtRate(hBuyCSV, h.currency) +
             "," +
             fmtRate(h.rate, h.currency) +
             "," +
@@ -2893,12 +3239,9 @@
           sel.appendChild(o);
         });
       }
-      function saveBank() {
+      async function saveBank() {
         var name = document.getElementById("bankName").value.trim();
-        var code = document
-          .getElementById("bankCode")
-          .value.trim()
-          .toUpperCase();
+        var code = document.getElementById("bankCode").value.trim().toUpperCase();
         var acct = document.getElementById("bankAcct").value.trim();
         var cur = document.getElementById("bankCurrency").value;
         var color = document.getElementById("bankColor").value;
@@ -2908,35 +3251,45 @@
           flashMsg("Nombre y código son obligatorios", "error");
           return;
         }
-        store.banks.push({
-          id: Date.now(),
-          name: name,
-          code: code,
-          acct: acct,
-          currency: cur,
-          color: color,
-          type: type,
-          notes: notes,
-        });
-        renderBankList();
-        clearBankForm();
-        buildBankCurrencySelect();
-        flashMsg('Banco "' + name + '" agregado correctamente', "success");
+        var payload = {
+          name: name, code: code, account_number: acct,
+          currency: cur, color: color, bank_type: type, notes: notes,
+        };
+        try {
+          var saved;
+          if (store.editingBankId) {
+            saved = await API.put("/api/exchange-rates/banks/" + store.editingBankId, payload);
+            var idx = store.banks.findIndex(function (b) { return b.id === store.editingBankId; });
+            if (idx > -1) store.banks[idx] = mapBankRow(saved);
+            store.editingBankId = null;
+          } else {
+            saved = await API.post("/api/exchange-rates/banks", payload);
+            store.banks.push(mapBankRow(saved));
+          }
+          renderBankList();
+          clearBankForm();
+          buildBankCurrencySelect();
+          flashMsg('Banco "' + name + '" guardado', "success");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
+        }
       }
       function clearBankForm() {
-        ["bankName", "bankCode", "bankAcct", "bankNotes"].forEach(
-          function (id) {
-            document.getElementById(id).value = "";
-          },
-        );
-        document.getElementById("bankColor").value = "#0B1C35";
-      }
-      function deleteBank(id) {
-        store.banks = store.banks.filter(function (b) {
-          return b.id !== id;
+        ["bankName", "bankCode", "bankAcct", "bankNotes"].forEach(function (id) {
+          document.getElementById(id).value = "";
         });
-        renderBankList();
-        flashMsg("Banco eliminado", "warning");
+        document.getElementById("bankColor").value = "#0B1C35";
+        store.editingBankId = null;
+      }
+      async function deleteBank(id) {
+        try {
+          await API.delete("/api/exchange-rates/banks/" + id);
+          store.banks = store.banks.filter(function (b) { return b.id !== id; });
+          renderBankList();
+          flashMsg("Banco eliminado", "warning");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
+        }
       }
       function renderBankList() {
         var el = document.getElementById("bankList");
@@ -2975,10 +3328,9 @@
         });
       }
       function editBank(id) {
-        var b = store.banks.find(function (x) {
-          return x.id === id;
-        });
+        var b = store.banks.find(function (x) { return x.id === id; });
         if (!b) return;
+        store.editingBankId = id;
         document.getElementById("bankName").value = b.name;
         document.getElementById("bankCode").value = b.code;
         document.getElementById("bankAcct").value = b.acct;
@@ -2986,10 +3338,6 @@
         document.getElementById("bankColor").value = b.color;
         document.getElementById("bankType").value = b.type;
         document.getElementById("bankNotes").value = b.notes || "";
-        store.banks = store.banks.filter(function (x) {
-          return x.id !== id;
-        });
-        renderBankList();
         flashMsg("Edita y guarda el banco", "warning");
       }
       function buildObsCurrencySelect() {
@@ -3016,6 +3364,20 @@
             });
           }
         });
+        buildObsCategorySelect();
+      }
+      function buildObsCategorySelect() {
+        var sel = document.getElementById("obsCategory");
+        if (!sel) return;
+        var current = sel.value;
+        sel.innerHTML = "";
+        store.categories.forEach(function (cat) {
+          var o = document.createElement("option");
+          o.value = cat.value;
+          o.textContent = cat.label;
+          sel.appendChild(o);
+        });
+        if (current) sel.value = current;
       }
       function renderCurrTable() {
         var el = document.getElementById("currTableBody");
@@ -3024,6 +3386,7 @@
           store.currencies.length;
         store.currencies.forEach(function (c) {
           var tr = document.createElement("tr");
+          var cBuyR = c.rateBuy !== undefined ? c.rateBuy : parseFloat((c.rate * 0.982).toFixed(c.code === "JPY" ? 5 : 4));
           tr.innerHTML =
             '<td><span style="font-size:18px;margin-right:6px">' +
             c.flag +
@@ -3031,9 +3394,10 @@
             c.code +
             '</strong> <span style="font-size:12px;color:var(--text3)">' +
             c.name +
-            '</span></td><td class="mono">S/ ' +
-            fmtRate(c.rate, c.code) +
-            '</td><td><span class="tag tag-navy">' +
+            '</span></td>' +
+            '<td class="mono" style="color:var(--green)">S/ ' + fmtRate(cBuyR, c.code) + '</td>' +
+            '<td class="mono">S/ ' + fmtRate(c.rate, c.code) + '</td>' +
+            '<td><span class="tag tag-navy">' +
             c.bank +
             '</span></td><td><button class="btn btn-outline btn-sm" onclick="startEditCurr(\'' +
             c.code +
@@ -3049,11 +3413,8 @@
         buildConvSelects();
         buildChartCurrencyTabs();
       }
-      function saveCurrency() {
-        var code = document
-          .getElementById("currCode")
-          .value.trim()
-          .toUpperCase();
+      async function saveCurrency() {
+        var code = document.getElementById("currCode").value.trim().toUpperCase();
         var name = document.getElementById("currName").value.trim();
         var sym = document.getElementById("currSymbol").value.trim();
         var flag = document.getElementById("currFlag").value.trim();
@@ -3064,46 +3425,50 @@
           flashMsg("Código, nombre y tasa son obligatorios", "error");
           return;
         }
-        if (store.editingCurrCode) {
-          var c = store.currencies.find(function (x) {
-            return x.code === store.editingCurrCode;
-          });
-          if (c) {
-            c.code = code;
-            c.name = name;
-            c.symbol = sym;
-            c.flag = flag;
-            c.rate = rate;
-            c.bank = bank;
-            c.country = country;
+        var payload = {
+          code: code, name: name, symbol: sym || code,
+          flag_emoji: flag, decimal_places: code === "JPY" ? 3 : 2,
+        };
+        try {
+          if (store.editingCurrCode) {
+            var existing = store.currencies.find(function (x) {
+              return x.code === store.editingCurrCode;
+            });
+            if (existing) {
+              var updated = await API.put("/api/exchange-rates/currencies/" + existing.id, payload);
+              existing.code = updated.code; existing.name = updated.name;
+              existing.symbol = updated.symbol; existing.flag = updated.flag_emoji || flag;
+            }
+            store.editingCurrCode = null;
+            document.getElementById("currFormTitle").textContent = "Agregar moneda";
+            document.getElementById("saveCurrBtn").textContent = "Guardar moneda";
+          } else {
+            if (store.currencies.find(function (x) { return x.code === code; })) {
+              flashMsg("Ya existe una moneda con ese código", "error"); return;
+            }
+            var created = await API.post("/api/exchange-rates/currencies", payload);
+            var defaultBuy = parseFloat((rate * 0.982).toFixed(code === "JPY" ? 5 : 4));
+            store.currencies.push({
+              id: created.id, code: created.code, name: created.name,
+              symbol: created.symbol, flag: created.flag_emoji || flag,
+              rate: rate, rateSell: rate, rateBuy: defaultBuy,
+              bank: bank, country: country, active: true,
+            });
+            await API.post("/api/exchange-rates", {
+              currency_code: created.code,
+              buy_rate:  defaultBuy,
+              sell_rate: rate,
+              source:    bank,
+              category:  "otro",
+              reason:    "Tasa inicial al registrar moneda",
+            });
           }
-          store.editingCurrCode = null;
-          document.getElementById("currFormTitle").textContent =
-            "Agregar moneda";
-          document.getElementById("saveCurrBtn").textContent = "Guardar moneda";
-        } else {
-          if (
-            store.currencies.find(function (x) {
-              return x.code === code;
-            })
-          ) {
-            flashMsg("Ya existe una moneda con ese código", "error");
-            return;
-          }
-          store.currencies.push({
-            code: code,
-            name: name,
-            symbol: sym,
-            flag: flag,
-            rate: rate,
-            bank: bank,
-            country: country,
-            active: true,
-          });
+          renderCurrTable();
+          cancelEditCurr();
+          flashMsg("Moneda " + code + " guardada", "success");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
         }
-        renderCurrTable();
-        cancelEditCurr();
-        flashMsg("Moneda " + code + " guardada", "success");
       }
       function startEditCurr(code) {
         var c = store.currencies.find(function (x) {
@@ -3138,23 +3503,26 @@
         document.getElementById("currFormTitle").textContent = "Agregar moneda";
         document.getElementById("saveCurrBtn").textContent = "Guardar moneda";
       }
-      function deleteCurr(code) {
+      async function deleteCurr(code) {
         if (store.currencies.length <= 1) {
           flashMsg("Debe haber al menos una moneda activa", "error");
           return;
         }
-        store.currencies = store.currencies.filter(function (x) {
-          return x.code !== code;
-        });
-        store.history = store.history.filter(function (x) {
-          return x.currency !== code;
-        });
-        renderCurrTable();
-        renderDashMetrics();
-        renderRateCards();
-        flashMsg("Moneda " + code + " eliminada", "warning");
+        var c = store.currencies.find(function (x) { return x.code === code; });
+        if (!c) return;
+        try {
+          await API.delete("/api/exchange-rates/currencies/" + c.id);
+          store.currencies = store.currencies.filter(function (x) { return x.code !== code; });
+          store.history = store.history.filter(function (x) { return x.currency !== code; });
+          renderCurrTable();
+          renderDashMetrics();
+          renderRateCards();
+          flashMsg("Moneda " + code + " eliminada", "warning");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
+        }
       }
-      function saveObservation() {
+      async function saveObservation() {
         var date = document.getElementById("obsDate").value;
         var curr = document.getElementById("obsCurrency").value;
         var cat = document.getElementById("obsCategory").value;
@@ -3165,19 +3533,31 @@
           flashMsg("La descripción es obligatoria", "error");
           return;
         }
-        store.observations.unshift({
-          id: Date.now(),
-          date: date || new Date().toISOString(),
-          currency: curr,
-          category: cat,
-          desc: desc,
-          impact: impact,
-          source: src,
-        });
-        renderObsList();
-        document.getElementById("obsDesc").value = "";
-        document.getElementById("obsSource").value = "";
-        flashMsg("Observación registrada correctamente", "success");
+        try {
+          var saved = await API.post("/api/exchange-rates/observations", {
+            currency_code: (curr && curr !== "ALL") ? curr : null,
+            obs_date:      date || new Date().toISOString(),
+            category:      cat,
+            description:   desc,
+            impact:        impact,
+            source:        src || null,
+          });
+          store.observations.unshift({
+            id: saved.id,
+            date: saved.observation_date,
+            currency: curr,
+            category: cat,
+            desc: desc,
+            impact: impact,
+            source: src,
+          });
+          renderObsList();
+          document.getElementById("obsDesc").value = "";
+          document.getElementById("obsSource").value = "";
+          flashMsg("Observación registrada correctamente", "success");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
+        }
       }
       function renderObsList() {
         var el = document.getElementById("obsList");
@@ -3241,13 +3621,85 @@
           el.appendChild(div);
         });
       }
-      function deleteObs(id) {
-        store.observations = store.observations.filter(function (x) {
-          return x.id !== id;
-        });
-        renderObsList();
-        flashMsg("Observación eliminada", "warning");
+      async function deleteObs(id) {
+        try {
+          await API.delete("/api/exchange-rates/observations/" + id);
+          store.observations = store.observations.filter(function (x) { return x.id !== id; });
+          renderObsList();
+          flashMsg("Observación eliminada", "warning");
+        } catch (err) {
+          flashMsg("Error: " + (err.message || err), "error");
+        }
       }
+      /* === DARK MODE === */
+      function toggleDarkMode() {
+        var isDark = document.body.classList.toggle("dark");
+        localStorage.setItem("am_dark_mode", isDark ? "1" : "0");
+        var icon = document.getElementById("darkIcon");
+        if (!icon) return;
+        if (isDark) {
+          icon.innerHTML =
+            '<circle cx="12" cy="12" r="5"/>' +
+            '<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+        } else {
+          icon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+        }
+      }
+      function initDarkMode() {
+        if (localStorage.getItem("am_dark_mode") === "1") {
+          document.body.classList.add("dark");
+          var icon = document.getElementById("darkIcon");
+          if (icon)
+            icon.innerHTML =
+              '<circle cx="12" cy="12" r="5"/>' +
+              '<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+        }
+      }
+
+      /* === CATEGORY MODAL === */
+      function openAddCategoryModal() {
+        document.getElementById("modalTitle").textContent =
+          "Nueva categoría de motivo";
+        document.getElementById("modalBody").innerHTML =
+          '<div class="form-group" style="margin-bottom:1rem">' +
+            '<label class="lbl">Emoji</label>' +
+            '<input class="inp" id="newCatEmoji" placeholder="📝" maxlength="4" style="width:90px"/>' +
+          "</div>" +
+          '<div class="form-group">' +
+            '<label class="lbl">Nombre de la categoría</label>' +
+            '<input class="inp" id="newCatName" placeholder="Ej: Reservas internacionales"/>' +
+          "</div>";
+        document.getElementById("modalFooter").innerHTML =
+          '<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>' +
+          '<button class="btn btn-primary" onclick="addNewCategory()">Agregar</button>';
+        document.getElementById("modalBg").classList.add("open");
+        setTimeout(function () {
+          var el = document.getElementById("newCatName");
+          if (el) el.focus();
+        }, 100);
+      }
+      function addNewCategory() {
+        var emoji = (document.getElementById("newCatEmoji").value.trim() || "📝");
+        var name = document.getElementById("newCatName").value.trim();
+        if (!name) {
+          flashMsg("Ingresa el nombre de la categoría", "error");
+          return;
+        }
+        var value = name
+          .toLowerCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_áéíóúñ]/g, "");
+        if (store.categories.find(function (c) { return c.value === value; })) {
+          flashMsg("Esa categoría ya existe", "warning");
+          return;
+        }
+        store.categories.push({ value: value, label: emoji + " " + name });
+        closeModal();
+        renderUpdateRateForm();
+        buildObsCategorySelect();
+        flashMsg('Categoría "' + name + '" agregada', "success");
+      }
+
       function closeModal() {
         document.getElementById("modalBg").classList.remove("open");
       }
@@ -3257,6 +3709,7 @@
       document.getElementById("obsDate").value = new Date()
         .toISOString()
         .slice(0, 16);
+      initDarkMode();
     </script>
   </body>
 </html>

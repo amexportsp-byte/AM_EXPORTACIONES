@@ -2,10 +2,16 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script src="auth-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A&M — Sistema de Gestión de Inventario</title>
     <link rel="stylesheet" href="registro.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
       rel="stylesheet"
@@ -250,6 +256,21 @@
           <span>Reportes</span>
         </a>
 
+        <div class="nav-label" style="margin-top: 24px">TIENDA</div>
+        <a href="#" class="nav-item" data-section="visibilidad">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>Visibilidad</span>
+        </a>
+
         <div class="nav-label" style="margin-top: 24px">SISTEMA</div>
         <a href="#" class="nav-item" data-section="configuracion">
           <svg
@@ -279,10 +300,10 @@
         "
       >
         <div style="display: flex; align-items: center; gap: 10px">
-          <div class="user-avatar-small">A</div>
+          <div class="user-avatar-small" id="regSidebarAvatar">--</div>
           <div class="user-info-small">
-            <span class="user-name-small">Administrador</span>
-            <span class="user-role-small">Super Admin</span>
+            <span class="user-name-small" id="regSidebarName">Cargando...</span>
+            <span class="user-role-small" id="regSidebarRole"></span>
           </div>
         </div>
         <button class="sidebar-logout-btn" onclick="confirmLogout()">
@@ -403,10 +424,10 @@
             Salir
           </button>
           <div class="user-profile">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar" id="regTopbarAvatar">--</div>
             <div class="user-details">
-              <span class="user-name">Administrador</span>
-              <span class="user-role">Super Admin</span>
+              <span class="user-name" id="regTopbarName">Cargando...</span>
+              <span class="user-role" id="regTopbarRole"></span>
             </div>
           </div>
         </div>
@@ -797,6 +818,36 @@
           </div>
         </section>
 
+        <!-- ===== VISIBILIDAD DE CATEGORÍAS ===== -->
+        <section class="section" id="section-visibilidad">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Visibilidad de Categorías</h1>
+              <p class="section-subtitle">
+                Controla qué categorías son visibles en la tienda y en el módulo de ventas
+              </p>
+            </div>
+          </div>
+
+          <div style="max-width:680px">
+            <div class="config-card" style="margin-bottom:16px; background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.25)">
+              <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin:0">
+                <strong style="color:var(--text-primary)">¿Cómo funciona?</strong><br>
+                Ojo <span style="color:#22c55e; font-weight:600">abierto y verde</span> = la categoría es visible para clientes en la tienda web y para los trabajadores en el módulo de ventas.<br>
+                Ojo <span style="color:#e05252; font-weight:600">cerrado y rojo</span> = la categoría está oculta: ni los clientes ni los vendedores podrán verla ni comprarla.<br>
+                <em style="color:var(--text-muted)">Útil para promociones temporales como Día de la Madre, Fiestas Patrias, etc.</em>
+              </p>
+            </div>
+
+            <div class="config-card">
+              <h3 style="margin-bottom:14px">Categorías</h3>
+              <div id="visibilityList">
+                <div style="color:var(--text-muted);padding:20px">Cargando categorías...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ===== CONFIGURACIÓN ===== -->
         <section class="section" id="section-configuracion">
           <div class="section-header">
@@ -892,14 +943,18 @@
 
             <!-- LAYOUT: imagen izquierda + formulario derecha -->
             <div class="modal-layout">
-
               <!-- COLUMNA IMAGEN -->
               <div class="modal-img-col">
                 <div class="form-section-title">Imagen</div>
                 <div class="image-upload-area" id="imageUploadArea">
-                  <img id="imagePreview" src="" alt="" style="display:none" />
+                  <img id="imagePreview" src="" alt="" style="display: none" />
                   <div class="image-placeholder" id="imagePlaceholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <polyline points="21 15 16 10 5 21" />
@@ -907,254 +962,303 @@
                     <span>Subir imagen</span>
                     <small>Click o arrastra aquí</small>
                   </div>
-                  <input type="file" id="imageFile" accept="image/*" style="display:none" />
+                  <input
+                    type="file"
+                    id="imageFile"
+                    accept="image/*"
+                    style="display: none"
+                  />
                 </div>
                 <input
                   type="text"
                   class="form-input"
                   id="imageUrl"
                   placeholder="O pega una URL…"
-                  style="margin-top:8px"
+                  style="margin-top: 8px"
                 />
               </div>
 
               <!-- COLUMNA FORMULARIO -->
               <div class="modal-form-col">
-            <div class="form-section-title">Información Básica</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Nombre *</label
-                ><input
-                  type="text"
-                  class="form-input"
-                  id="fNombre"
-                  required
-                  placeholder="Nombre del producto"
-                />
-              </div>
-              <div class="form-group" id="codigoGroup" style="display:none">
-                <label class="form-label">
-                  Código
-                  <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px">(generado automáticamente)</span>
-                </label>
-                <div style="position:relative">
-                  <input
+                <div class="form-section-title">Información Básica</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Nombre *</label
+                    ><input
+                      type="text"
+                      class="form-input"
+                      id="fNombre"
+                      required
+                      placeholder="Nombre del producto"
+                    />
+                  </div>
+                  <div
+                    class="form-group"
+                    id="codigoGroup"
+                    style="display: none"
+                  >
+                    <label class="form-label">
+                      Código
+                      <span
+                        style="
+                          font-size: 10px;
+                          color: var(--text-muted);
+                          font-weight: 400;
+                          margin-left: 4px;
+                        "
+                        >(generado automáticamente)</span
+                      >
+                    </label>
+                    <div style="position: relative">
+                      <input
+                        type="text"
+                        class="form-input"
+                        id="fCodigo"
+                        placeholder="PRO0000000001"
+                        oninput="onCodigoInput()"
+                        style="padding-right: 36px"
+                      />
+                      <span
+                        id="codigoEditIcon"
+                        title="Editar código"
+                        style="
+                          position: absolute;
+                          right: 10px;
+                          top: 50%;
+                          transform: translateY(-50%);
+                          cursor: pointer;
+                          font-size: 14px;
+                          opacity: 0.5;
+                        "
+                        onclick="habilitarEditCodigo()"
+                        >✏️</span
+                      >
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Categoría *</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fCategoria" required>
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="categoria"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Subcategoría</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fSubcategoria">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="subcategoria"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Marca</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fMarca">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="marca"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Tamaño</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fTamano">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="tamano"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Unidad</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fUnidad">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="unidad"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Color</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fColor">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="color"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="code-change-notice" id="codeChangeNotice">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    style="
+                      width: 15px;
+                      height: 15px;
+                      flex-shrink: 0;
+                      margin-top: 1px;
+                    "
+                  >
+                    <path
+                      d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" /></svg
+                  >El código será actualizado. Se guardará en el historial con
+                  fecha y motivo.
+                </div>
+                <div class="code-reason-group" id="codeReasonGroup">
+                  <label class="code-reason-label"
+                    >💬 Motivo del cambio de código *</label
+                  ><input
                     type="text"
                     class="form-input"
-                    id="fCodigo"
-                    placeholder="PRO0000000001"
-                    oninput="onCodigoInput()"
-                    style="padding-right:36px"
+                    id="fCodigoMotivo"
+                    placeholder="Ej: Recodificación del proveedor…"
                   />
-                  <span id="codigoEditIcon" title="Editar código"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;opacity:0.5"
-                    onclick="habilitarEditCodigo()">✏️</span>
+                </div>
+                <div class="form-section-title">Precios y Stock</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Precio de Venta *</label
+                    ><input
+                      type="number"
+                      class="form-input"
+                      id="fPrecioVenta"
+                      required
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Precio de Compra *</label
+                    ><input
+                      type="number"
+                      class="form-input"
+                      id="fPrecioCompra"
+                      required
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Stock Actual *</label
+                    ><input
+                      type="number"
+                      class="form-input"
+                      id="fStock"
+                      required
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Cantidad Compra</label
+                    ><input
+                      type="number"
+                      class="form-input"
+                      id="fCantidadCompra"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Descuento (%)</label
+                    ><input
+                      type="number"
+                      class="form-input"
+                      id="fDescuento"
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                </div>
+                <div class="form-section-title">Proveedor y Origen</div>
+                <div class="form-grid">
+                  <div class="form-group with-btn">
+                    <label class="form-label">Proveedor</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fProveedor">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="proveedor"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group with-btn">
+                    <label class="form-label">Origen</label>
+                    <div class="input-with-btn">
+                      <select class="form-select" id="fOrigen">
+                        <option value="">Seleccionar…</option></select
+                      ><button
+                        type="button"
+                        class="btn-plus"
+                        data-modal="origen"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Fecha de Compra</label
+                    ><input type="date" class="form-input" id="fFechaCompra" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Fecha de Vencimiento</label
+                    ><input type="date" class="form-input" id="fFechaVence" />
+                  </div>
+                </div>
+                <div class="form-section-title">Información Adicional</div>
+                <div class="form-group full">
+                  <label class="form-label">Descripción</label
+                  ><textarea
+                    class="form-input textarea"
+                    id="fInfo"
+                    placeholder="Descripción del producto…"
+                    rows="3"
+                  ></textarea>
                 </div>
               </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Categoría *</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fCategoria" required>
-                    <option value="">Seleccionar…</option></select
-                  ><button
-                    type="button"
-                    class="btn-plus"
-                    data-modal="categoria"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Subcategoría</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fSubcategoria">
-                    <option value="">Seleccionar…</option></select
-                  ><button
-                    type="button"
-                    class="btn-plus"
-                    data-modal="subcategoria"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Marca</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fMarca">
-                    <option value="">Seleccionar…</option></select
-                  ><button type="button" class="btn-plus" data-modal="marca">
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Tamaño</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fTamano">
-                    <option value="">Seleccionar…</option></select
-                  ><button type="button" class="btn-plus" data-modal="tamano">
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Unidad</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fUnidad">
-                    <option value="">Seleccionar…</option></select
-                  ><button type="button" class="btn-plus" data-modal="unidad">
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Color</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fColor">
-                    <option value="">Seleccionar…</option></select
-                  ><button type="button" class="btn-plus" data-modal="color">
-                    +
-                  </button>
-                </div>
-              </div>
+              <!-- /modal-form-col -->
             </div>
-            <div class="code-change-notice" id="codeChangeNotice">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                style="
-                  width: 15px;
-                  height: 15px;
-                  flex-shrink: 0;
-                  margin-top: 1px;
-                "
-              >
-                <path
-                  d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" /></svg
-              >El código será actualizado. Se guardará en el historial con fecha
-              y motivo.
-            </div>
-            <div class="code-reason-group" id="codeReasonGroup">
-              <label class="code-reason-label"
-                >💬 Motivo del cambio de código *</label
-              ><input
-                type="text"
-                class="form-input"
-                id="fCodigoMotivo"
-                placeholder="Ej: Recodificación del proveedor…"
-              />
-            </div>
-            <div class="form-section-title">Precios y Stock</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Precio de Venta *</label
-                ><input
-                  type="number"
-                  class="form-input"
-                  id="fPrecioVenta"
-                  required
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Precio de Compra *</label
-                ><input
-                  type="number"
-                  class="form-input"
-                  id="fPrecioCompra"
-                  required
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Stock Actual *</label
-                ><input
-                  type="number"
-                  class="form-input"
-                  id="fStock"
-                  required
-                  placeholder="0"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Cantidad Compra</label
-                ><input
-                  type="number"
-                  class="form-input"
-                  id="fCantidadCompra"
-                  placeholder="0"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Descuento (%)</label
-                ><input
-                  type="number"
-                  class="form-input"
-                  id="fDescuento"
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                />
-              </div>
-            </div>
-            <div class="form-section-title">Proveedor y Origen</div>
-            <div class="form-grid">
-              <div class="form-group with-btn">
-                <label class="form-label">Proveedor</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fProveedor">
-                    <option value="">Seleccionar…</option></select
-                  ><button
-                    type="button"
-                    class="btn-plus"
-                    data-modal="proveedor"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group with-btn">
-                <label class="form-label">Origen</label>
-                <div class="input-with-btn">
-                  <select class="form-select" id="fOrigen">
-                    <option value="">Seleccionar…</option></select
-                  ><button type="button" class="btn-plus" data-modal="origen">
-                    +
-                  </button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fecha de Compra</label
-                ><input type="date" class="form-input" id="fFechaCompra" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fecha de Vencimiento</label
-                ><input type="date" class="form-input" id="fFechaVence" />
-              </div>
-            </div>
-            <div class="form-section-title">Información Adicional</div>
-            <div class="form-group full">
-              <label class="form-label">Descripción</label
-              ><textarea
-                class="form-input textarea"
-                id="fInfo"
-                placeholder="Descripción del producto…"
-                rows="3"
-              ></textarea>
-            </div>
-
-              </div><!-- /modal-form-col -->
-            </div><!-- /modal-layout -->
-
+            <!-- /modal-layout -->
           </form>
         </div>
         <div class="modal-footer">
@@ -1335,6 +1439,36 @@
     <script src="api.js"></script>
     <script src="registro.js"></script>
     <script>
+      /* ── WORKER INFO ── */
+      (function loadWorkerUI() {
+        const worker = API.getWorker();
+        if (!worker) return;
+        const fn = worker.first_name || "";
+        const ln = worker.last_name  || "";
+        const fullName = `${fn} ${ln}`.trim() || worker.username || "Usuario";
+        const initials = ((fn[0] || "") + (ln[0] || "")).toUpperCase() || "U";
+        const roleLabels = {
+          admin: "Administrador", supervisor: "Supervisor",
+          vendedor: "Vendedor", cajero: "Cajero",
+          almacen: "Almacén", contabilidad: "Contabilidad", soporte: "Soporte",
+        };
+        const roleLabel = roleLabels[worker.role] || worker.role || "Usuario";
+        const color = worker.avatar_color || "#4F46E5";
+
+        ["regSidebarAvatar","regTopbarAvatar"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = initials; el.style.background = color; }
+        });
+        ["regSidebarName","regTopbarName"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = fullName;
+        });
+        ["regSidebarRole","regTopbarRole"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = roleLabel;
+        });
+      })();
+
       /* ── LOGOUT SYSTEM ── */
       function confirmLogout() {
         document.getElementById("logoutModal").classList.add("open");

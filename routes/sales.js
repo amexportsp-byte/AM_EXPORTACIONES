@@ -4,6 +4,17 @@ const router = require("express").Router();
 const pool = require("../db");
 const auth = require("../middleware/auth");
 
+// Mapear tipos de auditoría del frontend a valores permitidos por el CHECK constraint
+const ACTION_MAP = {
+  emitir: "INSERT", pago: "INSERT", crear: "INSERT",
+  editar: "UPDATE", cliente_mod: "UPDATE", producto_mod: "UPDATE",
+  precio: "UPDATE", estado: "UPDATE",
+  eliminar: "DELETE",
+  acceso: "VIEW",
+  exportar: "EXPORT",
+};
+function toDbAction(a) { return ACTION_MAP[a] || "UPDATE"; }
+
 // GET /api/sales
 router.get("/", auth, async (req, res) => {
   try {
@@ -33,7 +44,7 @@ router.post("/", auth, async (req, res) => {
       client_id, sale_type, subtotal, discount, discount_pct, igv,
       total, amount_paid, change_given, currency, exchange_rate,
       total_pen, amount_paid_pen, change_given_pen, notes,
-      invoice_type, details, payment_method_id,
+      invoice_type, details, payment_method_id, payments, auditEntries,
     } = req.body;
 
     const year = new Date().getFullYear();
@@ -103,13 +114,33 @@ router.post("/", auth, async (req, res) => {
       );
     }
 
-    if (payment_method_id) {
+    const allPayments = (payments && payments.length > 0)
+      ? payments
+      : (payment_method_id
+          ? [{ payment_method_id, amount: amount_paid, currency, exchange_rate, amount_pen: amount_paid_pen }]
+          : []);
+    for (const pay of allPayments) {
+      // Buscar el UUID del método de pago por código (frontend) o UUID directo (legado)
       await client.query(
         `INSERT INTO sale_payments
          (sale_id, payment_method_id, amount, currency, exchange_rate, amount_pen, registered_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [saleId, payment_method_id, amount_paid || 0, currency || "PEN",
-         exchange_rate || 1, amount_paid_pen || amount_paid || 0, req.worker.id]
+         SELECT $1, pm.id, $3, $4, $5, $6, $7
+         FROM payment_methods pm
+         WHERE pm.code = $2 OR pm.id::text = $2
+         LIMIT 1`,
+        [saleId, pay.payment_method_code || pay.payment_method_id,
+         pay.amount || 0, pay.currency || "PEN",
+         pay.exchange_rate || 1, pay.amount_pen || pay.amount || 0, req.worker.id]
+      );
+    }
+
+    for (const entry of auditEntries || []) {
+      await client.query(
+        `INSERT INTO audit_logs
+         (table_name, record_id, action, module, event_label, obs, diffs, performed_by)
+         VALUES ('sales', $1, $2, 'ventas', $3, $4, $5::jsonb, $6)`,
+        [saleId, toDbAction(entry.action), entry.event_label || "",
+         entry.detail || null, JSON.stringify(entry.diffs || []), req.worker.id]
       );
     }
 
@@ -169,6 +200,58 @@ router.post("/clients", auth, async (req, res) => {
   }
 });
 
+// PUT /api/sales/:id — actualizar totales y detalles de una venta
+router.put("/:id", auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { subtotal, discount, igv, total, items, deleted_item_ids, auditEntries } = req.body;
+
+    await client.query(
+      `UPDATE sales SET subtotal=$1, discount=$2, igv=$3, total=$4,
+       amount_paid=$4, total_pen=$4, amount_paid_pen=$4 WHERE id=$5`,
+      [subtotal || 0, discount || 0, igv || 0, total || 0, req.params.id]
+    );
+
+    for (const item of items || []) {
+      if (!item.id) continue;
+      await client.query(
+        `UPDATE sale_details SET quantity=$1, unit_price=$2, discount_pct=$3,
+         discount_amount=$4, subtotal=$5, total=$6 WHERE id=$7 AND sale_id=$8`,
+        [item.quantity, item.unit_price, item.discount_pct || 0,
+         item.discount_amount || 0, item.subtotal || 0, item.total || 0,
+         item.id, req.params.id]
+      );
+    }
+
+    for (const delId of deleted_item_ids || []) {
+      await client.query(
+        `DELETE FROM sale_details WHERE id=$1 AND sale_id=$2`,
+        [delId, req.params.id]
+      );
+    }
+
+    for (const entry of auditEntries || []) {
+      await client.query(
+        `INSERT INTO audit_logs
+         (table_name, record_id, action, module, event_label, obs, diffs, performed_by)
+         VALUES ('sales', $1, $2, 'ventas', $3, $4, $5::jsonb, $6)`,
+        [req.params.id, toDbAction(entry.action), entry.event_label || "",
+         entry.detail || null, JSON.stringify(entry.diffs || []), req.worker.id]
+      );
+    }
+
+    await client.query("COMMIT");
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("PUT /sales/:id:", err);
+    res.status(500).json({ error: "Error al actualizar venta" });
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/sales/:id — detalle completo (debe ir al final para no bloquear rutas específicas)
 router.get("/:id", auth, async (req, res) => {
   try {
@@ -207,10 +290,39 @@ router.get("/:id", auth, async (req, res) => {
       [req.params.id]
     );
 
-    res.json({ ...sale, items, payments });
+    const { rows: auditRows } = await pool.query(
+      `SELECT al.*, w.first_name || ' ' || w.last_name AS performer_name
+       FROM audit_logs al
+       LEFT JOIN workers w ON al.performed_by = w.id
+       WHERE al.table_name = 'sales' AND al.record_id = $1
+       ORDER BY al.performed_at`,
+      [req.params.id]
+    );
+
+    res.json({ ...sale, items, payments, auditLog: auditRows });
   } catch (err) {
     console.error("GET /sales/:id:", err);
     res.status(500).json({ error: "Error al obtener venta" });
+  }
+});
+
+// POST /api/sales/:id/audit — registrar evento de auditoría
+router.post("/:id/audit", auth, async (req, res) => {
+  try {
+    const { action, event_label, detail, diffs, old_values, new_values } = req.body;
+    await pool.query(
+      `INSERT INTO audit_logs
+       (table_name, record_id, action, module, event_label, obs, diffs, old_values, new_values, performed_by)
+       VALUES ('sales', $1, $2, 'ventas', $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8)`,
+      [req.params.id, toDbAction(action || "editar"), event_label || "",
+       detail || null, JSON.stringify(diffs || []),
+       JSON.stringify(old_values || {}), JSON.stringify(new_values || {}),
+       req.worker.id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /sales/:id/audit:", err);
+    res.status(500).json({ error: "Error al guardar auditoría" });
   }
 });
 

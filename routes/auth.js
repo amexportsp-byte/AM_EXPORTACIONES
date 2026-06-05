@@ -47,6 +47,21 @@ router.post("/login", async (req, res) => {
       [worker.id, tokenHash, req.ip, expiresAt]
     );
 
+    // Cookie HTTP-only: el navegador la envía automáticamente en CADA petición
+    // (incluidas las de archivos .js/.css), sin que el JS del cliente pueda leerla.
+    const isProduction = process.env.NODE_ENV === "production";
+    res.setHeader(
+      "Set-Cookie",
+      [
+        `am_session=${token}`,
+        "HttpOnly",
+        "SameSite=Strict",
+        `Max-Age=${8 * 3600}`,   // 8 horas, igual que el JWT
+        "Path=/",
+        ...(isProduction ? ["Secure"] : []),
+      ].join("; ")
+    );
+
     res.json({
       token,
       worker: {
@@ -75,14 +90,31 @@ router.post("/logout", auth, async (req, res) => {
       [tokenHash]
     );
     await pool.query(
-      "UPDATE workers SET status = 'desconectado' WHERE id = $1",
+      "UPDATE workers SET status = 'desconectado', current_page = NULL WHERE id = $1",
       [req.worker.id]
     );
+    // Marcar todas las pestañas activas como cerradas al logout
+    await pool.query(
+      "UPDATE session_pages SET closed_at = NOW() WHERE worker_id = $1 AND closed_at IS NULL",
+      [req.worker.id]
+    );
+
+    // Borrar la cookie de sesión HTTP-only
+    res.setHeader(
+      "Set-Cookie",
+      "am_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/"
+    );
+
     res.json({ ok: true });
   } catch (err) {
     console.error("Logout error:", err);
     res.status(500).json({ error: "Error interno" });
   }
+});
+
+// GET /api/auth/verify  — valida que el token siga activo (usado por auth-guard.js)
+router.get("/verify", auth, (req, res) => {
+  res.json({ ok: true, worker_id: req.worker.id, role: req.worker.role });
 });
 
 // GET /api/auth/config  — configuración pública (Cloudinary)

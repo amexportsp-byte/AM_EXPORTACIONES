@@ -23,6 +23,33 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// GET /api/workers/audit-all  — debe ir ANTES de /:id para que Express no lo capture como ID
+router.get("/audit-all", auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         wa.id,
+         wa.worker_id,
+         w.first_name || ' ' || w.last_name  AS worker_name,
+         wa.changed_by_id,
+         wa.changed_by_name,
+         wa.action,
+         wa.description,
+         wa.diffs,
+         wa.ip_address,
+         wa.created_at
+       FROM worker_audit wa
+       LEFT JOIN workers w ON w.id = wa.worker_id
+       ORDER BY wa.created_at DESC
+       LIMIT 500`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener bitácora" });
+  }
+});
+
 // GET /api/workers/:id
 router.get("/:id", auth, async (req, res) => {
   try {
@@ -83,7 +110,7 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// PUT /api/workers/:id
+// PUT /api/workers/:id  — actualiza y registra auditoría automáticamente
 router.put("/:id", auth, async (req, res) => {
   const {
     first_name, last_name, document_type, document_number,
@@ -91,25 +118,63 @@ router.put("/:id", auth, async (req, res) => {
     ref_name, ref_phone, role, work_schedule, status, avatar_color, password,
   } = req.body;
 
+  // Etiquetas legibles para los diffs
+  const FIELD_LABELS = {
+    first_name: "Nombre", last_name: "Apellidos",
+    document_type: "Tipo Doc.", document_number: "N° Documento",
+    gender: "Género", birthday: "Cumpleaños",
+    email: "Correo", phone: "Celular", address: "Dirección",
+    antecedentes: "Antecedentes", ref_name: "Ref. Nombre",
+    ref_phone: "Ref. Celular", role: "Rol",
+    work_schedule: "Horario", status: "Estado",
+  };
+
   try {
+    // 1. Leer estado actual antes del update
+    const { rows: before } = await pool.query(
+      `SELECT first_name, last_name, document_type, document_number,
+              gender, birthday, email, phone, address, antecedentes,
+              ref_name, ref_phone, role, work_schedule, status
+       FROM workers WHERE id = $1 AND deleted_at IS NULL`,
+      [req.params.id]
+    );
+    const old = before[0] || {};
+
+    const newData = {
+      first_name, last_name, document_type, document_number,
+      gender, birthday: birthday || null, email, phone, address,
+      antecedentes, ref_name, ref_phone, role, work_schedule, status,
+    };
+
+    // 2. Calcular diferencias
+    const diffs = Object.keys(FIELD_LABELS)
+      .filter(k => String(old[k] ?? "") !== String(newData[k] ?? ""))
+      .map(k => ({
+        field: FIELD_LABELS[k],
+        from:  String(old[k]     ?? "—"),
+        to:    String(newData[k] ?? "—"),
+      }));
+
+    if (password) diffs.push({ field: "Contraseña", from: "••••••", to: "(actualizada)" });
+
+    // 3. Ejecutar el UPDATE
     const values = [
       first_name, last_name, document_type, document_number,
       gender, birthday || null, email, phone, address,
-      antecedentes, ref_name, ref_phone, role, work_schedule, status, avatar_color,
+      antecedentes, ref_name, ref_phone, role, work_schedule, status,
     ];
 
     if (password) {
       const hash = await bcrypt.hash(password, 10);
-      values.push(hash);
-      values.push(req.params.id);
+      values.push(hash, req.params.id);
       await pool.query(
         `UPDATE workers SET
            first_name=$1, last_name=$2, document_type=$3, document_number=$4,
            gender=$5, birthday=$6, email=$7, phone=$8, address=$9,
            antecedentes=$10, ref_name=$11, ref_phone=$12,
-           role=$13, work_schedule=$14, status=$15, avatar_color=$16,
-           password_hash=$17, updated_at=NOW()
-         WHERE id=$18 AND deleted_at IS NULL`,
+           role=$13, work_schedule=$14, status=$15,
+           password_hash=$16, updated_at=NOW()
+         WHERE id=$17 AND deleted_at IS NULL`,
         values
       );
     } else {
@@ -119,16 +184,90 @@ router.put("/:id", auth, async (req, res) => {
            first_name=$1, last_name=$2, document_type=$3, document_number=$4,
            gender=$5, birthday=$6, email=$7, phone=$8, address=$9,
            antecedentes=$10, ref_name=$11, ref_phone=$12,
-           role=$13, work_schedule=$14, status=$15, avatar_color=$16,
+           role=$13, work_schedule=$14, status=$15,
            updated_at=NOW()
-         WHERE id=$17 AND deleted_at IS NULL`,
+         WHERE id=$16 AND deleted_at IS NULL`,
         values
       );
     }
-    res.json({ ok: true });
+
+    // 4. Guardar auditoría solo si hubo cambios
+    if (diffs.length > 0) {
+      const { rows: editor } = await pool.query(
+        "SELECT first_name || ' ' || last_name AS full_name FROM workers WHERE id = $1",
+        [req.worker.id]
+      );
+      const editorName = editor[0]?.full_name || "Administrador";
+
+      await pool.query(
+        `INSERT INTO worker_audit
+           (worker_id, changed_by_id, changed_by_name, action, description, diffs, ip_address)
+         VALUES ($1, $2, $3, 'Edición de datos',
+                 $4, $5::jsonb, $6)`,
+        [
+          req.params.id,
+          req.worker.id,
+          editorName,
+          `${diffs.length} campo(s) modificado(s)`,
+          JSON.stringify(diffs),
+          req.ip,
+        ]
+      );
+    }
+
+    res.json({ ok: true, changes: diffs.length });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al actualizar trabajador" });
+  }
+});
+
+// GET /api/workers/:id/audit  — historial de auditoría de un trabajador
+router.get("/:id/audit", auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, action, description, diffs, changed_by_name,
+              ip_address, created_at
+       FROM worker_audit
+       WHERE worker_id = $1
+       ORDER BY created_at DESC
+       LIMIT 100`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener auditoría" });
+  }
+});
+
+// POST /api/workers/:id/audit  — registrar evento manual (estado, asistencia, etc.)
+router.post("/:id/audit", auth, async (req, res) => {
+  const { action, description, diffs = [] } = req.body || {};
+  if (!action) return res.status(400).json({ error: "action requerido" });
+  try {
+    const { rows: editor } = await pool.query(
+      "SELECT first_name || ' ' || last_name AS full_name FROM workers WHERE id = $1",
+      [req.worker.id]
+    );
+    await pool.query(
+      `INSERT INTO worker_audit
+         (worker_id, changed_by_id, changed_by_name, action, description, diffs, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)`,
+      [
+        req.params.id,
+        req.worker.id,
+        editor[0]?.full_name || "Administrador",
+        action,
+        description || "",
+        JSON.stringify(diffs),
+        req.ip,
+      ]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al guardar auditoría" });
   }
 });
 

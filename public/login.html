@@ -802,6 +802,10 @@
             return;
           }
 
+          // Limpiar aviso de sesión cerrada si estaba visible
+          var sesionAviso = document.getElementById("sesionCerradaAviso");
+          if (sesionAviso) sesionAviso.remove();
+
           // Guardar token y datos del trabajador
           localStorage.setItem("am_token", data.token);
           localStorage.setItem("am_worker", JSON.stringify(data.worker));
@@ -810,20 +814,19 @@
           userInput.value = "";
           passInput.value = "";
 
-          // Redirigir según rol
+          // Redirigir según rol (mapa sincronizado con API.ROLE_HOME en api.js)
           setTimeout(function () {
-            var role = data.worker.role;
-            if (role === "admin" || role === "supervisor") {
-              window.location.href = "control.html";
-            } else if (role === "cajero" || role === "vendedor") {
-              window.location.href = "venta.html";
-            } else if (role === "almacen") {
-              window.location.href = "registro.html";
-            } else if (role === "contabilidad") {
-              window.location.href = "libro.html";
-            } else {
-              window.location.href = "control.html";
-            }
+            var ROLE_HOME = {
+              admin:        "control.html",
+              supervisor:   "trabajadores.html",   // TBD
+              vendedor:     "venta.html",
+              cajero:       "venta.html",           // TBD
+              almacen:      "registro.html",
+              contabilidad: "libro.html",
+              soporte:      "control.html",         // TBD
+            };
+            var dest = ROLE_HOME[data.worker.role] || "control.html";
+            window.location.href = dest;
           }, 1200);
         } catch (err) {
           spinner.style.display = "none";
@@ -833,6 +836,45 @@
           userErr.classList.add("show");
         }
       }
+
+      // Mostrar aviso si el usuario fue redirigido por cierre de sesión
+      (function () {
+        var reason = sessionStorage.getItem("am_logout_reason");
+        sessionStorage.removeItem("am_logout_reason");
+        if (!reason) return;
+
+        var mensajes = {
+          logout:          "Tu sesión fue cerrada correctamente.",
+          session_expired: "Tu sesión expiró. Por favor, ingresa nuevamente.",
+          remote_logout:   "Tu sesión fue cerrada desde otro dispositivo.",
+          token_invalid:   "Tu sesión fue revocada por el administrador.",
+          no_session:      "Debes iniciar sesión para acceder al sistema.",
+          token_missing:   "Debes iniciar sesión para acceder al sistema.",
+        };
+        var texto = mensajes[reason] || "Sesión finalizada. Por favor, ingresa nuevamente.";
+
+        var aviso = document.createElement("div");
+        aviso.id = "sesionCerradaAviso";
+        aviso.style.cssText = [
+          "position:fixed", "top:20px", "left:50%", "transform:translateX(-50%)",
+          "background:#0b1c35", "color:#fff", "padding:12px 24px", "border-radius:10px",
+          "font-family:Outfit,sans-serif", "font-size:13px", "z-index:9999",
+          "box-shadow:0 4px 20px rgba(0,0,0,.35)", "display:flex", "align-items:center", "gap:10px",
+          "animation:fadeInDown .35s ease"
+        ].join(";");
+        aviso.innerHTML = "<span style='font-size:16px'>🔒</span><span>" + texto + "</span>";
+
+        // Animación CSS
+        if (!document.getElementById("_amAvisoStyle")) {
+          var st = document.createElement("style");
+          st.id = "_amAvisoStyle";
+          st.textContent = "@keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
+          document.head.appendChild(st);
+        }
+
+        document.body.appendChild(aviso);
+        setTimeout(function () { aviso.style.opacity = "0"; aviso.style.transition = "opacity .4s"; setTimeout(function () { aviso.remove(); }, 400); }, 5000);
+      })();
     </script>
   </body>
 </html>

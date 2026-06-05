@@ -547,6 +547,7 @@ function navigate(section) {
   if (section === "productos") renderProductosMgmt();
   if (section === "reportes") renderReportes();
   if (section === "configuracion") renderConfiguracion();
+  if (section === "visibilidad") renderVisibilidad();
 
   document.getElementById("sidebar").classList.remove("open");
 }
@@ -1208,6 +1209,57 @@ function deleteOption(key, value) {
   toast(`"${value}" eliminado`, "warning");
 }
 
+/* ============= VISIBILIDAD DE CATEGORÍAS ============= */
+function renderVisibilidad() {
+  const el = document.getElementById("visibilityList");
+  if (!el) return;
+  const cats = State._catalogIds?.categorias || [];
+  if (!cats.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);padding:20px">No hay categorías registradas.</div>';
+    return;
+  }
+  el.innerHTML = cats.map(cat => {
+    const isVisible = cat.visible !== false;
+    const eyeOpen = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#22c55e" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const eyeClosed = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#e05252" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+    return `
+      <div class="config-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px">
+        <div>
+          <span style="font-size:14px;font-weight:500;color:var(--text-primary)">${cat.name}</span>
+          <span style="font-size:11px;margin-left:8px;color:${isVisible ? '#22c55e' : '#e05252'}">${isVisible ? 'Visible' : 'Oculta'}</span>
+        </div>
+        <button
+          class="vis-eye-btn"
+          data-cat-id="${cat.id}"
+          data-visible="${isVisible}"
+          onclick="toggleCategoryVisibility(this)"
+          title="${isVisible ? 'Categoría visible — clic para ocultar' : 'Categoría oculta — clic para mostrar'}"
+          style="background:none;border:1px solid ${isVisible ? 'rgba(34,197,94,.3)' : 'rgba(224,82,82,.3)'};border-radius:8px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;color:${isVisible ? '#22c55e' : '#e05252'};font-size:12px;font-weight:600"
+        >
+          ${isVisible ? eyeOpen : eyeClosed}
+          ${isVisible ? 'Ocultar' : 'Activar'}
+        </button>
+      </div>`;
+  }).join("");
+}
+
+async function toggleCategoryVisibility(btn) {
+  const id = btn.dataset.catId;
+  const currentlyVisible = btn.dataset.visible === "true";
+  const newVisible = !currentlyVisible;
+  btn.disabled = true;
+  try {
+    await API.catalogs.toggleVisibility(id, newVisible);
+    const cat = State._catalogIds?.categorias?.find(c => String(c.id) === String(id));
+    if (cat) cat.visible = newVisible;
+    renderVisibilidad();
+    toast(`Categoría ${newVisible ? "activada — ya visible en tienda" : "ocultada — ya no aparece en tienda ni en ventas"}`, newVisible ? "success" : "warning");
+  } catch (err) {
+    btn.disabled = false;
+    toast("Error al actualizar visibilidad: " + err.message, "warning");
+  }
+}
+
 /* ============= DETALLE — CON AUDIT LOG ============= */
 function buildAuditHTML(auditLog, filter) {
   const log =
@@ -1864,6 +1916,7 @@ function handleGlobalSearch(val) {
 /* ============= INIT ============= */
 async function init() {
   if (!API.requireAuth()) return;
+  API.startHeartbeat("registro.html", "Registro de Productos");
 
   // Mostrar loading
   document.getElementById("statsGrid").innerHTML =

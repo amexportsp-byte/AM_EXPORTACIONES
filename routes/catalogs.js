@@ -1,15 +1,16 @@
 "use strict";
 
-const router = require("express").Router();
-const pool = require("../db");
-const auth = require("../middleware/auth");
+const router    = require("express").Router();
+const pool      = require("../db");
+const auth      = require("../middleware/auth");
+const appEvents = require("../events");
 
 // GET /api/catalogs — todos los catálogos en un solo request
 router.get("/", auth, async (req, res) => {
   try {
     const [cats, subs, brands, suppliers, origins, colors, sizes, units] =
       await Promise.all([
-        pool.query("SELECT id, name FROM categories WHERE status='activo' ORDER BY sort_order, name"),
+        pool.query("SELECT id, name, visible FROM categories WHERE status='activo' ORDER BY sort_order, name"),
         pool.query("SELECT id, name, category_id FROM subcategories WHERE status='activo' ORDER BY sort_order, name"),
         pool.query("SELECT id, name FROM brands WHERE status='activo' ORDER BY name"),
         pool.query("SELECT id, business_name AS name FROM suppliers WHERE status='activo' ORDER BY business_name"),
@@ -92,9 +93,24 @@ router.post("/:type", auth, async (req, res) => {
       }
     }
     res.status(201).json({ id, name });
+    appEvents.emit("products_updated");
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al crear catálogo" });
+  }
+});
+
+// PATCH /api/catalogs/categorias/:id/visibility — activar / desactivar visibilidad
+router.patch("/categorias/:id/visibility", auth, async (req, res) => {
+  const { visible } = req.body;
+  if (typeof visible !== "boolean") return res.status(400).json({ error: "visible debe ser boolean" });
+  try {
+    await pool.query("UPDATE categories SET visible = $1 WHERE id = $2", [visible, req.params.id]);
+    res.json({ id: req.params.id, visible });
+    appEvents.emit("products_updated");
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al actualizar visibilidad" });
   }
 });
 

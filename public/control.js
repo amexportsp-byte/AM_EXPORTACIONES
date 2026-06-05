@@ -6,7 +6,9 @@ const modules = {
   ventas:      { title:'Ventas / Clientes',         sub:'Comprobantes, clientes, reclamos y operaciones comerciales',               file:'venta.html' },
   cambio:      { title:'Tipo de Cambio',            sub:'Control de monedas, bancos, historial y gráficos',                        file:'cambio.html' },
   libro:       { title:'Libro Contable Digital',    sub:'Asientos, balances, CxC, CxP, reportes financieros y auditoría',          file:'libro.html' },
-  marcacion:   { title:'Marcación de Asistencia',   sub:'Ingreso y salida por credenciales, reconocimiento facial y huella digital', file:'marcacion.html' }
+  marcacion:   { title:'Marcación de Asistencia',   sub:'Ingreso y salida por credenciales, reconocimiento facial y huella digital', file:'marcacion.html' },
+  clientes:    { title:'Usuarios / Clientes',        sub:'Cuentas de clientes online, pedidos, historial de compras y administración', file:'clientes.html' },
+  pedidos:     { title:'Pedidos de Entrega',         sub:'Agenda, monitorea y gestiona todas las entregas: agendado → preparando → alistado → en curso → entrega → conformidad', file:'pedidos.html' }
 };
 
 const STORAGE = {
@@ -84,9 +86,56 @@ function updateMetrics(){
   safeText('#metricLogs', l.length);
 }
 
-function openModule(page){
+async function openModule(page){
   const data=modules[page];
   if(!data)return;
+
+  // Verificar permiso antes de cargar el iframe
+  if(data.file){
+    const worker = API.getWorker();
+    if(worker && worker.role !== 'admin'){
+      try{
+        const res = await API.permissions.myAccess(data.file);
+        if(!res.allowed){
+          // Montar la estructura del módulo pero mostrar denegación en vez del iframe
+          document.body.classList.add('module-open');
+          setActive(page);
+          showBackButton(true);
+          safeText('#pageTitle', data.title);
+          safeText('#pageSub', 'Sin permiso de acceso');
+          safeClass('#dashboardView','add','hidden');
+          safeClass('#moduleFrame','add','hidden');
+          const frame=$('#moduleFrame'); if(frame)frame.src='';
+          const panel=$('#internalPanel');
+          if(panel){
+            panel.classList.remove('hidden');
+            panel.innerHTML=`
+              <div style="display:flex;align-items:center;justify-content:center;
+                          min-height:55vh;text-align:center;padding:32px">
+                <div>
+                  <div style="font-size:64px">🚫</div>
+                  <h2 style="color:#b91c1c;margin:20px 0 10px;font-size:22px;font-weight:700">
+                    Acceso denegado
+                  </h2>
+                  <p style="color:#6b7280;font-size:15px;max-width:420px;margin:0 auto 8px">
+                    No tienes permiso para acceder al módulo
+                    <strong>${data.title}</strong>.
+                  </p>
+                  <p style="color:#9ca3af;font-size:13px">
+                    Contacta al administrador para solicitar acceso.
+                  </p>
+                </div>
+              </div>`;
+          }
+          currentFile='';
+          closeMobile();
+          return;
+        }
+      }catch(e){ /* error de red → dejar pasar */ }
+    }
+  }
+
+  // Acceso concedido → cargar normalmente
   document.body.classList.add('module-open');
   setActive(page);
   showBackButton(true);
@@ -856,6 +905,7 @@ function logout(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  API.startHeartbeat("control.html", "Control Admin");
   seedData();
   setDate();
   loadTheme();

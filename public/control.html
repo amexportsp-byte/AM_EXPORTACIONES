@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script src="auth-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A&M Exportaciones — Control Administrativo</title>
     <link rel="stylesheet" href="control.css" />
@@ -67,6 +68,14 @@
         </button>
         <button class="nav-item" type="button" data-page="marcacion">
           🕐 Marcación de Asistencia
+        </button>
+
+        <span class="nav-label">Clientes online</span>
+        <button class="nav-item" type="button" data-page="clientes">
+          👤 Usuarios / Clientes
+        </button>
+        <button class="nav-item" type="button" data-page="pedidos">
+          📦 Pedidos de Entrega
         </button>
 
         <span class="nav-label">Administración</span>
@@ -205,6 +214,26 @@
               <p>
                 Control de ingresos y salidas por credenciales, reconocimiento
                 facial y huella dactilar.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('clientes')">
+              <div class="module-icon">👤</div>
+              <h4>Usuarios / Clientes</h4>
+              <p>
+                Cuentas registradas, datos, pedidos en proceso, historial de
+                compras, edición y administración.
+              </p>
+              <span>Abrir módulo →</span>
+            </article>
+
+            <article class="module-card" onclick="openModule('pedidos')">
+              <div class="module-icon">📦</div>
+              <h4>Pedidos de Entrega</h4>
+              <p>
+                Agenda pedidos desde el código de venta, monitorea el flujo
+                completo y gestiona alertas de entrega en tiempo real.
               </p>
               <span>Abrir módulo →</span>
             </article>

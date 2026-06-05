@@ -3,24 +3,127 @@
 // Sin chatbot · WhatsApp Checkout · Color #E89E48
 // ================================================
 
-// ===== PRODUCTOS =====
-const products = [
-  {id:1,brand:"SAPOLIO",name:"Lejía Sapolio Original 4.8 Kg",price:10.9,old:16.9,icon:"🧴",sold:87,cat:"limpieza"},
-  {id:2,brand:"SAPOLIO",name:"COMBO Lejía Sapolio 4.8kg + Lavavajilla en pasta",price:11.0,old:16.9,icon:"🧴",sold:65,cat:"limpieza"},
-  {id:3,brand:"CLOROX",name:"Lejía Clorox Tradicional 2 Kg",price:6.5,old:8.9,icon:"🧼",sold:72,cat:"limpieza"},
-  {id:4,brand:"SOL CLEAN",name:"Lejía 5% Sol Clean 4 Lt",price:24.0,old:29.0,icon:"🧴",sold:41,cat:"limpieza"},
-  {id:5,brand:"SIKA",name:"Silicona para vidrios transparente 280ml",price:15.9,old:20.0,icon:"🧪",sold:55,cat:"ferreteria"},
-  {id:6,brand:"DIMFER",name:"Puerta Decor 40mm 65x207cm",price:199.9,old:249.0,icon:"🚪",sold:18,cat:"ferreteria"},
-  {id:7,brand:"ORANGE",name:"Malla Mosquitera para cama 1.5m x 2m",price:16.9,old:22.0,icon:"🛏️",sold:33,cat:"ferreteria"},
-  {id:8,brand:"DIMFER",name:"Cerradura digital inteligente con huella",price:169.0,old:220.0,icon:"🔐",sold:29,cat:"ferreteria"},
-  {id:9,brand:"STANLEY",name:"Taladro percutor eléctrico 750W",price:249.0,old:320.0,icon:"🔧",sold:44,cat:"herramientas"},
-  {id:10,brand:"TRUPER",name:"Juego de llaves mixtas 12 piezas",price:89.0,old:120.0,icon:"🔩",sold:61,cat:"herramientas"},
-  {id:11,brand:"PHILIPS",name:"Foco LED 9W luz cálida E27 pack x4",price:28.9,old:39.0,icon:"💡",sold:95,cat:"iluminacion"},
-  {id:12,brand:"3M",name:"Cinta de embalaje transparente 48mm x50m",price:8.5,old:12.0,icon:"📦",sold:110,cat:"ferreteria"}
-];
+// ===== PRODUCTOS (cargados desde la DB) =====
+let products = [];
+
+// Mapeo categoría → clave interna + ícono emoji
+const CAT_MAP = {
+  limpieza:     { cat: 'limpieza',     icon: '🧹' },
+  herramientas: { cat: 'herramientas', icon: '🔧' },
+  iluminacion:  { cat: 'iluminacion',  icon: '💡' },
+  iluminación:  { cat: 'iluminacion',  icon: '💡' },
+  ferreteria:   { cat: 'ferreteria',   icon: '🚪' },
+  ferretería:   { cat: 'ferreteria',   icon: '🚪' },
+  construccion: { cat: 'construccion', icon: '🧱' },
+  construcción: { cat: 'construccion', icon: '🧱' },
+  tecnologia:   { cat: 'tecnologia',   icon: '💻' },
+  tecnología:   { cat: 'tecnologia',   icon: '💻' },
+  electrohogar: { cat: 'electrohogar', icon: '🏠' },
+  jardineria:   { cat: 'jardineria',   icon: '🌿' },
+  jardinería:   { cat: 'jardineria',   icon: '🌿' },
+  pinturas:     { cat: 'pinturas',     icon: '🎨' },
+  pintura:      { cat: 'pinturas',     icon: '🎨' },
+  muebles:      { cat: 'muebles',      icon: '🛋️' },
+  mueble:       { cat: 'muebles',      icon: '🛋️' },
+  'baño':       { cat: 'bano',         icon: '🚿' },
+  bano:         { cat: 'bano',         icon: '🚿' },
+  cocina:       { cat: 'cocina',       icon: '🍳' },
+  automotriz:   { cat: 'automotriz',   icon: '🚗' },
+  mascotas:     { cat: 'mascotas',     icon: '🐾' },
+  moda:         { cat: 'moda',         icon: '👗' },
+  ropa:         { cat: 'moda',         icon: '👗' },
+  calzado:      { cat: 'calzado',      icon: '👟' },
+  accesorios:   { cat: 'accesorios',   icon: '💍' },
+};
+
+function mapDbProduct(p) {
+  const key = (p.categoria || '').toLowerCase().trim();
+  const catInfo = CAT_MAP[key] || { cat: 'otros', icon: '📦' };
+  const price = parseFloat(p.precioVenta) || 0;
+  const disc  = parseFloat(p.descuento)   || 0;
+  const old   = disc > 0 ? Math.round(price / (1 - disc / 100) * 100) / 100 : price;
+  return {
+    id:          p.id,
+    codigo:      p.codigo       || '',
+    brand:       p.marca        || 'A&M',
+    name:        p.nombre,
+    price,
+    old,
+    disc,
+    icon:        catInfo.icon,
+    cat:         catInfo.cat,
+    subcategoria: p.subcategoria || '',
+    imageUrl:    p.imageUrl     || '',
+    stock:       p.stock        || 0,
+    info:        p.descripcion  || '',
+    sold:        0,
+  };
+}
+
+let _firstLoad = true;
+
+async function loadProducts() {
+  try {
+    const res = await fetch('/api/products/public');
+    if (!res.ok) throw new Error('Error ' + res.status);
+    const data = await res.json();
+    products = data.map(mapDbProduct);
+
+    // Reconstruir menús y barra promo desde productos reales
+    buildDynamicMegaData();
+    renderMegaSidebar();
+    renderQuickCats();
+    renderPromoBar();
+
+    // Primera carga: renderizar home Y restaurar la última ruta
+    if (_firstLoad) {
+      _firstLoad = false;
+      renderFeatured();   // siempre poblar la home aunque luego se vaya al catálogo
+      refreshAIRecs();
+      restorePageState(); // puede cambiar a la página guardada
+      return;
+    }
+
+    // Recargas por SSE: re-renderizar la sección activa
+    if (currentPage === 'home' || currentPage === 'none') {
+      renderFeatured();
+      refreshAIRecs();
+    } else if (currentPage === 'catalog') {
+      let sorted = [...products];
+      if (currentSort === 'low')  sorted.sort((a, b) => a.price - b.price);
+      if (currentSort === 'high') sorted.sort((a, b) => b.price - a.price);
+      if (currentSort === 'sold') sorted.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+      renderProducts(sorted);
+    }
+  } catch (e) {
+    console.error('Error cargando productos:', e);
+  }
+}
 
 // ===== WHATSAPP CONFIG =====
 const WHATSAPP_NUMBER = "51928020850"; // Perú +51
+
+// ===== DISPLAY INFO POR CATEGORÍA =====
+const CAT_DISPLAY = {
+  limpieza:     { label: 'Limpieza',      emoji: '🧹' },
+  herramientas: { label: 'Herramientas',  emoji: '🔧' },
+  iluminacion:  { label: 'Iluminación',   emoji: '💡' },
+  ferreteria:   { label: 'Ferretería',    emoji: '🚪' },
+  construccion: { label: 'Construcción',  emoji: '🧱' },
+  tecnologia:   { label: 'Tecnología',    emoji: '💻' },
+  electrohogar: { label: 'Electrohogar',  emoji: '🏠' },
+  jardineria:   { label: 'Jardinería',    emoji: '🌿' },
+  pinturas:     { label: 'Pinturas',      emoji: '🎨' },
+  muebles:      { label: 'Muebles',       emoji: '🛋️' },
+  bano:         { label: 'Baño',          emoji: '🚿' },
+  cocina:       { label: 'Cocina',        emoji: '🍳' },
+  automotriz:   { label: 'Automotriz',    emoji: '🚗' },
+  mascotas:     { label: 'Mascotas',      emoji: '🐾' },
+  moda:         { label: 'Moda',          emoji: '👗' },
+  calzado:      { label: 'Calzado',       emoji: '👟' },
+  accesorios:   { label: 'Accesorios',    emoji: '💍' },
+  otros:        { label: 'Varios',        emoji: '📦' },
+};
 
 // ===== MEGA MENU DATA =====
 const megaData = {
@@ -175,6 +278,8 @@ let currentDetailQty = 1;
 let currentDetailProduct = null;
 let currentDashboardPlan = 'basico';
 let currentPlanTab = 'basico';
+let currentPage = 'none';
+let currentSort = 'recommended';
 
 // ===== WHATSAPP CHECKOUT =====
 function goToWhatsAppCheckout() {
@@ -208,10 +313,10 @@ function goToWhatsAppCheckout() {
   msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
   cart.forEach((it, idx) => {
-    const disc = Math.round(((it.old - it.price) / it.old) * 100);
+    const disc = it.old > it.price ? Math.round(((it.old - it.price) / it.old) * 100) : 0;
     const subtotal = it.price * it.qty;
     const ahorro = (it.old - it.price) * it.qty;
-    const sku = `FRR-${String(it.id).padStart(5,'0')}`;
+    const sku = it.codigo || `PRO-${String(it.id).slice(0, 8).toUpperCase()}`;
     const catInfo = catMap[it.cat] || { cat: 'General', subcat: 'Varios' };
 
     totalFinal += subtotal;
@@ -240,31 +345,549 @@ function goToWhatsAppCheckout() {
   window.open(waUrl, '_blank');
 }
 
+// ===== MEGA MENÚ DINÁMICO =====
+let dynamicMegaData = {};
+
+function buildDynamicMegaData() {
+  dynamicMegaData = {};
+  products.forEach(p => {
+    if (!dynamicMegaData[p.cat]) {
+      const info = CAT_DISPLAY[p.cat] || { label: p.cat || 'Otros', emoji: '📦' };
+      dynamicMegaData[p.cat] = { icon: info.emoji, title: info.label, cols: {} };
+    }
+    const sub = p.subcategoria || 'Productos';
+    if (!dynamicMegaData[p.cat].cols[sub]) dynamicMegaData[p.cat].cols[sub] = [];
+    dynamicMegaData[p.cat].cols[sub].push(p);
+  });
+}
+
+function renderMegaSidebar() {
+  const sidebar = document.getElementById('megaSidebar');
+  if (!sidebar) return;
+  const cats = Object.keys(dynamicMegaData);
+  if (!cats.length) return;
+
+  sidebar.innerHTML = `
+    <div class="mega-sidebar-header">
+      📂 Categorías
+      <button onclick="closeMegaMenu()" style="float:right;background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;line-height:1;margin-top:-2px">×</button>
+    </div>
+    ${cats.map((cat, i) => {
+      const d = dynamicMegaData[cat];
+      const count = Object.values(d.cols).reduce((s, a) => s + a.length, 0);
+      return `<div class="mega-cat${i === 0 ? ' active' : ''}" data-cat="${cat}"
+        onmouseenter="megaShowSubs('${cat}', this)"
+        onclick="closeMegaMenu();filterCatalogByCat('${cat}')">
+        <span>${d.icon} ${d.title}</span>
+        <span class="mega-cat-count">${count}</span>
+      </div>`;
+    }).join('')}`;
+
+  // Las columnas 2 y 3 quedan vacías hasta que el usuario haga hover
+}
+
+// Muestra subcategorías al pasar por una categoría
+function megaShowSubs(cat, triggerEl) {
+  document.querySelectorAll('.mega-cat').forEach(el => el.classList.remove('active'));
+  if (triggerEl) triggerEl.classList.add('active');
+
+  const d = dynamicMegaData[cat];
+  const subsEl = document.getElementById('megaSubs');
+  const contentEl = document.getElementById('megaContent');
+  if (!subsEl || !d) return;
+
+  const subs = Object.keys(d.cols);
+  if (!subs.length) {
+    subsEl.innerHTML = '<div class="mega-subs-hint">Sin subcategorías</div>';
+    contentEl.innerHTML = '<div class="mega-content-hint">Sin productos</div>';
+    return;
+  }
+
+  subsEl.innerHTML = `
+    <div style="padding:10px 16px 6px;font-size:10px;font-weight:800;text-transform:uppercase;color:#aaa;letter-spacing:.6px">${d.icon} ${d.title}</div>
+    ${subs.map(sub => `
+      <div class="mega-sub-item" data-cat="${cat}" data-sub="${sub}"
+           onmouseenter="megaShowProds('${cat}','${sub}',this)"
+           onclick="closeMegaMenu();filterCatalogBySubCat('${cat}','${sub}');event.stopPropagation()">
+        ${sub}
+        <span class="mega-sub-count">${d.cols[sub].length}</span>
+      </div>`).join('')}`;
+
+  // Col 3 vacía hasta que el usuario haga hover en una subcategoría
+  document.getElementById('megaContent').innerHTML =
+    '<div class="mega-content-hint">← Pasa el cursor sobre una subcategoría</div>';
+}
+
+// Muestra nombres de productos de una subcategoría en la columna 3
+function megaShowProds(cat, sub, triggerEl) {
+  document.querySelectorAll('.mega-sub-item').forEach(el => el.classList.remove('active'));
+  if (triggerEl) triggerEl.classList.add('active');
+
+  const d = dynamicMegaData[cat];
+  const contentEl = document.getElementById('megaContent');
+  if (!contentEl || !d || !d.cols[sub]) return;
+
+  const prods = d.cols[sub];
+
+  const names = prods.map(p => `
+    <div class="mega-prod-name-row" onclick="closeMegaMenu();showDetail('${p.id}')">
+      <div class="mega-prod-name-thumb">
+        ${p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="" onerror="this.style.display='none'">`
+          : `<span style="font-size:18px">${p.icon||'📦'}</span>`}
+      </div>
+      <span class="mega-prod-name-text">${p.name}</span>
+      <span class="mega-prod-name-price">S/ ${p.price.toFixed(2)}</span>
+    </div>`).join('');
+
+  contentEl.innerHTML = `
+    <div class="mega-prods-header">
+      <span class="mega-prods-title">${sub}</span>
+      <span style="font-size:11px;color:#aaa">${prods.length} producto${prods.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="mega-prod-names-list">${names}</div>
+    <div class="mega-cat-footer" onclick="closeMegaMenu();filterCatalogBySubCat('${cat}','${sub}')">
+      Ver todos en <strong>${sub}</strong> →
+    </div>`;
+}
+
+// ===== CATEGORÍAS DINÁMICAS =====
+// ===== SISTEMA DE FILTROS DEL CATÁLOGO =====
+let filterState = { cat: null, sub: null, brands: [], maxPrice: null };
+
+function getFilteredProducts() {
+  let r = [...products];
+  if (filterState.cat)            r = r.filter(p => p.cat === filterState.cat);
+  if (filterState.sub)            r = r.filter(p => p.subcategoria === filterState.sub);
+  if (filterState.brands.length)  r = r.filter(p => filterState.brands.includes(p.brand));
+  if (filterState.maxPrice !== null) r = r.filter(p => p.price <= filterState.maxPrice);
+  return r;
+}
+
+function applySort(list) {
+  const s = [...list];
+  if (currentSort === 'low')  s.sort((a, b) => a.price - b.price);
+  if (currentSort === 'high') s.sort((a, b) => b.price - a.price);
+  if (currentSort === 'sold') s.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+  return s;
+}
+
+function applyFilters() {
+  const filtered = applySort(getFilteredProducts());
+  renderProducts(filtered);
+  renderFilterPanel();
+  updateCatalogBreadcrumb();
+  savePageState();
+}
+
+function renderFilterPanel() {
+  const panel = document.getElementById('filtersPanel');
+  if (!panel) return;
+
+  // Categorías con stock (de todos los productos)
+  const availCats = [...new Set(products.map(p => p.cat).filter(Boolean))];
+
+  // Subcategorías de la categoría seleccionada
+  const subcats = filterState.cat
+    ? [...new Set(products.filter(p => p.cat === filterState.cat).map(p => p.subcategoria).filter(Boolean))]
+    : [];
+
+  // Base para calcular marcas (cat + sub, sin filtro de marca para evitar bucle)
+  let brandBase = [...products];
+  if (filterState.cat) brandBase = brandBase.filter(p => p.cat === filterState.cat);
+  if (filterState.sub) brandBase = brandBase.filter(p => p.subcategoria === filterState.sub);
+  const availBrands = [...new Set(brandBase.map(p => p.brand).filter(Boolean))];
+
+  // Rango de precio
+  const priceBase = brandBase.length ? brandBase : products;
+  const maxP = Math.ceil(Math.max(...priceBase.map(p => p.price), 10));
+  const curMax = filterState.maxPrice !== null ? Math.min(filterState.maxPrice, maxP) : maxP;
+
+  let html = `
+    <div class="filters-header">
+      <h2>Filtrar</h2>
+      <button class="clear-filters" onclick="clearAllFilters()">Limpiar</button>
+    </div>`;
+
+  // ── Categorías (subcategorías inline justo debajo de la seleccionada) ──
+  html += `<details open class="filter-group"><summary>Categorías</summary><div class="filter-cats-list">`;
+  availCats.forEach(cat => {
+    const info   = CAT_DISPLAY[cat] || { label: cat, emoji: '📦' };
+    const count  = products.filter(p => p.cat === cat).length;
+    const active = filterState.cat === cat;
+    html += `<div class="filter-cat-row${active ? ' active' : ''}" onclick="selectFilterCat('${cat}')">
+      <span>${info.emoji} ${info.label}</span>
+      <span class="filter-count">${count}</span>
+    </div>`;
+
+    // Subcategorías inline: solo aparecen debajo de SU categoría cuando está activa
+    if (active && subcats.length) {
+      html += `<div class="filter-subcats-list">`;
+      subcats.forEach(sub => {
+        const subCount  = products.filter(p => p.cat === cat && p.subcategoria === sub).length;
+        const subActive = filterState.sub === sub;
+        html += `<div class="filter-sub-row${subActive ? ' active' : ''}" onclick="selectFilterSub('${sub}')">
+          <span>↳ ${sub}</span>
+          <span class="filter-count">${subCount}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+  });
+  html += '</div></details>';
+
+  // ── Precio ──
+  html += `
+    <details class="filter-group"${filterState.maxPrice !== null ? ' open' : ''}>
+      <summary>Precio</summary>
+      <div class="range-slider">
+        <input type="range" id="priceRange" min="0" max="${maxP}" value="${curMax}"
+          oninput="document.getElementById('priceVal').textContent='S/ '+Number(this.value).toFixed(0);filterState.maxPrice=parseFloat(this.value);applyFilters()">
+        <span id="priceVal">S/ ${curMax}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:4px">
+        <span>S/ 0</span><span>S/ ${maxP}</span>
+      </div>
+    </details>`;
+
+  // ── Marca ──
+  if (availBrands.length) {
+    html += `<details class="filter-group"${filterState.brands.length ? ' open' : ''}>
+      <summary>Marca</summary>
+      <div class="filter-brands-list">`;
+    availBrands.forEach(brand => {
+      const count   = brandBase.filter(p => p.brand === brand).length;
+      const checked = filterState.brands.includes(brand);
+      html += `<label class="filter-brand-row">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleBrand('${brand.replace(/'/g,"\\'")}',this.checked)">
+        <span class="filter-brand-name">${brand}</span>
+        <span class="filter-count">${count}</span>
+      </label>`;
+    });
+    html += `</div></details>`;
+  }
+
+  panel.innerHTML = html;
+}
+
+function selectFilterCat(cat) {
+  filterState.cat    = filterState.cat === cat ? null : cat;
+  filterState.sub    = null;
+  filterState.brands = [];
+  filterState.maxPrice = null;
+  applyFilters();
+}
+
+function selectFilterSub(sub) {
+  filterState.sub    = filterState.sub === sub ? null : sub;
+  filterState.brands = [];
+  applyFilters();
+}
+
+function toggleBrand(brand, checked) {
+  if (checked) { if (!filterState.brands.includes(brand)) filterState.brands.push(brand); }
+  else          { filterState.brands = filterState.brands.filter(b => b !== brand); }
+  applyFilters();
+}
+
+function clearAllFilters() {
+  filterState = { cat: null, sub: null, brands: [], maxPrice: null };
+  applyFilters();
+}
+
+// ── Persistencia de estado entre recargas de página ──
+function savePageState() {
+  try {
+    sessionStorage.setItem('am_state', JSON.stringify({
+      page:        currentPage,
+      sort:        currentSort,
+      filterState: { ...filterState, brands: [...filterState.brands] },
+    }));
+  } catch {}
+}
+
+function restorePageState() {
+  try {
+    const raw = sessionStorage.getItem('am_state');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+
+    if (s.sort) {
+      currentSort = s.sort;
+      const sortEl = document.getElementById('sortProducts');
+      if (sortEl) sortEl.value = currentSort;
+    }
+
+    if (s.page === 'catalog') {
+      filterState = {
+        cat:      s.filterState?.cat      || null,
+        sub:      s.filterState?.sub      || null,
+        brands:   s.filterState?.brands   || [],
+        maxPrice: s.filterState?.maxPrice ?? null,
+      };
+      showPage('catalog', false);
+    } else if (s.page === 'home') {
+      showPage('home', false);
+    }
+    // detail y cart vuelven a home (no se puede restaurar sin los datos previos)
+  } catch {}
+}
+
+function updateCatalogBreadcrumb() {
+  const bc = document.getElementById('catalogBreadcrumb');
+  if (!bc) return;
+  let html = `<span onclick="clearAllFilters();showPage('catalog')" style="cursor:pointer">A&M Importaciones</span> › `;
+  if (!filterState.cat) {
+    html += `<span>Catálogo</span>`;
+  } else {
+    html += `<span onclick="selectFilterCat(null);clearAllFilters()" style="cursor:pointer">Catálogo</span> › `;
+    const info = CAT_DISPLAY[filterState.cat] || { label: filterState.cat };
+    html += `<span class="bc-active" onclick="selectFilterSub(null)" style="cursor:pointer">${info.label}</span>`;
+    if (filterState.sub) {
+      html += ` › <span class="bc-active">${filterState.sub}</span>`;
+    }
+  }
+  bc.innerHTML = html;
+}
+
+// ===== PROMO BAR DINÁMICA =====
+function renderPromoBar() {
+  const bar = document.getElementById('promoBar');
+  if (!bar || !products.length) return;
+
+  // Definición de cada chip: ícono, texto, filtro y validación de existencia
+  const chips = [
+    {
+      icon: '💡', label: 'Iluminación',
+      check: () => products.some(p => p.cat === 'iluminacion'),
+      filter: () => { filterCatalogByCat('iluminacion'); }
+    },
+    {
+      icon: '🔥', label: 'Desde S/ 1',
+      check: () => products.some(p => p.price <= 1),
+      filter: () => {
+        const f = products.filter(p => p.price <= 1);
+        showPage('catalog'); renderProducts(f);
+      }
+    },
+    {
+      icon: '💻', label: 'Tecnología',
+      check: () => products.some(p => p.cat === 'tecnologia'),
+      filter: () => { filterCatalogByCat('tecnologia'); }
+    },
+    {
+      icon: '🧱', label: 'Construcción',
+      check: () => products.some(p => p.cat === 'construccion'),
+      filter: () => { filterCatalogByCat('construccion'); }
+    },
+    {
+      icon: '🔧', label: 'Herramientas',
+      check: () => products.some(p => p.cat === 'herramientas'),
+      filter: () => { filterCatalogByCat('herramientas'); }
+    },
+    {
+      icon: '🧹', label: 'Limpieza',
+      check: () => products.some(p => p.cat === 'limpieza'),
+      filter: () => { filterCatalogByCat('limpieza'); }
+    },
+    {
+      icon: '🌿', label: 'Jardinería',
+      check: () => products.some(p => p.cat === 'jardineria'),
+      filter: () => { filterCatalogByCat('jardineria'); }
+    },
+    {
+      icon: '👗', label: 'Moda',
+      check: () => products.some(p => p.cat === 'moda'),
+      filter: () => { filterCatalogByCat('moda'); }
+    },
+  ];
+
+  // Solo mostrar chips con productos disponibles
+  const visible = chips.filter(c => c.check());
+  if (!visible.length) { bar.innerHTML = ''; return; }
+
+  bar.innerHTML = visible.map((c, i) => `
+    <span class="promo-chip" onclick="_promoFilter(${i})" data-chip="${i}">
+      ${c.icon} ${c.label}
+    </span>`).join('');
+
+  // Guardar filtros para el onclick
+  bar._chips = visible;
+}
+
+function _promoFilter(i) {
+  const bar = document.getElementById('promoBar');
+  if (bar && bar._chips && bar._chips[i]) {
+    bar._chips[i].filter();
+    // Resaltar el chip activo
+    bar.querySelectorAll('.promo-chip').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+    });
+  }
+}
+
+// ── Panel hover timeout ──
+let _catNavTimer = null;
+
+function renderQuickCats() {
+  const bar = document.getElementById('quickCatsBar');
+  const wrap = document.getElementById('quickCatsWrap');
+  if (!bar) return;
+
+  const available = [...new Set(products.map(p => p.cat).filter(Boolean))]
+    .filter(cat => CAT_DISPLAY[cat]);
+
+  if (!available.length) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = '';
+
+  bar.innerHTML = available.map(cat => {
+    const { label, emoji } = CAT_DISPLAY[cat];
+    return `<div class="quick-cat" data-cat="${cat}"
+      onmouseenter="openCatNav('${cat}', this)"
+      onclick="filterCatalogByCat('${cat}')">${emoji}<span>${label}</span></div>`;
+  }).join('');
+}
+
+// Abre el panel de navegación para una categoría
+function openCatNav(cat, triggerEl) {
+  clearTimeout(_catNavTimer);
+
+  // Destacar el item activo
+  document.querySelectorAll('.quick-cat').forEach(el => el.classList.remove('hovered'));
+  if (triggerEl) triggerEl.classList.add('hovered');
+
+  const panel = document.getElementById('catNavPanel');
+  const subsEl = document.getElementById('catNavSubs');
+  const prodsEl = document.getElementById('catNavProds');
+  const footerEl = document.getElementById('catNavFooter');
+  if (!panel) return;
+
+  const d = dynamicMegaData[cat];
+  if (!d) { panel.classList.remove('show'); return; }
+
+  const subs = Object.keys(d.cols);
+
+  // Subcategorías
+  subsEl.innerHTML = subs.length
+    ? subs.map(sub => `
+        <div class="cat-nav-sub-item" data-cat="${cat}" data-sub="${sub}"
+             onmouseenter="openSubNav('${cat}','${sub}',this)"
+             onclick="filterCatalogBySubCat('${cat}','${sub}');event.stopPropagation()">
+          ${sub}
+          <span class="cat-nav-sub-count">${d.cols[sub].length}</span>
+        </div>`).join('')
+    : '<div style="padding:16px 18px;color:#aaa;font-size:13px">Sin subcategorías</div>';
+
+  // Pie
+  footerEl.innerHTML = `<span class="cat-nav-footer-link"
+    onclick="filterCatalogByCat('${cat}')">
+    Ver todos los productos de <strong>${d.title}</strong> →
+  </span>`;
+
+  panel.classList.add('show');
+
+  // Mostrar primera subcategoría por defecto
+  if (subs.length > 0) {
+    const firstSub = subsEl.querySelector('.cat-nav-sub-item');
+    if (firstSub) openSubNav(cat, subs[0], firstSub);
+  } else {
+    prodsEl.innerHTML = '<div class="cat-nav-prods-hint">Sin productos en subcategorías</div>';
+  }
+}
+
+// Muestra productos de una subcategoría
+function openSubNav(cat, sub, triggerEl) {
+  clearTimeout(_catNavTimer);
+  document.querySelectorAll('.cat-nav-sub-item').forEach(el => el.classList.remove('active'));
+  if (triggerEl) triggerEl.classList.add('active');
+
+  const d = dynamicMegaData[cat];
+  if (!d || !d.cols[sub]) return;
+
+  const prods = d.cols[sub];
+  const prodsEl = document.getElementById('catNavProds');
+  if (!prodsEl) return;
+
+  const prodRows = prods.slice(0, 12).map(p => `
+    <div class="cat-nav-prod-item" onclick="closeCatNav();showDetail('${p.id}')">
+      <div class="cat-nav-prod-thumb">
+        ${p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="" onerror="this.style.display='none'">`
+          : `<span style="font-size:22px">${p.icon||'📦'}</span>`}
+      </div>
+      <div class="cat-nav-prod-info">
+        <div class="cat-nav-prod-brand">${p.brand}</div>
+        <div class="cat-nav-prod-name">${p.name}</div>
+        <div class="cat-nav-prod-price">S/ ${p.price.toFixed(2)}</div>
+      </div>
+    </div>`).join('');
+
+  prodsEl.innerHTML = `
+    <div class="cat-nav-prods-title">${sub} <small style="font-size:11px;color:#aaa;font-weight:400">(${prods.length} productos)</small></div>
+    <div class="cat-nav-prods-grid">${prodRows}</div>
+    ${prods.length > 12 ? `<div class="cat-nav-more" onclick="filterCatalogBySubCat('${cat}','${sub}')">Ver todos (${prods.length}) →</div>` : ''}`;
+}
+
+function closeCatNav() {
+  const panel = document.getElementById('catNavPanel');
+  if (panel) panel.classList.remove('show');
+  document.querySelectorAll('.quick-cat').forEach(el => el.classList.remove('hovered'));
+}
+
+function filterCatalogByCat(cat) {
+  closeCatNav();
+  filterState = { cat, sub: null, brands: [], maxPrice: null };
+  showPage('catalog');
+}
+
+function filterCatalogBySubCat(cat, sub) {
+  closeCatNav();
+  filterState = { cat, sub, brands: [], maxPrice: null };
+  showPage('catalog');
+}
+
 // ===== RENDER PRODUCTOS =====
+function _prodImgHtml(p) {
+  if (p.imageUrl) {
+    return `<img src="${p.imageUrl}" alt="" class="prod-img-real" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="prod-img-icon" style="display:none;font-size:52px">${p.icon || '📦'}</span>`;
+  }
+  return `<span style="font-size:52px">${p.icon || '📦'}</span>`;
+}
+
 function renderProducts(list = products, containerId = 'productGrid') {
   const grid = document.getElementById(containerId);
   if (!grid) return;
   grid.innerHTML = '';
+  if (!list.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;grid-column:1/-1"><div style="font-size:52px">📦</div><p style="margin-top:12px">No hay productos disponibles</p></div>';
+    const el = document.getElementById('productCount');
+    if (el) el.textContent = 0;
+    return;
+  }
   list.forEach(p => {
-    const disc = Math.round(((p.old - p.price) / p.old) * 100);
-    const card = document.createElement('div');
+    const price = p.price || 0;
+    const old   = p.old   || price;
+    const disc  = old > price ? Math.round(((old - price) / old) * 100) : 0;
+    const card  = document.createElement('div');
     card.className = 'product-card';
     card.innerHTML = `
-      <div class="card-badge">-${disc}%</div>
-      ${Math.random() > 0.5 ? '<div class="ai-badge-card">🤖 IA Top</div>' : ''}
-      <div class="product-img">${p.icon}</div>
-      <p class="prod-brand">${p.brand}</p>
-      <h3>${p.name}</h3>
-      <div class="price-row">
-        <span class="price">S/ ${p.price.toFixed(2)}</span>
-        <span class="old-price">S/ ${p.old.toFixed(2)}</span>
-        <span class="discount-badge">-${disc}%</span>
-      </div>
-      <div class="prod-tags">
-        <span class="prod-tag green">Llega mañana</span>
-        <span class="prod-tag">Retira mañana</span>
-      </div>
-      <button class="add-btn" onclick="addToCart(${p.id});event.stopPropagation()">+ Agregar</button>`;
+      ${disc > 0 ? `<div class="card-badge">-${disc}%</div>` : ''}
+      ${Math.random() > 0.7 ? '<div class="ai-badge-card">🤖 IA Top</div>' : ''}
+      <div class="product-img">${_prodImgHtml(p)}</div>
+      <div class="product-card-body">
+        <p class="prod-brand">${p.brand || 'A&M'}</p>
+        <h3>${p.name}</h3>
+        <div class="price-divider"></div>
+        <div class="price-row">
+          <span class="price">S/ ${price.toFixed(2)}</span>
+          ${disc > 0 ? `<span class="old-price">S/ ${old.toFixed(2)}</span><span class="discount-badge">-${disc}%</span>` : ''}
+        </div>
+        <div class="prod-tags">
+          <span class="prod-tag green">✓ En stock</span>
+          ${p.stock <= 5 ? `<span class="prod-tag" style="background:#fff3e0;color:#e65100">¡Últimas ${p.stock}!</span>` : '<span class="prod-tag">Retira hoy</span>'}
+        </div>
+        <button class="add-btn" onclick="addToCart('${p.id}');event.stopPropagation()">🛒 Agregar</button>
+      </div>`;
     card.addEventListener('click', () => showDetail(p.id));
     grid.appendChild(card);
   });
@@ -273,7 +896,40 @@ function renderProducts(list = products, containerId = 'productGrid') {
 }
 
 function renderFeatured() { renderProducts(products.slice(0, 8), 'featuredGrid'); }
-function renderRelated(excludeId) { renderProducts(products.filter(p => p.id !== excludeId).slice(0, 4), 'relatedGrid'); }
+
+function renderRelated(currentProd) {
+  const related = products.filter(p => p.id !== currentProd.id && p.cat === currentProd.cat);
+  const grid = document.getElementById('relatedGrid');
+  const section = document.getElementById('relatedSection');
+  const title = document.getElementById('relatedTitle');
+
+  if (!related.length || !grid) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+  if (section) section.style.display = '';
+  if (title) title.innerHTML = '⭐ Productos recomendados';
+
+  // Fila horizontal de tarjetas compactas
+  grid.className = 'related-row';
+  grid.innerHTML = related.slice(0, 8).map(p => {
+    const disc = p.old > p.price ? Math.round(((p.old - p.price) / p.old) * 100) : 0;
+    const imgHtml = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="" onerror="this.style.display='none'">`
+      : `<span style="font-size:32px">${p.icon||'📦'}</span>`;
+    return `
+      <div class="related-card" onclick="showDetail('${p.id}')">
+        ${disc > 0 ? `<div class="related-card-disc">-${disc}%</div>` : ''}
+        <div class="related-card-img">${imgHtml}</div>
+        <div class="related-card-body">
+          <div class="related-card-brand">${p.brand}</div>
+          <div class="related-card-name">${p.name}</div>
+          <div class="related-card-price">S/ ${p.price.toFixed(2)}</div>
+          <button class="related-card-btn" onclick="addToCart('${p.id}');event.stopPropagation()">🛒 Agregar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
 
 // ===== CARRITO =====
 function addToCart(id) {
@@ -313,19 +969,22 @@ function renderCart() {
   let total = 0;
   cart.forEach(it => {
     total += it.price * it.qty;
+    const imgContent = it.imageUrl
+      ? `<img src="${it.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:6px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span style="display:none;font-size:28px">${it.icon||'📦'}</span>`
+      : `<span style="font-size:28px">${it.icon||'📦'}</span>`;
     const d = document.createElement('div');
     d.className = 'drawer-item';
     d.innerHTML = `
-      <div class="drawer-item-icon">${it.icon}</div>
+      <div class="drawer-item-icon">${imgContent}</div>
       <div class="drawer-item-info">
         <div class="drawer-item-name">${it.name.slice(0,38)}${it.name.length>38?'...':''}</div>
         <div class="drawer-item-brand">${it.brand}</div>
         <div class="drawer-item-price">S/ ${(it.price*it.qty).toFixed(2)}</div>
         <div class="drawer-item-controls">
-          <button class="dqb" onclick="changeQty(${it.id},-1)">-</button>
+          <button class="dqb" onclick="changeQty('${it.id}',-1)">-</button>
           <span style="font-weight:700;font-size:13px">${it.qty}</span>
-          <button class="dqb" onclick="changeQty(${it.id},1)">+</button>
-          <button class="drm" onclick="removeItem(${it.id})">🗑️</button>
+          <button class="dqb" onclick="changeQty('${it.id}',1)">+</button>
+          <button class="drm" onclick="removeItem('${it.id}')">🗑️</button>
         </div>
       </div>`;
     c.appendChild(d);
@@ -345,20 +1004,23 @@ function renderCartPage() {
   let sub = 0, orig = 0;
   cart.forEach(it => {
     sub += it.price * it.qty; orig += it.old * it.qty;
+    const imgContent = it.imageUrl
+      ? `<img src="${it.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:8px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span style="display:none;font-size:36px">${it.icon||'📦'}</span>`
+      : `<span style="font-size:36px">${it.icon||'📦'}</span>`;
     const d = document.createElement('div');
     d.className = 'cart-page-item';
     d.innerHTML = `
-      <div class="item-icon">${it.icon}</div>
+      <div class="item-icon">${imgContent}</div>
       <div class="item-info">
         <div class="item-brand">${it.brand}</div>
         <div class="item-name">${it.name}</div>
         <div style="color:#aaa;font-size:12px">S/ ${it.price.toFixed(2)} c/u</div>
       </div>
       <div class="item-actions">
-        <button class="item-qty-btn" onclick="changeQty(${it.id},-1)">-</button>
+        <button class="item-qty-btn" onclick="changeQty('${it.id}',-1)">-</button>
         <span class="item-qty">${it.qty}</span>
-        <button class="item-qty-btn" onclick="changeQty(${it.id},1)">+</button>
-        <button class="item-remove" onclick="removeItem(${it.id})">🗑️</button>
+        <button class="item-qty-btn" onclick="changeQty('${it.id}',1)">+</button>
+        <button class="item-remove" onclick="removeItem('${it.id}')">🗑️</button>
         <span class="item-subtotal">S/ ${(it.price*it.qty).toFixed(2)}</span>
       </div>`;
     c.appendChild(d);
@@ -374,23 +1036,25 @@ function renderAIUpsell() {
   if (!c) return;
   const notInCart = products.filter(p => !cart.find(i => i.id === p.id)).slice(0, 3);
   c.innerHTML = notInCart.map(p => `
-    <div class="upsell-item" onclick="addToCart(${p.id})">
-      <div class="upsell-item-icon">${p.icon}</div>
+    <div class="upsell-item" onclick="addToCart('${p.id}')">
+      <div class="upsell-item-icon">${p.imageUrl ? `<img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:4px">` : (p.icon||'📦')}</div>
       <div class="upsell-item-info">
-        <div class="upsell-item-name">${p.name.slice(0,30)}...</div>
+        <div class="upsell-item-name">${p.name.slice(0,30)}${p.name.length>30?'...':''}</div>
         <div class="upsell-item-price">S/ ${p.price.toFixed(2)}</div>
       </div>
-      <button class="upsell-add" onclick="addToCart(${p.id});event.stopPropagation()">+ Agregar</button>
+      <button class="upsell-add" onclick="addToCart('${p.id}');event.stopPropagation()">+ Agregar</button>
     </div>`).join('');
 }
 
 // ===== NAVEGACIÓN CON HISTORIAL =====
 function showPage(id, pushState = true) {
+  currentPage = id;
+  savePageState();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const page = document.getElementById(`page-${id}`);
   if (page) page.classList.add('active');
   window.scrollTo(0, 0);
-  if (id === 'catalog') renderProducts();
+  if (id === 'catalog') applyFilters();
   if (id === 'cart') renderCartPage();
   // Cerrar drawer y overlay si están abiertos
   document.getElementById('cartDrawer').classList.remove('open');
@@ -424,29 +1088,60 @@ function showDetailInternal(id) {
   if (!p) return;
   currentDetailProduct = p;
   currentDetailQty = 1;
-  const disc = Math.round(((p.old - p.price) / p.old) * 100);
+  currentPage = 'detail';
+  const disc = p.old > p.price ? Math.round(((p.old - p.price) / p.old) * 100) : 0;
   document.getElementById('detailBrand').textContent = p.brand;
   document.getElementById('detailName').textContent = p.name;
-  document.getElementById('detailSku').textContent = `FRR-${String(p.id).padStart(5,'0')}`;
+  document.getElementById('detailSku').textContent = p.codigo || String(p.id).slice(0, 8).toUpperCase();
   document.getElementById('detailPrice').textContent = `S/ ${p.price.toFixed(2)}`;
-  document.getElementById('detailOld').textContent = `S/ ${p.old.toFixed(2)}`;
-  document.getElementById('detailDisc').textContent = `-${disc}%`;
+  document.getElementById('detailOld').textContent = disc > 0 ? `S/ ${p.old.toFixed(2)}` : '';
+  document.getElementById('detailDisc').textContent = disc > 0 ? `-${disc}%` : '';
   document.getElementById('detailQty').textContent = 1;
-  document.getElementById('detailMainImg').innerHTML = `<span style="font-size:110px">${p.icon}</span>`;
-  document.getElementById('detailDesc').textContent = `${p.name} es un producto de alta calidad de la marca ${p.brand}. Ideal para uso doméstico y profesional. Garantía de satisfacción completa.`;
+
+  // Badge de categoría
+  const catInfo = CAT_DISPLAY[p.cat] || { label: p.cat, emoji: '📦' };
+  const catBadge = document.getElementById('detailCatBadge');
+  if (catBadge) catBadge.textContent = `${catInfo.emoji} ${catInfo.label}`;
+
+  // Stock indicator
+  const stockEl = document.getElementById('detailStockRow');
+  if (stockEl) {
+    if (p.stock > 5) {
+      stockEl.innerHTML = `<span class="detail-stock-ok">✓ En stock</span><span style="color:#aaa;font-size:12px">(${p.stock} disponibles)</span>`;
+    } else if (p.stock > 0) {
+      stockEl.innerHTML = `<span class="detail-stock-low">⚠️ ¡Últimas ${p.stock} unidades!</span>`;
+    } else {
+      stockEl.innerHTML = `<span class="detail-stock-out">✗ Sin stock</span>`;
+    }
+  }
+
+  // Imagen principal
+  const mainImgEl = document.getElementById('detailMainImg');
+  if (p.imageUrl) {
+    mainImgEl.innerHTML = `<img src="${p.imageUrl}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:110px>${p.icon||'📦'}</span>'">`;
+  } else {
+    mainImgEl.innerHTML = `<span style="font-size:110px">${p.icon || '📦'}</span>`;
+  }
+
+  document.getElementById('detailDesc').textContent = p.info || `${p.name} — producto de alta calidad de la marca ${p.brand}.`;
   document.getElementById('btnAddDetail').onclick = () => addToCart(p.id);
   generateAIReview(p);
+
+  // Miniaturas
   const thumbs = document.getElementById('detailThumbs');
   thumbs.innerHTML = '';
-  for(let i=0;i<4;i++){
+  const thumbContent = p.imageUrl
+    ? `<img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:6px">`
+    : p.icon || '📦';
+  for (let i = 0; i < 4; i++) {
     const d = document.createElement('div');
-    d.className = `thumb-img ${i===0?'active':''}`;
-    d.innerHTML = p.icon;
-    d.onclick = () => { thumbs.querySelectorAll('.thumb-img').forEach(x=>x.classList.remove('active')); d.classList.add('active'); };
+    d.className = `thumb-img ${i === 0 ? 'active' : ''}`;
+    d.innerHTML = thumbContent;
+    d.onclick = () => { thumbs.querySelectorAll('.thumb-img').forEach(x => x.classList.remove('active')); d.classList.add('active'); };
     thumbs.appendChild(d);
   }
-  renderRelated(id);
-  // Mostrar página sin agregar al historial (ya se hizo arriba)
+
+  renderRelated(p);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-detail').classList.add('active');
   window.scrollTo(0, 0);
@@ -745,12 +1440,19 @@ function generateAIReview(product) {
 function refreshAIRecs() {
   const container = document.getElementById('aiRecsHome');
   if (!container) return;
+  if (!products.length) { container.innerHTML = '<div style="color:#aaa;font-size:13px;padding:12px">Cargando productos...</div>'; return; }
   const shuffled = [...products].sort(() => Math.random() - 0.5).slice(0, 5);
   container.innerHTML = shuffled.map(p => `
-    <div class="ai-rec-card" onclick="showDetail(${p.id})">
-      <div class="ai-rec-icon">${p.icon}</div>
-      <div class="ai-rec-name">${p.name.slice(0,22)}...</div>
-      <div class="ai-rec-price">S/ ${p.price.toFixed(2)}</div>
+    <div class="ai-rec-card" onclick="showDetail('${p.id}')">
+      <div class="ai-rec-img">
+        ${p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="${p.name.replace(/"/g,'')}" onerror="this.parentNode.innerHTML='<span style=font-size:36px>${p.icon||'📦'}</span>'">`
+          : `<span style="font-size:36px">${p.icon||'📦'}</span>`}
+      </div>
+      <div class="ai-rec-info">
+        <div class="ai-rec-name">${p.name}</div>
+        <div class="ai-rec-price">S/ ${p.price.toFixed(2)}</div>
+      </div>
     </div>`).join('');
 }
 function applyAIFilter() {
@@ -789,12 +1491,12 @@ function runAISearch() {
     const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || p.brand.toLowerCase().includes(query.toLowerCase()));
     const results = filtered.length ? filtered : products.sort(() => Math.random() - 0.5).slice(0,3);
     el.innerHTML = results.slice(0,6).map(p => `
-      <div class="product-card" onclick="document.getElementById('aiAssistantModal').classList.remove('show');showDetail(${p.id})">
-        <div class="product-img">${p.icon}</div>
+      <div class="product-card" onclick="document.getElementById('aiAssistantModal').classList.remove('show');showDetail('${p.id}')">
+        <div class="product-img">${p.imageUrl ? `<img src="${p.imageUrl}" alt="" style="width:80%;height:80%;object-fit:contain;border-radius:8px">` : `<span style="font-size:52px">${p.icon||'📦'}</span>`}</div>
         <p class="prod-brand">${p.brand}</p>
         <h3>${p.name}</h3>
         <div class="price-row"><span class="price">S/ ${p.price.toFixed(2)}</span></div>
-        <button class="add-btn" onclick="addToCart(${p.id});event.stopPropagation()">+ Agregar</button>
+        <button class="add-btn" onclick="addToCart('${p.id}');event.stopPropagation()">+ Agregar</button>
       </div>`).join('');
     if (!results.length) el.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">No encontré productos. Intenta con otras palabras.</div>';
   }, 1200);
@@ -807,17 +1509,29 @@ function handleSearch(text) {
   const filtered = products.filter(p => p.name.toLowerCase().includes(text.toLowerCase()) || p.brand.toLowerCase().includes(text.toLowerCase()));
   if (!filtered.length) { dd.classList.remove('show'); return; }
   dd.innerHTML = '';
-  filtered.slice(0,5).forEach(p => {
+  filtered.slice(0, 6).forEach(p => {
     const item = document.createElement('div');
     item.className = 'search-item';
-    item.innerHTML = `<span style="font-size:20px">${p.icon}</span><span>${p.name}</span>`;
-    item.addEventListener('click', () => { showDetail(p.id); dd.classList.remove('show'); document.getElementById('searchInput').value = ''; });
+    const thumbHtml = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="" class="search-item-img" onerror="this.outerHTML='<span style=font-size:20px>${p.icon||'📦'}</span>'">`
+      : `<span style="font-size:20px">${p.icon||'📦'}</span>`;
+    item.innerHTML = `
+      <div class="search-item-thumb">${thumbHtml}</div>
+      <div class="search-item-info">
+        <div class="search-item-name">${p.name}</div>
+        <div class="search-item-meta">${p.brand} · <span style="color:var(--orange);font-weight:700">S/ ${p.price.toFixed(2)}</span></div>
+      </div>`;
+    item.addEventListener('click', () => {
+      showDetail(p.id);
+      dd.classList.remove('show');
+      document.getElementById('searchInput').value = '';
+    });
     dd.appendChild(item);
   });
   const all = document.createElement('div');
-  all.className = 'search-item';
-  all.innerHTML = `<span>🔍</span><span style="color:#E89E48;font-weight:700">Ver todos para "${text}"</span>`;
-  all.addEventListener('click', () => { renderProducts(filtered); showPage('catalog'); dd.classList.remove('show'); });
+  all.className = 'search-item search-item-all';
+  all.innerHTML = `<span style="font-size:16px">🔍</span><span>Ver todos para <b>"${text}"</b> (${filtered.length})</span>`;
+  all.addEventListener('click', () => { renderProducts(filtered); showPage('catalog'); dd.classList.remove('show'); document.getElementById('searchInput').value = ''; });
   dd.appendChild(all);
   dd.classList.add('show');
 }
@@ -841,99 +1555,182 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ===== SISTEMA DE USUARIOS =====
-// Base de usuarios en localStorage
-function getUsers() {
-  return JSON.parse(localStorage.getItem('amUsers') || '[]');
+// ===== SISTEMA DE USUARIOS (conectado a Neon DB) =====
+function getCurrentUser() { return API.customers.getUser(); }
+
+// ── Enmascarado de datos personales ──
+function maskName(fullName) {
+  if (!fullName) return '—';
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  // Con 4+ palabras la segunda es segundo nombre → solo inicial
+  if (parts.length >= 4) {
+    const first    = parts[0];
+    const second   = parts[1][0] + '.';
+    const surnames = parts.slice(2).map(s => s.slice(0, 2) + '*****');
+    return [first, second, ...surnames].join(' ');
+  }
+  // Con 2 o 3 palabras: primer nombre completo + apellidos enmascarados
+  const first    = parts[0];
+  const surnames = parts.slice(1).map(s => s.slice(0, 2) + '*****');
+  return [first, ...surnames].join(' ');
 }
-function saveUsers(users) {
-  localStorage.setItem('amUsers', JSON.stringify(users));
-}
-function getCurrentUser() {
-  return JSON.parse(localStorage.getItem('amCurrentUser') || 'null');
-}
-function setCurrentUser(user) {
-  localStorage.setItem('amCurrentUser', JSON.stringify(user));
+
+function maskPhone(phone) {
+  if (!phone) return '—';
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length <= 2) return phone;
+  return '*'.repeat(digits.length - 2) + digits.slice(-2);
 }
 
 function updateHeaderUser() {
   const user = getCurrentUser();
-  const loggedOut = document.getElementById('menuLoggedOut');
-  const loggedIn = document.getElementById('menuLoggedIn');
+  const loggedOut  = document.getElementById('menuLoggedOut');
+  const loggedIn   = document.getElementById('menuLoggedIn');
   const headerName = document.getElementById('headerUserName');
-  const menuName = document.getElementById('menuUserName');
+  const menuName   = document.getElementById('menuUserName');
   if (user) {
     loggedOut.style.display = 'none';
-    loggedIn.style.display = 'block';
-    const firstName = user.name.split(' ')[0];
-    headerName.textContent = firstName;
-    menuName.textContent = '👋 ' + user.name;
+    loggedIn.style.display  = 'block';
+    headerName.textContent  = user.name.split(' ')[0]; // solo primer nombre en header
+    menuName.textContent    = '👋 ' + maskName(user.name); // nombre enmascarado en menú
   } else {
     loggedOut.style.display = 'block';
-    loggedIn.style.display = 'none';
-    headerName.textContent = 'inicia sesión';
+    loggedIn.style.display  = 'none';
+    headerName.textContent  = 'inicia sesión';
   }
 }
 
-function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const errEl = document.getElementById('loginError');
-  errEl.style.display = 'none';
-  if (!email || !pass) { errEl.textContent = '⚠️ Completa todos los campos'; errEl.style.display = 'block'; return; }
-  const users = getUsers();
-  const user = users.find(u => u.email === email && u.password === pass);
-  if (!user) { errEl.textContent = '⚠️ Correo o contraseña incorrectos'; errEl.style.display = 'block'; return; }
-  setCurrentUser(user);
-  updateHeaderUser();
-  closeModal('loginModal');
-  showToast('✅ ¡Bienvenido de vuelta, ' + user.name.split(' ')[0] + '!');
+function openAccountWhatsApp() {
+  const num = window.WHATSAPP_NUMBER || '51999999999';
+  window.open(`https://wa.me/${num}?text=Hola,%20tengo%20un%20problema%20con%20mi%20cuenta%20en%20A%26M%20Importaciones`, '_blank');
 }
 
-function handleRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  const pass2 = document.getElementById('regPass2').value;
-  const errEl = document.getElementById('registerError');
+// ── Variables de estado del auth modal ──
+let _authDocType = '';
+let _authDocNum  = '';
+
+function authGoStep1() {
+  document.getElementById('authStep1').style.display = '';
+  document.getElementById('authStep2').style.display = 'none';
+  document.getElementById('authError1').style.display = 'none';
+}
+
+async function handleAuthCheck() {
+  const docType = document.getElementById('authDocType').value;
+  const docNum  = document.getElementById('authDocNum').value.trim();
+  const errEl   = document.getElementById('authError1');
   errEl.style.display = 'none';
-  if (!name || !email || !pass || !pass2) { errEl.textContent = '⚠️ Completa todos los campos'; errEl.style.display = 'block'; return; }
-  if (pass.length < 6) { errEl.textContent = '⚠️ La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
-  if (pass !== pass2) { errEl.textContent = '⚠️ Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
-  const users = getUsers();
-  if (users.find(u => u.email === email)) { errEl.textContent = '⚠️ Este correo ya está registrado'; errEl.style.display = 'block'; return; }
-  const newUser = { name, email, password: pass, phone: '', points: 0, orders: [], address: {}, createdAt: new Date().toISOString() };
-  users.push(newUser);
-  saveUsers(users);
-  setCurrentUser(newUser);
-  updateHeaderUser();
-  closeModal('registerModal');
-  showToast('✅ ¡Cuenta creada! Bienvenido, ' + name.split(' ')[0] + '!');
+  if (!docType)  { errEl.textContent = '⚠️ Selecciona el tipo de documento'; errEl.style.display = 'block'; return; }
+  if (!docNum)   { errEl.textContent = '⚠️ Ingresa tu número de documento';  errEl.style.display = 'block'; return; }
+
+  try {
+    const data = await API.customers.login(docType, docNum);
+    // Documento encontrado → login directo
+    API.customers.setSession(data.token, {
+      name: data.name, email: data.email,
+      phone: data.phone || '', address: data.address || '', district: data.district || '',
+    });
+    updateHeaderUser();
+    closeModal('loginModal');
+    showToast('✅ ¡Bienvenido de vuelta, ' + data.name.split(' ')[0] + '!');
+  } catch (err) {
+    if (err.message && err.message.includes('no registrado') || err.message.includes('404') || err.message.includes('notFound')) {
+      // Documento no existe → mostrar paso 2 (registro)
+      _authDocType = docType;
+      _authDocNum  = docNum;
+      const docLabel = { DNI: 'DNI', CE: 'Carnet de extranjería', Pasaporte: 'Pasaporte', RUC: 'RUC' };
+      document.getElementById('authDocInfo').textContent =
+        `📄 ${docLabel[docType] || docType}: ${docNum}`;
+      document.getElementById('authStep1').style.display = 'none';
+      document.getElementById('authStep2').style.display = '';
+      document.getElementById('authError2').style.display = 'none';
+      document.getElementById('regFirstName').value = '';
+      document.getElementById('regLastName').value  = '';
+      document.getElementById('regEmail').value     = '';
+      document.getElementById('regPhone').value     = '';
+    } else {
+      errEl.textContent = '⚠️ ' + err.message;
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+async function handleRegister() {
+  const firstName = document.getElementById('regFirstName').value.trim();
+  const lastName  = document.getElementById('regLastName').value.trim();
+  const email     = document.getElementById('regEmail').value.trim();
+  const phone     = document.getElementById('regPhone').value.trim();
+  const errEl     = document.getElementById('authError2');
+  errEl.style.display = 'none';
+  if (!firstName) { errEl.textContent = '⚠️ El nombre es obligatorio';             errEl.style.display = 'block'; return; }
+  if (!lastName)  { errEl.textContent = '⚠️ Los apellidos son obligatorios';        errEl.style.display = 'block'; return; }
+  if (!email)     { errEl.textContent = '⚠️ El correo electrónico es obligatorio';  errEl.style.display = 'block'; return; }
+  try {
+    const data = await API.customers.register({
+      doc_type: _authDocType, doc_number: _authDocNum,
+      first_name: firstName, last_name: lastName, email, phone,
+    });
+    API.customers.setSession(data.token, {
+      name: data.name, email: data.email, phone: phone || '', address: '', district: '',
+    });
+    updateHeaderUser();
+    closeModal('loginModal');
+    showToast('✅ ¡Cuenta creada! Bienvenido, ' + data.name.split(' ')[0] + '!');
+  } catch (err) {
+    errEl.textContent = '⚠️ ' + err.message;
+    errEl.style.display = 'block';
+  }
 }
 
 function handleLogout() {
-  localStorage.removeItem('amCurrentUser');
+  API.customers.clearSession();
   updateHeaderUser();
   document.getElementById('accountMenu').classList.remove('show');
   showToast('👋 Sesión cerrada correctamente');
 }
 
-function switchToRegister() {
-  closeModal('loginModal');
-  document.getElementById('registerModal').classList.add('show');
-}
 function switchToLogin() {
-  closeModal('registerModal');
+  authGoStep1();
+  document.getElementById('loginModal').classList.add('show');
+}
+function switchToRegister() {
   document.getElementById('loginModal').classList.add('show');
 }
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('show');
+  if (id === 'loginModal') resetAuthModal();
+}
+
+function resetAuthModal() {
+  // Volver al paso 1
+  const s1 = document.getElementById('authStep1');
+  const s2 = document.getElementById('authStep2');
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = 'none';
+  // Limpiar campos del paso 1
+  const docType = document.getElementById('authDocType');
+  const docNum  = document.getElementById('authDocNum');
+  const err1    = document.getElementById('authError1');
+  if (docType) docType.value = '';
+  if (docNum)  docNum.value  = '';
+  if (err1)    err1.style.display = 'none';
+  // Limpiar campos del paso 2 (registro)
+  ['regFirstName','regLastName','regEmail','regPhone'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const err2 = document.getElementById('authError2');
+  if (err2) err2.style.display = 'none';
+  // Limpiar estado interno
+  _authDocType = '';
+  _authDocNum  = '';
 }
 
 // ===== MODALES DE CUENTA =====
 function requireLogin(callback) {
-  if (!getCurrentUser()) {
+  if (!API.customers.isLogged()) {
     showToast('⚠️ Debes iniciar sesión primero');
     document.getElementById('loginModal').classList.add('show');
     return false;
@@ -943,30 +1740,21 @@ function requireLogin(callback) {
 }
 
 function showProfileModal() {
-  requireLogin(() => {
-    const user = getCurrentUser();
-    document.getElementById('profileName').value = user.name;
-    document.getElementById('profileEmail').value = user.email;
-    document.getElementById('profilePhone').value = user.phone || '';
-    const initials = user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  requireLogin(async () => {
+    let user = getCurrentUser();
+    try { user = await API.customers.me(); API.customers.setSession(API.customers.getToken(), user); } catch {}
+    // Nombre: enmascarado
+    document.getElementById('profileNameDisplay').textContent  = maskName(user.name || '—');
+    // Email: completo
+    document.getElementById('profileEmailDisplay').textContent = user.email || '—';
+    // Teléfono: solo últimos 2 dígitos
+    document.getElementById('profilePhoneDisplay').textContent = user.phone ? maskPhone(user.phone) : '—';
+    // Avatar: iniciales del primer nombre
+    const initials = (user.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
     document.getElementById('profileAvatar').textContent = initials;
     document.getElementById('accountMenu').classList.remove('show');
     document.getElementById('profileModal').classList.add('show');
   });
-}
-
-function saveProfile() {
-  const user = getCurrentUser();
-  user.name = document.getElementById('profileName').value.trim() || user.name;
-  user.phone = document.getElementById('profilePhone').value.trim();
-  // Update in users array
-  const users = getUsers();
-  const idx = users.findIndex(u => u.email === user.email);
-  if (idx !== -1) { users[idx] = {...users[idx], name: user.name, phone: user.phone}; saveUsers(users); }
-  setCurrentUser(user);
-  updateHeaderUser();
-  closeModal('profileModal');
-  showToast('✅ Perfil actualizado correctamente');
 }
 
 // ===== MIS PEDIDOS - MODAL COMPLETO =====
@@ -1046,11 +1834,12 @@ const DEMO_ORDERS = [
 ];
 
 const OM_STEPS = [
-  {key:'proceso',   icon:'🔍', label:'Proceso'},
-  {key:'almacen',   icon:'🏭', label:'Almacén'},
-  {key:'empaquetado',icon:'📦',label:'Empaquetado'},
-  {key:'envio',     icon:'🚚', label:'Envío'},
-  {key:'entrega',   icon:'✅', label:'Entrega'}
+  {key:'agendado',    icon:'📅', label:'Agendado'},
+  {key:'preparando',  icon:'🔧', label:'Preparando'},
+  {key:'alistado',    icon:'📦', label:'Alistado'},
+  {key:'en_curso',    icon:'🚚', label:'En camino'},
+  {key:'entrega',     icon:'🏠', label:'Entregado'},
+  {key:'conformidad', icon:'✅', label:'Confirmado'},
 ];
 
 let omAllOrders = [...DEMO_ORDERS];
@@ -1061,18 +1850,18 @@ function omCalcOrig(items){ return items.reduce((s,i)=>s+i.old*i.qty,0); }
 
 function omRenderStats(){
   const counts = {
-    all: omAllOrders.length,
-    active: omAllOrders.filter(o=>!['entregado','cancelado'].includes(o.status)).length,
-    delivered: omAllOrders.filter(o=>o.status==='entregado').length,
+    all:       omAllOrders.length,
+    active:    omAllOrders.filter(o=>!['entregado','cancelado'].includes(o.status)).length,
+    delivered: omAllOrders.filter(o=>['entregado'].includes(o.status)).length,
     cancelled: omAllOrders.filter(o=>o.status==='cancelado').length,
-    alerted: omAllOrders.filter(o=>['sinstock','observado'].includes(o.status)).length
+    alerted:   omAllOrders.filter(o=>o.alert==='observado').length,
   };
   document.getElementById('ordersStatsRow').innerHTML = `
     <div class="ostat s-all"><div class="ostat-icon">📋</div><div class="ostat-num">${counts.all}</div><div class="ostat-label">Total</div></div>
     <div class="ostat s-active"><div class="ostat-icon">🚚</div><div class="ostat-num">${counts.active}</div><div class="ostat-label">En curso</div></div>
     <div class="ostat s-delivered"><div class="ostat-icon">✅</div><div class="ostat-num">${counts.delivered}</div><div class="ostat-label">Entregados</div></div>
     <div class="ostat s-cancelled"><div class="ostat-icon">❌</div><div class="ostat-num">${counts.cancelled}</div><div class="ostat-label">Cancelados</div></div>
-    <div class="ostat s-alerted"><div class="ostat-icon">⚠️</div><div class="ostat-num">${counts.alerted}</div><div class="ostat-label">Alertas</div></div>`;
+    <div class="ostat s-alerted"><div class="ostat-icon">⏰</div><div class="ostat-num">${counts.alerted}</div><div class="ostat-label">Alertas</div></div>`;
 }
 
 function filterOrdersModal(){
@@ -1097,21 +1886,22 @@ function omRenderTracking(order){
       <div class="oc-info-btn">ℹ
         <div class="oc-info-tooltip">
           <b>¿Qué significa cada etapa?</b><br>
-          🔍 <b>Proceso:</b> Verificación de tu solicitud.<br>
-          🏭 <b>Almacén:</b> Revisión de disponibilidad del producto.<br>
-          📦 <b>Empaquetado:</b> Pago confirmado y preparación del pedido.<br>
-          🚚 <b>Envío:</b> En camino a tu dirección de entrega.<br>
-          ✅ <b>Entrega:</b> Producto entregado satisfactoriamente.
+          📅 <b>Agendado:</b> Tu pedido fue registrado y programado.<br>
+          🔧 <b>Preparando:</b> Estamos preparando tu pedido.<br>
+          📦 <b>Alistado:</b> Tu pedido está listo para ser enviado.<br>
+          🚚 <b>En camino:</b> Tu pedido va en camino a tu dirección.<br>
+          🏠 <b>Entregado:</b> El repartidor entregó el pedido.<br>
+          ✅ <b>Confirmado:</b> Tú confirmaste la recepción.
         </div>
       </div>
     </div>
     <div class="oc-steps">
-      ${OM_STEPS.map((s,i)=>{
-        const t = order.tracking[i];
+      ${(order.tracking||[]).map((t,i)=>{
+        const s   = OM_STEPS[i] || {icon:'•', label:'—'};
         const cls = t?.cancelled?'cancelled':t?.done?'done':t?.active?'active':'';
         return `<div class="oc-step ${cls}">
           <div class="oc-step-circle">${t?.cancelled?'✕':t?.done?'✓':s.icon}</div>
-          <div class="oc-step-label">${s.label}</div>
+          <div class="oc-step-label">${t?.label||s.label}</div>
           <div class="oc-step-date">${t?.date||''}</div>
         </div>`;
       }).join('')}
@@ -1164,8 +1954,16 @@ function omRenderSummary(order){
 
 function omRenderCard(order, idx){
   const total = omCalcTotal(order.items);
-  const labelMap = {proceso:'🔵 En proceso',almacen:'🟡 En almacén',empaquetado:'🟣 Empaquetando',envio:'🟠 En envío',entregado:'✅ Entregado',cancelado:'❌ Cancelado',sinstock:'⚠️ Sin stock',observado:'👁️ Observado'};
-  const stripColor = {proceso:'#1d4ed8',almacen:'#f59e0b',empaquetado:'#7c3aed',envio:'#E89E48',entregado:'#16a34a',cancelado:'#dc2626',sinstock:'#f59e0b',observado:'#7c3aed'};
+  const labelMap = {
+    proceso:'📅 Agendado', almacen:'🔧 Preparando', empaquetado:'📦 Alistado',
+    envio:'🚚 En camino', entregado:'🏠 Entregado', cancelado:'❌ Cancelado',
+    sinstock:'⚠️ Sin stock', observado:'⏰ Pendiente confirmar',
+  };
+  const stripColor = {
+    proceso:'#1d4ed8', almacen:'#f59e0b', empaquetado:'#7c3aed',
+    envio:'#E89E48', entregado:'#16a34a', cancelado:'#dc2626',
+    sinstock:'#f59e0b', observado:'#0369a1',
+  };
   const alertHTML = order.alert ? `
     <div class="oc-alert ${order.alert}">
       <span>${order.alert==='cancelado'?'❌':order.alert==='sinstock'?'⚠️':'👁️'}</span>
@@ -1173,35 +1971,67 @@ function omRenderCard(order, idx){
       <button class="oc-alert-wa" onclick="omContactWA('${order.id}')">💬 Contactar</button>
     </div>` : '';
 
-  // body: tracking + table on top, then voucher + summary + actions in a row below
+  // Body simplificado: solo tracking + accesos rápidos
   const bodyHTML = `
     <div class="oc-panel-left">
       ${omRenderTracking(order)}
-      <div class="oc-section-title" style="margin-top:10px">🛒 Productos</div>
-      ${omRenderTable(order)}
     </div>
-    <div class="oc-panel-right">
-      ${omRenderVoucher(order)}
-      ${omRenderSummary(order)}
-      <div class="oc-actions">
-        <button class="oc-act print" onclick="omPrintOrder('${order.id}')">🖨️ Imprimir</button>
-        <button class="oc-act wa" onclick="omContactWA('${order.id}')">💬 WhatsApp</button>
-        ${order.status==='entregado'?`<button class="oc-act review" onclick="showToast('⭐ ¡Gracias! Reseña enviada.')">⭐ Reseña</button>`:''}
-        ${!['entregado','cancelado'].includes(order.status)?`<button class="oc-act cancel" onclick="omCancelOrder('${order.id}')">🚫 Cancelar</button>`:''}
+    <div class="oc-panel-right" style="padding:10px 14px">
+      <div class="oc-actions" style="flex-wrap:wrap;gap:8px">
+        <button class="oc-act" style="background:#0b1c35;color:#e8c55a;flex:1;min-width:120px;padding:9px 12px;font-size:12px;font-weight:700"
+          onclick="omOpenDetail('${order.id}')">👁 Ver detalle completo</button>
+        <button class="oc-act wa" onclick="omContactWA('${order.id}')" style="flex:1;min-width:100px">💬 WhatsApp</button>
+        ${order.rawStatus==='entrega'?`<button class="oc-act review" style="background:#16a34a;color:#fff;flex:2;min-width:160px;font-size:12px;font-weight:800" onclick="omConfirmDelivery('${order.id}')">✅ Confirmar recepción</button>`:''}
+        ${['agendado','preparando'].includes(order.rawStatus)?`<button class="oc-act" style="background:#dc2626;color:#fff;flex:1;min-width:120px" onclick="omCancelOrder('${order.id}')">❌ Cancelar</button>`:''}
       </div>
     </div>`;
 
   return `
     <div class="oc-card" id="omcard-${order.id}" style="animation-delay:${idx*0.05}s">
-      <div class="oc-head" onclick="omToggle('${order.id}')">
-        <div class="oc-status-strip" style="background:${stripColor[order.status]||'#aaa'}"></div>
-        <div class="oc-head-left">
-          <div class="oc-num">${order.id}</div>
-          <div class="oc-date">📅 ${order.date} · ${order.items.length} prod.</div>
+      <div style="display:flex;gap:0;cursor:pointer;user-select:none;position:relative"
+           onclick="omToggle('${order.id}')">
+        <!-- Barra de color lateral -->
+        <div style="width:4px;flex-shrink:0;border-radius:3px 0 0 3px;
+                    background:${stripColor[order.status]||'#aaa'}"></div>
+        <!-- Contenido principal -->
+        <div style="flex:1;padding:9px 12px;min-width:0">
+          <!-- Fila 1: número + acciones -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
+            <div style="font-size:14px;font-weight:800;font-family:var(--font-head);
+                        color:#0b1c35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                        cursor:pointer"
+                 title="Toca para ver el seguimiento">
+              ${order.id}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0"
+                 onclick="event.stopPropagation()">
+              <button onclick="omOpenDetail('${order.id}')"
+                style="background:#0b1c35;color:#e8c55a;border:none;border-radius:8px;
+                       padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;
+                       white-space:nowrap;line-height:1.5">
+                👁 Ver
+              </button>
+              <button onclick="omToggle('${order.id}')"
+                class="om-chevron-btn" id="omchev-${order.id}"
+                style="width:26px;height:26px;border-radius:50%;background:#f0f0f0;
+                       border:none;cursor:pointer;font-size:11px;color:#888;
+                       display:flex;align-items:center;justify-content:center;
+                       transition:background .2s,transform .3s;flex-shrink:0">
+                ▼
+              </button>
+            </div>
+          </div>
+          <!-- Fila 2: fecha + badge + total -->
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+            <span style="font-size:10px;color:#888">📅 ${order.date} · ${order.items.length} prod.</span>
+            <span class="oc-badge ocb-${order.status}" style="margin-left:auto">
+              ${labelMap[order.status]||order.status}
+            </span>
+            <span style="font-size:15px;font-weight:800;color:var(--orange);white-space:nowrap;flex-shrink:0">
+              S/ ${total.toFixed(2)}
+            </span>
+          </div>
         </div>
-        <span class="oc-badge ocb-${order.status}">${labelMap[order.status]||order.status}</span>
-        <div class="oc-total">S/ ${total.toFixed(2)}</div>
-        <div class="oc-chevron">▼</div>
       </div>
       ${alertHTML}
       <div class="oc-body">${bodyHTML}</div>
@@ -1224,7 +2054,270 @@ function omRenderList(){
 }
 
 function omToggle(id){
-  document.getElementById(`omcard-${id}`).classList.toggle('open');
+  const card    = document.getElementById(`omcard-${id}`);
+  const isOpen  = card.classList.contains('open');
+
+  // Cerrar todos los demás (acordeón: solo uno abierto a la vez)
+  document.querySelectorAll('.oc-card.open').forEach(c => {
+    if (c.id !== `omcard-${id}`) {
+      c.classList.remove('open');
+      const otherId = c.id.replace('omcard-', '');
+      const otherBtn = document.getElementById(`omchev-${otherId}`);
+      if (otherBtn) {
+        otherBtn.style.transform  = '';
+        otherBtn.style.background = '#f0f0f0';
+        otherBtn.style.color      = '#888';
+      }
+    }
+  });
+
+  // Toggle la tarjeta actual
+  card.classList.toggle('open', !isOpen);
+  const btn = document.getElementById(`omchev-${id}`);
+  if (btn) {
+    btn.style.transform  = !isOpen ? 'rotate(180deg)' : '';
+    btn.style.background = !isOpen ? 'var(--orange)' : '#f0f0f0';
+    btn.style.color      = !isOpen ? '#fff' : '#888';
+  }
+
+  // Si se abrió → scroll suave hacia la tarjeta dentro del list-wrap
+  if (!isOpen) {
+    setTimeout(() => {
+      const wrap = document.querySelector('.orders-list-wrap');
+      if (wrap && card) {
+        const cardTop  = card.offsetTop - wrap.offsetTop;
+        const padding  = 8;
+        wrap.scrollTo({ top: cardTop - padding, behavior: 'smooth' });
+      }
+    }, 60);
+  }
+}
+
+// ── MODAL DETALLE COMPLETO DEL PEDIDO (cliente) ───────────────────────────────
+function omEnsureDetailStyles() {
+  if (document.getElementById('omDetailStyles')) return;
+  const s = document.createElement('style');
+  s.id = 'omDetailStyles';
+  s.textContent = `
+    #omDetailOverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;
+      display:flex;align-items:center;justify-content:center;padding:12px;
+      animation:omFI .18s ease}
+    @keyframes omFI{from{opacity:0}to{opacity:1}}
+    @keyframes omSU{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    #omDetailBox{background:#fff;border-radius:20px;width:100%;max-width:660px;
+      max-height:88vh;display:flex;flex-direction:column;
+      box-shadow:0 28px 70px rgba(0,0,0,.4);animation:omSU .22s ease;
+      font-family:'Nunito',sans-serif;overflow:hidden}
+    .omd-scroll{overflow-y:auto;flex:1}
+    .omd-scroll::-webkit-scrollbar{width:4px}
+    .omd-scroll::-webkit-scrollbar-thumb{background:#e0e3eb;border-radius:4px}
+    .omd-sec{padding:14px 20px;border-bottom:1px solid #edf0f5}
+    .omd-sec:last-child{border-bottom:none}
+    .omd-sec-ttl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#a0aec0;margin-bottom:10px}
+    /* Timeline horizontal */
+    .omd-tl{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding-bottom:4px}
+    .omd-tl::-webkit-scrollbar{height:3px}
+    .omd-tl::-webkit-scrollbar-thumb{background:#e0e3eb;border-radius:3px}
+    .omd-tl-item{display:flex;flex-direction:column;align-items:center;min-width:80px;flex:1;position:relative}
+    .omd-tl-item:not(:last-child)::after{content:'';position:absolute;top:14px;left:calc(50% + 14px);
+      right:calc(-50% + 14px);height:2px;background:#e0e3eb;z-index:0}
+    .omd-tl-item.done-step::after{background:#4dab6a}
+    .omd-tl-dot{width:28px;height:28px;border-radius:50%;border:2px solid #e0e3eb;
+      background:#f5f6fa;display:flex;align-items:center;justify-content:center;
+      font-size:12px;z-index:1;flex-shrink:0;margin-bottom:5px}
+    .omd-tl-dot.done{background:#e8f5ee;border-color:#4dab6a}
+    .omd-tl-dot.active{background:#E89E48;border-color:#c97d2a;color:#fff;
+      box-shadow:0 0 0 3px rgba(232,158,72,.25)}
+    .omd-tl-dot.xed{background:#fef2f2;border-color:#ef4444}
+    .omd-tl-lbl{font-size:9px;font-weight:700;color:#4a5568;text-align:center;line-height:1.2}
+    .omd-tl-lbl.a-lbl{color:#E89E48}
+    .omd-tl-lbl.x-lbl{color:#ef4444}
+    .omd-tl-date{font-size:8px;color:#a0aec0;text-align:center;margin-top:2px}
+    /* Campos */
+    .omd-fgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .omd-f{background:#f7f9fc;border-radius:8px;padding:8px 10px}
+    .omd-f .fl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#a0aec0}
+    .omd-f .fv{font-size:12px;font-weight:700;color:#0b1c35;margin-top:2px}
+    /* Productos */
+    .omd-prod{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #edf0f5}
+    .omd-prod:last-child{border-bottom:none}
+    .omd-pimg{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #edf0f5;flex-shrink:0}
+    .omd-pph{width:44px;height:44px;border-radius:8px;border:1px solid #edf0f5;background:#f5f6fa;
+      display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  `;
+  document.head.appendChild(s);
+}
+
+function omOpenDetail(id) {
+  const order = omAllOrders.find(x => x.id === id);
+  if (!order) return;
+  omEnsureDetailStyles();
+
+  let overlay = document.getElementById('omDetailOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'omDetailOverlay';
+    overlay.addEventListener('click', e => { if(e.target===overlay) omCloseDetail(); });
+    document.body.appendChild(overlay);
+  }
+
+  const raw       = order._raw || {};
+  const items     = order.items || [];
+  const tracking  = order.tracking || [];
+  const rawStatus = order.rawStatus || 'agendado';
+  const total     = omCalcTotal(items);
+  const orig      = omCalcOrig(items);
+
+  const statusLabel = { agendado:'📅 Agendado', preparando:'🔧 Preparando', alistado:'📦 Alistado',
+    en_curso:'🚚 En camino', entrega:'🏠 Entregado', conformidad:'✅ Confirmado', cancelado:'❌ Cancelado' };
+  const statusBg  = { agendado:'#eff6ff', preparando:'#fff7ed', alistado:'#f5f3ff', en_curso:'#fffbeb',
+    entrega:'#eff6ff', conformidad:'#e8f5ee', cancelado:'#fef2f2' };
+  const statusClr = { agendado:'#1d4ed8', preparando:'#c2410c', alistado:'#5b21b6', en_curso:'#92400e',
+    entrega:'#0369a1', conformidad:'#157a3f', cancelado:'#b91c1c' };
+
+  // ── Timeline horizontal ──
+  const tlHTML = tracking.map((t,i) => {
+    const dotCls = t.cancelled ? 'xed' : t.done ? 'done' : t.active ? 'active' : '';
+    const lblCls = t.active ? 'a-lbl' : t.cancelled ? 'x-lbl' : '';
+    const icon   = t.cancelled ? '✕' : t.done ? '✓' : t.icon;
+    const nextDone = tracking[i+1]?.done || tracking[i+1]?.active;
+    return `<div class="omd-tl-item ${(t.done&&nextDone)||t.active?'done-step':''}">
+      <div class="omd-tl-dot ${dotCls}">${icon}</div>
+      <div class="omd-tl-lbl ${lblCls}">${t.label.replace(/^.\s/,'')}</div>
+      <div class="omd-tl-date">${t.date||''}</div>
+    </div>`;
+  }).join('');
+
+  // ── Productos ──
+  const prodsHTML = items.length ? items.map(i => {
+    const disc = i.old > i.price ? Math.round((i.old-i.price)/i.old*100) : 0;
+    const img = i.imageUrl
+      ? `<img class="omd-pimg" src="${i.imageUrl}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="omd-pph" style="display:none">📦</div>`
+      : `<div class="omd-pph">📦</div>`;
+    return `<div class="omd-prod">
+      ${img}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#0b1c35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.name}</div>
+        <div style="font-size:11px;color:#a0aec0">${i.brand||''}${disc?` · <span style="color:#E89E48">-${disc}%</span>`:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:12px;color:#a0aec0;text-decoration:line-through">${disc?`S/ ${i.old.toFixed(2)}`:''}</div>
+        <div style="font-size:13px;font-weight:800;color:#0b1c35">S/ ${i.price.toFixed(2)} <span style="font-weight:400;color:#a0aec0">×${i.qty}</span></div>
+        <div style="font-size:12px;font-weight:700;color:#E89E48">S/ ${(i.price*i.qty).toFixed(2)}</div>
+      </div>
+    </div>`;
+  }).join('') : `<div style="font-size:12px;color:#a0aec0;padding:8px 0;text-align:center">Sin productos registrados</div>`;
+
+  const cancelBanner = rawStatus === 'cancelado'
+    ? `<div style="background:#fef2f2;border-left:4px solid #ef4444;padding:10px 20px;font-size:12px;color:#b91c1c">
+        ❌ ${raw.cancel_reason || 'Pedido cancelado por el cliente.'}</div>` : '';
+
+  const confirmBanner = rawStatus === 'entrega'
+    ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:10px 20px;font-size:12px;color:#92400e">
+        ⏰ Tu pedido fue entregado. ¡Confirma la recepción para cerrar el pedido!</div>` : '';
+
+  overlay.innerHTML = `
+  <div id="omDetailBox">
+    <!-- HEADER fijo -->
+    <div style="background:#0b1c35;padding:16px 20px;border-radius:20px 20px 0 0;
+         display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#e8c55a;letter-spacing:.3px">${order.id}</div>
+        <div style="font-size:11px;color:#8fa0b8;margin-top:2px">📅 ${order.date}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;
+          background:${statusBg[rawStatus]||'#f5f6fa'};color:${statusClr[rawStatus]||'#4a5568'}">
+          ${statusLabel[rawStatus]||rawStatus}
+        </span>
+        <button onclick="omCloseDetail()"
+          style="background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;
+                 border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+    </div>
+
+    <!-- REF VENTA -->
+    <div style="background:#f7f9fc;padding:8px 20px;border-bottom:1px solid #edf0f5;
+         display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span>🧾</span>
+      <span style="font-size:12px;color:#4a5568">Comprobante:</span>
+      <b style="font-size:12px;color:#0b1c35">${raw.sale_number||order.voucher||'—'}</b>
+      ${raw.invoice_number?`<span style="font-size:11px;color:#a0aec0">· ${raw.invoice_number}</span>`:''}
+      <span style="margin-left:auto;font-size:14px;font-weight:800;color:#E89E48">S/ ${total.toFixed(2)}</span>
+    </div>
+
+    ${cancelBanner}${confirmBanner}
+
+    <!-- SCROLL -->
+    <div class="omd-scroll">
+
+      <!-- SEGUIMIENTO -->
+      <div class="omd-sec">
+        <div class="omd-sec-ttl">📡 Seguimiento del pedido</div>
+        <div class="omd-tl">${tlHTML}</div>
+      </div>
+
+      <!-- ENTREGA -->
+      <div class="omd-sec">
+        <div class="omd-sec-ttl">📍 Datos de entrega</div>
+        <div class="omd-fgrid">
+          <div class="omd-f" style="grid-column:span 2">
+            <div class="fl">Dirección</div>
+            <div class="fv">${raw.delivery_address||order.address||'—'}</div>
+          </div>
+          ${raw.delivery_reference?`<div class="omd-f" style="grid-column:span 2">
+            <div class="fl">Referencia</div><div class="fv">${raw.delivery_reference}</div></div>`:''}
+        </div>
+      </div>
+
+      <!-- PRODUCTOS -->
+      <div class="omd-sec">
+        <div class="omd-sec-ttl">🛒 Productos (${items.length})</div>
+        ${prodsHTML}
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:1px solid #edf0f5;margin-top:4px">
+          <span style="font-size:11px;color:#a0aec0">Subtotal original</span>
+          <span style="font-size:11px;color:#a0aec0">S/ ${orig.toFixed(2)}</span>
+        </div>
+        ${orig>total?`<div style="display:flex;justify-content:space-between">
+          <span style="font-size:11px;color:#16a34a">Ahorro</span>
+          <span style="font-size:11px;font-weight:700;color:#16a34a">-S/ ${(orig-total).toFixed(2)}</span>
+        </div>`:''}
+        <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:2px solid #edf0f5;margin-top:4px">
+          <span style="font-size:14px;font-weight:800;color:#0b1c35">TOTAL PAGADO</span>
+          <span style="font-size:15px;font-weight:800;color:#E89E48">S/ ${total.toFixed(2)}</span>
+        </div>
+      </div>
+
+    </div><!-- /scroll -->
+
+    <!-- FOOTER ACCIONES fijo -->
+    <div style="display:flex;gap:8px;padding:12px 20px;border-top:1px solid #edf0f5;
+         background:#f7f9fc;border-radius:0 0 20px 20px;flex-shrink:0;flex-wrap:wrap">
+      <button onclick="omContactWA('${order.id}')"
+        style="flex:1;min-width:100px;padding:9px 8px;border-radius:10px;border:1px solid #e0e3eb;
+               background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#0b1c35">💬 WhatsApp</button>
+      <button onclick="omPrintOrder('${order.id}')"
+        style="flex:1;min-width:100px;padding:9px 8px;border-radius:10px;border:1px solid #e0e3eb;
+               background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#0b1c35">🖨️ Imprimir</button>
+      ${rawStatus==='entrega'?`
+      <button onclick="omConfirmDelivery('${order.id}');omCloseDetail()"
+        style="flex:2;min-width:160px;padding:9px 8px;border-radius:10px;border:none;
+               background:#16a34a;color:#fff;font-size:12px;font-weight:800;cursor:pointer">
+        ✅ Confirmar recepción</button>`:''}
+      ${['agendado','preparando'].includes(rawStatus)?`
+      <button onclick="omCancelOrder('${order.id}');omCloseDetail()"
+        style="flex:1;min-width:100px;padding:9px 8px;border-radius:10px;border:none;
+               background:#dc2626;color:#fff;font-size:11px;font-weight:700;cursor:pointer">
+        ❌ Cancelar</button>`:''}
+    </div>
+  </div>`;
+
+  overlay.style.display = 'flex';
+}
+
+function omCloseDetail() {
+  const overlay = document.getElementById('omDetailOverlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 function omCopyVoucher(id, code){
@@ -1233,15 +2326,34 @@ function omCopyVoucher(id, code){
     .catch(()=>showToast('📋 Código: '+code));
 }
 
-function omCancelOrder(id){
-  if(!confirm(`¿Cancelar el pedido ${id}? Esta acción no se puede deshacer.`)) return;
+async function omCancelOrder(id){
   const o = omAllOrders.find(x=>x.id===id);
   if(!o) return;
-  o.status='cancelado'; o.alert='cancelado'; o.alertMsg='Pedido cancelado por el cliente.';
-  o.tracking[1]={...o.tracking[1],done:false,active:false,cancelled:true,date:'Cancelado'};
-  [2,3,4].forEach(i=>o.tracking[i]={...o.tracking[i],done:false,active:false,date:''});
-  omRenderStats(); filterOrdersModal();
-  showToast('❌ Pedido '+id+' cancelado');
+  if(!['agendado','preparando'].includes(o.rawStatus)){
+    showToast('❌ Solo puedes cancelar mientras el pedido está en preparación.');
+    return;
+  }
+  if(!confirm(`¿Cancelar el pedido ${id}?\n\nSolo puedes cancelar si está en preparación. Una vez alistado, ya no es posible.`)) return;
+  try {
+    await API.customers.cancelDelivery(o.dbId, 'Cancelado por el cliente');
+    showToast('❌ Pedido '+id+' cancelado');
+    showOrdersModal();
+  } catch(err) {
+    showToast('❌ '+err.message);
+  }
+}
+
+async function omConfirmDelivery(id){
+  const o = omAllOrders.find(x=>x.id===id);
+  if(!o) return;
+  if(!confirm(`¿Confirmar la recepción del pedido ${id}?\n\nAl confirmar, das conformidad de que recibiste tu pedido correctamente.`)) return;
+  try {
+    await API.customers.confirmDelivery(o.dbId);
+    showToast('✅ ¡Gracias! Recepción confirmada correctamente.');
+    showOrdersModal();
+  } catch(err) {
+    showToast('❌ '+err.message);
+  }
 }
 
 function omContactWA(id){
@@ -1302,14 +2414,91 @@ function ordersPrintAll(){
 }
 
 function showOrdersModal() {
-  requireLogin(() => {
+  requireLogin(async () => {
     document.getElementById('accountMenu').classList.remove('show');
     const user = getCurrentUser();
-    document.getElementById('ordersUserName').textContent = '👤 ' + user.name;
+    document.getElementById('ordersUserName').textContent = '👤 ' + maskName(user?.name || '');
+    document.getElementById('ordersModal').classList.add('show');
+
+    const wrap = document.getElementById('ordersListWrap');
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:36px">⏳</div><p style="margin-top:12px">Cargando tus pedidos...</p></div>';
+
+    try {
+      const apiOrders = await API.customers.deliveryOrders();
+      omAllOrders = apiOrders.map(o => ({
+        _raw:       o,
+        id:         o.order_number || o.id,
+        dbId:       o.id,
+        date:       new Date(o.created_at || o.scheduled_at).toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+        status:     mapDeliveryStatus(o.status),
+        rawStatus:  o.status,
+        voucher:    (o.invoice_number && o.invoice_number !== '') ? o.invoice_number : (o.sale_number || '—'),
+        payMethod:  '—',
+        address:    o.delivery_address || '—',
+        items:      (o.items || []).filter(i => i.product_name).map(i => ({
+          icon: '📦', name: i.product_name, brand: '—', qty: i.quantity,
+          price: parseFloat(i.unit_price || 0), old: parseFloat(i.unit_price || 0), sku: '—'
+        })),
+        tracking: buildDeliveryTracking(o),
+        alert:    omGetDeliveryAlert(o),
+        alertMsg: omGetDeliveryAlertMsg(o),
+      }));
+    } catch {
+      omAllOrders = [];
+    }
+    omFiltered = [...omAllOrders];
     omRenderStats();
     filterOrdersModal();
-    document.getElementById('ordersModal').classList.add('show');
   });
+}
+
+function mapDeliveryStatus(s) {
+  const map = {
+    agendado:    'proceso',
+    preparando:  'almacen',
+    alistado:    'empaquetado',
+    en_curso:    'envio',
+    entrega:     'entregado',
+    conformidad: 'entregado',
+    cancelado:   'cancelado',
+  };
+  return map[s] || 'proceso';
+}
+
+function buildDeliveryTracking(o) {
+  const steps = [
+    { key: 'agendado',    label: '📅 Agendado',   ts: o.scheduled_at  },
+    { key: 'preparando',  label: '🔧 Preparando', ts: o.preparing_at  },
+    { key: 'alistado',    label: '📦 Alistado',   ts: o.ready_at      },
+    { key: 'en_curso',    label: '🚚 En camino',  ts: o.in_transit_at },
+    { key: 'entrega',     label: '🏠 Entregado',  ts: o.delivered_at  },
+    { key: 'conformidad', label: '✅ Confirmado', ts: o.confirmed_at  },
+  ];
+  const order = steps.map(s => s.key);
+  const curIdx = o.status === 'cancelado' ? -1 : order.indexOf(o.status);
+  return steps.map((s, i) => {
+    const date = s.ts ? new Date(s.ts).toLocaleDateString('es-PE', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+    if (o.status === 'cancelado') {
+      // Pasos con timestamp = se completaron antes de la cancelación → ✓
+      // Pasos sin timestamp = no se alcanzaron → ✗
+      return { label: s.label, icon: s.label.split(' ')[0], done: !!s.ts, active: false, cancelled: !s.ts, date };
+    }
+    return { label: s.label, icon: s.label.split(' ')[0], done: i < curIdx, active: i === curIdx, cancelled: false, date };
+  });
+}
+
+function omGetDeliveryAlert(o) {
+  if (o.status === 'cancelado')   return 'cancelado';
+  if (o.status === 'entrega') {
+    const hrs = (Date.now() - new Date(o.delivered_at)) / 3600000;
+    if (hrs > 5) return 'observado';
+  }
+  return null;
+}
+function omGetDeliveryAlertMsg(o) {
+  if (o.status === 'cancelado') return o.cancel_reason || 'Pedido cancelado.';
+  if (o.status === 'entrega')   return '⏰ Tu pedido fue entregado. Por favor confirma la recepción.';
+  return '';
 }
 
 function showAddressModal() {
@@ -1324,24 +2513,23 @@ function showAddressModal() {
   });
 }
 
-function saveAddress() {
-  const user = getCurrentUser();
-  user.address = {
-    main: document.getElementById('addressMain').value.trim(),
-    district: document.getElementById('addressDistrict').value.trim(),
-    ref: document.getElementById('addressRef').value.trim()
-  };
-  const users = getUsers();
-  const idx = users.findIndex(u => u.email === user.email);
-  if (idx !== -1) { users[idx].address = user.address; saveUsers(users); }
-  setCurrentUser(user);
-  closeModal('addressModal');
-  showToast('✅ Dirección guardada correctamente');
+async function saveAddress() {
+  const address  = document.getElementById('addressMain').value.trim();
+  const district = document.getElementById('addressDistrict').value.trim();
+  try {
+    await API.customers.updateProfile({ address, district });
+    const user = getCurrentUser();
+    API.customers.setSession(API.customers.getToken(), { ...user, address, district });
+    closeModal('addressModal');
+    showToast('✅ Dirección guardada correctamente');
+  } catch (err) {
+    showToast('❌ ' + err.message);
+  }
 }
 
 function showPointsModal() {
   requireLogin(() => {
-    const user = getCurrentUser();
+    const user = getCurrentUser() || {};
     document.getElementById('userPoints').textContent = user.points || 0;
     document.getElementById('userPointsValue').textContent = ((user.points || 0) / 20).toFixed(2);
     document.getElementById('accountMenu').classList.remove('show');
@@ -1368,31 +2556,62 @@ function quickAISearch(term) {
 
 // ===== MEGA MENU =====
 function renderMegaContent(cat) {
-  const d = megaData[cat];
-  if (!d) return;
-  let html = `<h2>${d.icon} ${d.title}</h2><div class="mega-grid">`;
-  d.cols.forEach(col => {
-    html += `<div class="mega-col"><h3>${col.title}</h3>`;
-    col.items.forEach(item => { html += `<p onclick="closeMegaMenu()">${item}</p>`; });
-    html += '</div>';
-  });
-  html += '</div>';
-  document.getElementById('megaContent').innerHTML = html;
+  // Ahora el mega menú es de 3 columnas: megaShowSubs maneja todo
+  const sidebar = document.getElementById('megaSidebar');
+  const trigger = sidebar?.querySelector(`[data-cat="${cat}"]`);
+  megaShowSubs(cat, trigger);
 }
 function closeMegaMenu() {
   document.getElementById('megaMenu').classList.remove('show');
   document.getElementById('megaOverlay').classList.remove('show');
+  // Resetear columnas al estado inicial
+  document.querySelectorAll('.mega-cat').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.mega-sub-item').forEach(el => el.classList.remove('active'));
+  const subsEl = document.getElementById('megaSubs');
+  const contentEl = document.getElementById('megaContent');
+  if (subsEl) subsEl.innerHTML = '<div class="mega-subs-hint">← Selecciona una categoría</div>';
+  if (contentEl) contentEl.innerHTML = '<div class="mega-content-hint">← Selecciona una subcategoría</div>';
 }
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-  renderFeatured();
-  renderProducts();
+  currentPage = 'home';
   renderCart();
   renderMegaContent('limpieza');
   renderPlanPreviews();
-  refreshAIRecs();
   updateHeaderUser(); // Restaurar sesión si existe
+
+  // Carga inicial de productos
+  loadProducts();
+
+  // Actualizaciones en tiempo real via Server-Sent Events
+  function setLiveStatus(connected) {
+    const el = document.getElementById('liveIndicator');
+    if (!el) return;
+    el.classList.toggle('disconnected', !connected);
+    el.querySelector('.live-label').textContent = connected ? 'En vivo' : 'Sin conexión';
+    el.title = connected ? 'Recibe actualizaciones automáticas en tiempo real' : 'Sin conexión al servidor';
+  }
+
+  if (window.EventSource) {
+    const es = new EventSource('/api/products/events');
+
+    es.onopen  = () => setLiveStatus(true);
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'products_updated') loadProducts();
+      } catch {}
+    };
+
+    es.onerror = () => {
+      setLiveStatus(false);
+      // EventSource reconecta automáticamente; onopen actualizará el estado
+    };
+  } else {
+    setLiveStatus(false);
+  }
 
   history.replaceState({ page: 'home', productId: null }, '', '#home');
 
@@ -1402,12 +2621,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('megaOverlay').classList.toggle('show');
   });
   document.getElementById('megaOverlay').addEventListener('click', closeMegaMenu);
-  document.querySelectorAll('.mega-cat').forEach(cat => {
-    cat.addEventListener('click', () => {
-      document.querySelectorAll('.mega-cat').forEach(c => c.classList.remove('active'));
-      cat.classList.add('active');
-      renderMegaContent(cat.dataset.cat);
+  // Mega menú lateral (botón CATEGORÍAS) — event delegation
+  document.querySelector('.mega-sidebar').addEventListener('click', e => {
+    const item = e.target.closest('.mega-cat');
+    if (!item) return;
+    document.querySelectorAll('.mega-cat').forEach(c => c.classList.remove('active'));
+    item.classList.add('active');
+    renderMegaContent(item.dataset.cat);
+  });
+
+  // Cerrar panel de navegación al salir del área quick-cats-wrap
+  const qWrap = document.getElementById('quickCatsWrap');
+  if (qWrap) {
+    qWrap.addEventListener('mouseleave', () => {
+      _catNavTimer = setTimeout(closeCatNav, 250);
     });
+    qWrap.addEventListener('mouseenter', () => clearTimeout(_catNavTimer));
+  }
+
+  // Cerrar panel al hacer click fuera
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#quickCatsWrap')) closeCatNav();
   });
 
   // CUENTA
@@ -1439,11 +2673,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('drawerOverlay').classList.remove('show');
   });
 
-  // CERRAR MODALES CON X
-  document.getElementById('closeLogin').addEventListener('click', () => closeModal('loginModal'));
-
   // CERRAR MODALES AL HACER CLICK FUERA
-  ['loginModal','registerModal','profileModal','ordersModal','addressModal','pointsModal','contactModal','aiAssistantModal'].forEach(id => {
+  ['loginModal','profileModal','ordersModal','addressModal','pointsModal','contactModal','aiAssistantModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', e => { if (e.target === el) closeModal(id); });
   });
@@ -1463,12 +2694,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dot.addEventListener('click', () => { const d = i - currentBanner; if(d!==0) changeBanner(d<0?-1:1); });
   });
 
-  // SORT
+  // SORT — ahora integrado con el sistema de filtros
   document.getElementById('sortProducts').addEventListener('change', e => {
-    let s = [...products];
-    if(e.target.value==='low') s.sort((a,b)=>a.price-b.price);
-    if(e.target.value==='high') s.sort((a,b)=>b.price-a.price);
-    if(e.target.value==='sold') s.sort((a,b)=>(b.sold||0)-(a.sold||0));
-    renderProducts(s);
+    currentSort = e.target.value;
+    applyFilters();
   });
 });

@@ -2,6 +2,7 @@
 <html lang="es" data-theme="light">
   <head>
     <meta charset="UTF-8" />
+    <script src="auth-guard.js"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <link
       rel="icon"
@@ -423,6 +424,9 @@
         background: var(--green);
         animation: pulse 1.5s infinite;
       }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
       @keyframes pulse {
         0%,
         100% {
@@ -501,7 +505,7 @@
         border-radius: 11px;
         padding: 3px;
         width: fit-content;
-        margin-bottom: 1.5rem;
+        margin: 0 auto 1.5rem;
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
       }
       .tab {
@@ -1156,6 +1160,220 @@
         border-color: var(--red-bd);
         background: var(--red-bg);
       }
+
+      /* ── SESSIONS DETAIL DRAWER ── */
+      .sd-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .22s;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .sd-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .sd-drawer {
+        width: 520px;
+        max-width: 96vw;
+        height: 100%;
+        background: var(--surface);
+        box-shadow: -8px 0 40px rgba(0,0,0,.18);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform .25s cubic-bezier(.4,0,.2,1);
+        overflow: hidden;
+      }
+      .sd-overlay.open .sd-drawer {
+        transform: translateX(0);
+      }
+      .sd-head {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface2);
+        flex-shrink: 0;
+      }
+      .sd-worker-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .sd-avatar {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; font-weight: 700; color: #fff;
+        flex-shrink: 0;
+      }
+      .sd-name { font-size: 16px; font-weight: 700; color: var(--text); }
+      .sd-role { font-size: 12px; color: var(--text3); margin-top: 2px; }
+      .sd-close {
+        width: 32px; height: 32px; border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        font-size: 17px; color: var(--text3); transition: all .15s;
+      }
+      .sd-close:hover { background: var(--red-bg); color: var(--red); border-color: var(--red-bd); }
+      .sd-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .sd-section-title {
+        font-size: 11px; font-weight: 700; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--text3);
+        margin-bottom: .75rem;
+        display: flex; align-items: center; gap: 6px;
+      }
+      .sd-section-title .sd-badge {
+        background: var(--accent); color: #fff;
+        border-radius: 20px; padding: 1px 7px; font-size: 10px; font-weight: 700;
+      }
+      .sd-page-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: .6rem .875rem;
+        border-radius: 8px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        margin-bottom: 6px;
+      }
+      .sd-page-dot {
+        width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        background: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34,197,94,.18);
+        animation: pulse 2s infinite;
+      }
+      .sd-page-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+      .sd-page-time { font-size: 11px; color: var(--text3); }
+      .sd-history-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 12px;
+        align-items: flex-start;
+        padding: .75rem 0;
+        border-bottom: 1px solid var(--border);
+        position: relative;
+      }
+      .sd-history-row:last-child { border-bottom: none; }
+      .sd-hist-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; flex-shrink: 0; margin-top: 2px;
+      }
+      .sd-hist-icon.open  { background: #dcfce7; }
+      .sd-hist-icon.closed { background: #fee2e2; }
+      .sd-hist-icon.expired { background: #fef9c3; }
+      .sd-hist-info { min-width: 0; }
+      .sd-hist-status {
+        font-size: 12px; font-weight: 700; margin-bottom: 3px;
+      }
+      .sd-hist-status.open    { color: #16a34a; }
+      .sd-hist-status.closed  { color: #dc2626; }
+      .sd-hist-status.expired { color: #ca8a04; }
+      .sd-hist-dates { font-size: 11px; color: var(--text3); line-height: 1.7; }
+      .sd-hist-page {
+        font-size: 11.5px; font-weight: 600; color: var(--accent);
+        margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .sd-hist-dur {
+        font-size: 11px; color: var(--text3); text-align: right;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      .sd-empty {
+        text-align: center; color: var(--text3); font-size: 13px;
+        padding: 1.5rem 0;
+      }
+      .sd-loading {
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px; color: var(--text3); font-size: 13px; padding: 2rem 0;
+      }
+
+      /* ── MULTI-PAGE PILLS ── */
+      .pages-summary {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .page-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--accent-bg, #eff6ff);
+        color: var(--accent, #2563eb);
+        border: 1px solid var(--accent-mid, #bfdbfe);
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 11.5px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .page-pill.page-pill-faded {
+        opacity: .7;
+      }
+      .pages-toggle {
+        background: none;
+        border: none;
+        font-size: 11px;
+        color: var(--text3);
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 5px;
+        transition: background .12s;
+      }
+      .pages-toggle:hover { background: var(--surface2); }
+      .pages-detail {
+        margin-top: 8px;
+        border-top: 1px dashed var(--border);
+        padding-top: 8px;
+        display: none;
+      }
+      .pages-detail.open { display: block; }
+      .page-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        font-size: 12px;
+        color: var(--text2);
+        border-bottom: 1px solid var(--border);
+      }
+      .page-row:last-child { border-bottom: none; }
+      .page-row-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+      }
+      .page-count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent, #2563eb);
+        color: #fff;
+        border-radius: 20px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
       .online-dot {
         width: 8px;
         height: 8px;
@@ -1781,6 +1999,46 @@
         background: var(--border);
         margin: 1rem 0;
       }
+      /* ── PERMISSIONS MATRIX ── */
+      @media (max-width:900px) {
+        #view-permissions .pf-grid { grid-template-columns:1fr 1fr !important; }
+      }
+      .perm-table { width:100%; border-collapse:collapse; font-size:13px; }
+      .perm-table th {
+        background:var(--surface2); color:var(--text2); font-weight:700;
+        font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+        padding:10px 8px; border:1px solid var(--border); white-space:nowrap;
+        text-align:center;
+      }
+      .perm-table th.perm-worker-th {
+        text-align:left; min-width:200px; position:sticky; left:0; z-index:2;
+        background:var(--surface2);
+      }
+      .perm-table td {
+        border:1px solid var(--border); padding:0; text-align:center;
+        vertical-align:middle; background:var(--surface);
+      }
+      .perm-table td.perm-worker-td {
+        text-align:left; padding:10px 12px; position:sticky; left:0; z-index:1;
+        background:var(--surface); min-width:200px;
+      }
+      .perm-table tr:hover td { background:var(--surface2); }
+      .perm-table tr:hover td.perm-worker-td { background:var(--surface2); }
+      .perm-toggle {
+        width:100%; height:46px; border:none; cursor:pointer; font-size:18px;
+        transition:background .15s;
+      }
+      .perm-toggle.on  { background:#dcfce7; color:#16a34a; }
+      .perm-toggle.off { background:#fee2e2; color:#dc2626; }
+      .perm-toggle.admin { background:var(--surface3); color:var(--text3); cursor:default; font-size:11px; font-weight:700; }
+      .perm-toggle:not(.admin):hover { filter:brightness(.93); }
+      .perm-worker-info strong { display:block; font-size:13px; color:var(--text); }
+      .perm-worker-info small  { font-size:11px; color:var(--text3); }
+      .perm-role-badge {
+        display:inline-block; font-size:10px; font-weight:700; padding:1px 6px;
+        border-radius:999px; margin-top:2px;
+        background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-bd);
+      }
     </style>
   </head>
   <body>
@@ -1801,10 +2059,10 @@
         </div>
 
         <div class="sidebar-admin">
-          <div class="s-av">AD</div>
+          <div class="s-av" id="twSidebarAvatar">--</div>
           <div style="flex: 1; min-width: 0">
-            <span class="s-av-name">Administrador</span>
-            <span class="s-av-role">Super Admin</span>
+            <span class="s-av-name" id="twSidebarName">Cargando...</span>
+            <span class="s-av-role" id="twSidebarRole"></span>
           </div>
           <div class="s-av-dot"></div>
         </div>
@@ -1829,6 +2087,9 @@
             <span class="nav-icon">📊</span> KPIs
           </button>
           <span class="nav-section">Admin</span>
+          <button class="nav-item" onclick="showTab('permissions', this)">
+            <span class="nav-icon">🔐</span> Permisos
+          </button>
           <button class="nav-item" onclick="showTab('notifications', this)">
             <span class="nav-icon">🔔</span> Alertas
             <span class="nav-badge" id="nc-notif">0</span>
@@ -1943,6 +2204,9 @@
               onclick="showTab('notifications', this)"
             >
               🔔 Alertas <span class="tab-cnt" id="tb-notif">0</span>
+            </button>
+            <button class="tab" id="tab-permissions" onclick="showTab('permissions', this)">
+              🔐 Permisos
             </button>
             <button class="tab" id="tab-audit" onclick="showTab('audit', this)">
               📘 Bitácora <span class="tab-cnt" id="tb-audit">0</span>
@@ -2597,11 +2861,143 @@
             </div>
             <div id="auditList"></div>
           </div>
+
+          <!-- ─── VIEW: PERMISOS ─── -->
+          <div id="view-permissions" class="view hidden">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem">
+              <div>
+                <div class="section-title">Permisos de Acceso por Módulo</div>
+                <div class="section-sub" style="margin-bottom:0">
+                  Activa o desactiva el acceso de cada trabajador a cada módulo del sistema.
+                  Los administradores siempre tienen acceso completo.
+                </div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="renderPermissions()">↺ Actualizar</button>
+            </div>
+
+            <!-- Filtros avanzados -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+                        padding:1rem 1.125rem;margin-bottom:1rem;box-shadow:var(--shadow)">
+              <div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 1.4fr 1fr auto;
+                          gap:.75rem;align-items:end">
+                <!-- Buscar -->
+                <div>
+                  <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;
+                                color:var(--text3);text-transform:uppercase;margin-bottom:5px">
+                    Buscar trabajador
+                  </label>
+                  <div style="position:relative">
+                    <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);
+                                 font-size:13px;pointer-events:none">🔍</span>
+                    <input id="pfSearch" class="inp" placeholder="Nombre, correo, rol..."
+                           oninput="applyPermFilters()"
+                           style="padding-left:30px;width:100%;box-sizing:border-box">
+                  </div>
+                </div>
+                <!-- Rol -->
+                <div>
+                  <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;
+                                color:var(--text3);text-transform:uppercase;margin-bottom:5px">Rol</label>
+                  <select id="pfRole" class="sel" onchange="applyPermFilters()"
+                          style="width:100%;box-sizing:border-box">
+                    <option value="">Todos</option>
+                    <option value="admin">Admin</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="vendedor">Vendedor</option>
+                    <option value="almacen">Almacén</option>
+                    <option value="contabilidad">Contabilidad</option>
+                  </select>
+                </div>
+                <!-- Estado -->
+                <div>
+                  <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;
+                                color:var(--text3);text-transform:uppercase;margin-bottom:5px">Estado</label>
+                  <select id="pfStatus" class="sel" onchange="applyPermFilters()"
+                          style="width:100%;box-sizing:border-box">
+                    <option value="">Todos</option>
+                    <option value="activo">Activo</option>
+                    <option value="suspendido">Suspendido</option>
+                    <option value="desconectado">Desconectado</option>
+                    <option value="cesado">Cesado</option>
+                  </select>
+                </div>
+                <!-- Módulo -->
+                <div>
+                  <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;
+                                color:var(--text3);text-transform:uppercase;margin-bottom:5px">Módulo</label>
+                  <select id="pfModule" class="sel" onchange="applyPermFilters()"
+                          style="width:100%;box-sizing:border-box">
+                    <option value="">Cualquier módulo</option>
+                  </select>
+                </div>
+                <!-- Acceso -->
+                <div>
+                  <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;
+                                color:var(--text3);text-transform:uppercase;margin-bottom:5px">Acceso</label>
+                  <select id="pfAccess" class="sel" onchange="applyPermFilters()"
+                          style="width:100%;box-sizing:border-box">
+                    <option value="">Cualquiera</option>
+                    <option value="con">✓ Con acceso</option>
+                    <option value="sin">✕ Sin acceso</option>
+                  </select>
+                </div>
+                <!-- Botón limpiar -->
+                <div>
+                  <button onclick="clearPermFilters()"
+                    style="display:flex;align-items:center;gap:5px;padding:0 14px;height:38px;
+                           background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+                           font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;
+                           white-space:nowrap;transition:background .15s"
+                    onmouseover="this.style.background='var(--surface3)'"
+                    onmouseout="this.style.background='var(--surface2)'">
+                    ✕ Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leyenda + contador -->
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.875rem">
+              <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:12px;color:var(--text2)">
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:13px;height:13px;background:#dcfce7;border:1px solid #86efac;border-radius:3px;display:inline-block"></span> Permitido</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:13px;height:13px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;display:inline-block"></span> Bloqueado</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:13px;height:13px;background:var(--surface3);border:1px solid var(--border);border-radius:3px;display:inline-block"></span> Admin (siempre)</span>
+              </div>
+              <span id="permCount" style="font-size:12px;color:var(--text3)"></span>
+            </div>
+
+            <div id="permMatrix" style="overflow-x:auto">
+              <div style="display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;padding:32px 0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                Cargando permisos...
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
 
     <!-- ═══ MODALS ═══ -->
+
+    <!-- SESSIONS DETAIL DRAWER -->
+    <div class="sd-overlay" id="sdDrawer" onclick="closeSdDrawer(event)">
+      <div class="sd-drawer">
+        <div class="sd-head">
+          <div class="sd-worker-info">
+            <div class="sd-avatar" id="sdAvatar"></div>
+            <div>
+              <div class="sd-name" id="sdName">—</div>
+              <div class="sd-role" id="sdRole">—</div>
+            </div>
+          </div>
+          <button class="sd-close" onclick="document.getElementById('sdDrawer').classList.remove('open')">✕</button>
+        </div>
+        <div class="sd-body" id="sdBody">
+          <div class="sd-loading">⏳ Cargando...</div>
+        </div>
+      </div>
+    </div>
 
     <!-- LOGOUT CONFIRM -->
     <div class="modal-overlay" id="logoutModal">
@@ -3309,10 +3705,23 @@
       let DB = {
         workers: [],
         attendance: [],
-        auditLog: [],
+        auditLog: [],      // eventos en memoria (sesión actual)
+        serverAudit: [],   // eventos persistidos en worker_audit (BD)
         notifications: [],
       };
       let deleteTarget = null;
+
+      // Sesiones activas traídas de la BD
+      let sessionsDB = [];
+
+      async function loadSessionsFromAPI() {
+        try {
+          const rows = await API.sessions.list();
+          sessionsDB = rows;
+        } catch (err) {
+          console.warn("No se pudieron cargar sesiones:", err.message);
+        }
+      }
 
       async function loadFromAPI() {
         try {
@@ -3325,6 +3734,41 @@
       }
 
       function saveDB() { /* datos ya guardados en el servidor */ }
+
+      // Carga todos los registros de worker_audit desde la BD
+      async function loadServerAudit() {
+        try {
+          const records = await API.workers.auditAll();
+          DB.serverAudit = records.map(r => {
+            const fecha = new Date(r.created_at).toLocaleString("es-PE", {
+              day:"2-digit", month:"2-digit", year:"numeric",
+              hour:"2-digit", minute:"2-digit", second:"2-digit"
+            });
+            return {
+              id:        r.id,
+              workerId:  r.worker_id,
+              workerName: r.worker_name || "Trabajador",
+              tipo:      r.action,
+              desc:      r.description || "",
+              at:        fecha,
+              atISO:     r.created_at,
+              by:        r.changed_by_name || "Sistema",
+              ip:        r.ip_address || "—",
+              diffs:     Array.isArray(r.diffs) ? r.diffs : [],
+              obs:       "",
+              module:    "Trabajadores",
+              fromServer: true,
+            };
+          });
+          // Actualizar contadores de la Bitácora
+          const total = DB.serverAudit.length + DB.auditLog.length;
+          const nc = $("nc-audit"), tb = $("tb-audit");
+          if (nc) nc.textContent = total;
+          if (tb) tb.textContent = total;
+        } catch (err) {
+          console.error("Error cargando bitácora del servidor:", err.message);
+        }
+      }
 
       function addLog(
         workerId,
@@ -3476,6 +3920,11 @@
           title: "KPIs del Personal",
           sub: "Estadísticas y métricas de desempeño",
         },
+        permissions: {
+          icon: "🔐",
+          title: "Permisos de Acceso",
+          sub: "Controla a qué módulos puede acceder cada trabajador",
+        },
         notifications: {
           icon: "🔔",
           title: "Centro de Alertas",
@@ -3517,11 +3966,12 @@
         if (tab === "kpi") renderKpi();
         if (tab === "audit") {
           populateAuditWorkerFilter();
-          renderAudit();
+          loadServerAudit().then(() => renderAudit());
         }
         if (tab === "sessions") renderSessions();
         if (tab === "dashboard") renderDashboard();
         if (tab === "notifications") renderNotifications();
+        if (tab === "permissions") renderPermissions();
       }
 
       // ─── PASS ───
@@ -3665,17 +4115,79 @@
           chev = $("chev-" + wid);
         if (!inner) return;
         const isOpen = inner.classList.contains("open");
-        document
-          .querySelectorAll(".acc-inner")
-          .forEach((e) => e.classList.remove("open"));
-        document
-          .querySelectorAll(".acc-chevron")
-          .forEach((e) => e.classList.remove("open"));
+        document.querySelectorAll(".acc-inner").forEach((e) => e.classList.remove("open"));
+        document.querySelectorAll(".acc-chevron").forEach((e) => e.classList.remove("open"));
         if (!isOpen) {
           inner.classList.add("open");
           if (chev) chev.classList.add("open");
           inner.innerHTML = buildAccordion(wid);
+          // Cargar historial desde la API de forma asíncrona
+          loadWorkerAudit(wid);
         }
+      }
+
+      async function loadWorkerAudit(wid) {
+        const sec = $("audit-sec-" + wid);
+        if (!sec) return;
+        try {
+          const records = await API.workers.getAudit(wid);
+          const countEl = $("audit-cnt-" + wid);
+          if (countEl) countEl.textContent = records.length;
+          if (!records.length) {
+            sec.innerHTML = '<div class="empty-state" style="padding:20px"><p>Sin eventos registrados.</p></div>';
+            return;
+          }
+          sec.innerHTML = `<div style="max-height:320px;overflow-y:auto;
+            border:1px solid var(--border);border-radius:var(--radius)">
+            ${records.map(r => buildApiAuditRow(r)).join("")}
+          </div>`;
+        } catch (e) {
+          sec.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px">
+            ❌ Error al cargar historial: ${esc(e.message)}</div>`;
+        }
+      }
+
+      function buildApiAuditRow(r) {
+        const ICONS = {
+          "Edición de datos": "✏️", "Creación": "✨", "Eliminación": "🗑️",
+          "Cambio de estado": "🏷️", "Registro de asistencia": "📋",
+          "Corrección de asistencia": "🔧", "Memorandón enviado": "📤",
+          "Desconexión": "🔌",
+        };
+        const icon = ICONS[r.action] || "ℹ️";
+        const diffs = Array.isArray(r.diffs) ? r.diffs : [];
+        const diffsHTML = diffs.length
+          ? `<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
+              ${diffs.map(d => `
+                <div class="diff-row">
+                  <span style="font-size:9px;font-weight:700;text-transform:uppercase;
+                               color:var(--text3);min-width:80px">${esc(d.field)}</span>
+                  <span style="color:var(--red);text-decoration:line-through">${esc(d.from)}</span>
+                  <span style="color:var(--text3);margin:0 3px">→</span>
+                  <span style="color:var(--green)">${esc(d.to)}</span>
+                </div>`).join("")}
+            </div>`
+          : "";
+        const fecha = new Date(r.created_at).toLocaleString("es-PE", {
+          day:"2-digit", month:"short", year:"numeric",
+          hour:"2-digit", minute:"2-digit", second:"2-digit"
+        });
+        return `<div style="display:flex;gap:10px;padding:10px 12px;
+                            border-bottom:1px solid var(--border)">
+          <span style="font-size:16px;flex-shrink:0;width:24px;text-align:center">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:3px">
+              <span class="badge badge-info" style="font-size:10px">${esc(r.action)}</span>
+              <span style="font-size:10px;color:var(--text3);font-family:monospace">${esc(fecha)}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2)">${esc(r.description || "")}</div>
+            ${diffsHTML}
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">
+              <span class="log-chip">👤 ${esc(r.changed_by_name || "Sistema")}</span>
+              ${r.ip_address ? `<span class="log-chip">🌐 ${esc(r.ip_address)}</span>` : ""}
+            </div>
+          </div>
+        </div>`;
       }
 
       function buildAccordion(wid) {
@@ -3724,14 +4236,23 @@
     ${heatHTML}
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-    <h4 style="font-family:'Instrument Serif',serif;font-size:15px">Historial de eventos <span style="font-size:10px;background:var(--gold-pale);color:var(--gold-d);padding:2px 8px;border-radius:999px;border:1px solid rgba(196,154,42,.3);margin-left:6px">${logs.length}</span></h4>
+    <h4 style="font-family:'Instrument Serif',serif;font-size:15px">
+      Historial de eventos
+      <span id="audit-cnt-${wid}" style="font-size:10px;background:var(--gold-pale);color:var(--gold-d);
+        padding:2px 8px;border-radius:999px;border:1px solid rgba(196,154,42,.3);margin-left:6px">…</span>
+    </h4>
     <button class="btn btn-outline btn-sm" onclick="openWorkerModal('${wid}')">✏️ Editar</button>
   </div>
-  ${
-    logs.length === 0
-      ? '<div class="empty-state" style="padding:20px"><p>Sin eventos.</p></div>'
-      : `<div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)">${logs.map((l) => buildMiniLog(l)).join("")}</div>`
-  }`;
+  <div id="audit-sec-${wid}">
+    <div style="display:flex;align-items:center;gap:8px;padding:16px;color:var(--text3);font-size:12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           style="animation:spin 1s linear infinite;flex-shrink:0">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4
+                 M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+      Cargando historial...
+    </div>
+  </div>`;
       }
 
       function buildMiniLog(l) {
@@ -3897,10 +4418,15 @@
 
         try {
           if (id) {
-            await API.workers.update(id, apiData);
+            const res = await API.workers.update(id, apiData);
             const idx = DB.workers.findIndex((x) => x.id === id);
             if (idx !== -1) DB.workers[idx] = mapWorker({ ...apiData, id, created_at: DB.workers[idx].createdAt });
-            toast("Trabajador actualizado", "success");
+            const msg = res.changes > 0
+              ? `Trabajador actualizado · ${res.changes} campo(s) modificado(s)`
+              : "Sin cambios detectados";
+            toast(msg, "success");
+            // Recargar historial si el acordeón está abierto
+            if ($("audit-sec-" + id)) loadWorkerAudit(id);
           } else {
             const created = await API.workers.create(apiData);
             DB.workers.unshift(mapWorker({ ...apiData, ...created }));
@@ -3940,8 +4466,326 @@
         }
       }
 
+      /* ═══════════════════════════════════════════════
+         SESSIONS DETAIL DRAWER
+      ═══════════════════════════════════════════════ */
+      function closeSdDrawer(e) {
+        if (e && e.target !== document.getElementById("sdDrawer")) return;
+        document.getElementById("sdDrawer").classList.remove("open");
+      }
+
+      function fmtDateTime(iso) {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleString("es-PE", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+        });
+      }
+
+      function sessionDuration(start, end) {
+        if (!start) return "—";
+        const ms = (end ? new Date(end) : new Date()) - new Date(start);
+        if (ms < 0) return "—";
+        const m = Math.floor(ms / 60000);
+        const h = Math.floor(m / 60);
+        if (h > 0) return h + "h " + (m % 60) + "min";
+        return m + " min";
+      }
+
+      async function openSdDrawer(workerId, workerName, role, color) {
+        const drawer = document.getElementById("sdDrawer");
+        const body   = document.getElementById("sdBody");
+
+        // Cabecera del drawer
+        const initials = workerName.split(" ").map(w => w[0] || "").slice(0, 2).join("").toUpperCase();
+        document.getElementById("sdAvatar").style.background = color || "#4F46E5";
+        document.getElementById("sdAvatar").textContent = initials;
+        document.getElementById("sdName").textContent = workerName;
+        document.getElementById("sdRole").textContent = role;
+
+        body.innerHTML = '<div class="sd-loading"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Cargando historial...</div>';
+        drawer.classList.add("open");
+
+        try {
+          const data = await API.sessions.workerDetail(workerId);
+          renderSdBody(body, data, workerName, workerId);
+        } catch (err) {
+          body.innerHTML = `<div class="sd-empty">❌ Error al cargar: ${esc(err.message)}</div>`;
+        }
+      }
+
+      async function closePageTab(workerId, tabId, workerName) {
+        try {
+          await API.sessions.closePage(workerId, tabId);
+          // Refresca el drawer
+          const body = document.getElementById("sdBody");
+          const data = await API.sessions.workerDetail(workerId);
+          renderSdBody(body, data, workerName, workerId);
+          // Actualiza la lista de sesiones en segundo plano
+          loadSessionsFromAPI().then(() => { updateCounts(); renderSessions(); });
+        } catch (err) {
+          alert("Error al cerrar módulo: " + err.message);
+        }
+      }
+
+      function renderSdBody(body, data, workerName, workerId) {
+        const active  = data.active_pages   || [];
+        const history = data.session_history || [];
+        const now     = new Date();
+
+        // Clasifica el estado real de cada sesión (la BD no siempre actualiza 'activo' a 'expirada')
+        function classifySession(s) {
+          const expiresAt = s.expires_at ? new Date(s.expires_at) : null;
+          const reallyActive = s.status === "activo" && expiresAt && expiresAt > now;
+
+          if (reallyActive)               return "activo";
+          if (s.status === "revocada")    return "revocada";
+          if (s.status === "inactivo")    return "inactivo";   // cerró sesión manualmente
+          // "activo" pero con expires_at pasado = expirada natural
+          return "expirada";
+        }
+
+        function sessionLabel(cls) {
+          return {
+            activo:   { icon: "🟢", text: "Sesión activa",            css: "open",    bg: "#dcfce7" },
+            inactivo: { icon: "🚪", text: "Cerrada por el usuario",   css: "closed",  bg: "#fee2e2" },
+            revocada: { icon: "🔴", text: "Desconectada por admin",   css: "closed",  bg: "#fee2e2" },
+            expirada: { icon: "⏰", text: "Expirada automáticamente", css: "expired", bg: "#fef9c3" },
+          }[cls] || { icon: "❔", text: cls, css: "expired", bg: "#f3f4f6" };
+        }
+
+        let html = "";
+
+        /* ── Páginas actualmente abiertas ── */
+        html += `<div>
+          <div class="sd-section-title">
+            🟢 Páginas abiertas ahora
+            <span class="sd-badge">${active.length}</span>
+          </div>`;
+        if (!active.length) {
+          html += `<div class="sd-empty">Sin pestañas activas en este momento</div>`;
+        } else {
+          active.forEach(p => {
+            const lbl    = esc(p.page_title || pageLabel(p.page_url) || p.page_url || "—");
+            const tabId  = esc(p.tab_id || "");
+            const wId    = esc(workerId || "");
+            const wName  = esc(workerName || "");
+            const status = pageActivityStatus(p.last_interaction);
+            html += `<div class="sd-page-row" style="align-items:center;gap:6px">
+              <span class="sd-page-dot"></span>
+              <span class="sd-page-label" style="flex:1">📍 ${lbl}</span>
+              <span style="font-size:11px;${status.css};white-space:nowrap">${status.dot} ${status.label}</span>
+              <span class="sd-page-time" style="white-space:nowrap">${timeAgo(p.last_activity)}</span>
+              ${tabId ? `<button
+                onclick="closePageTab('${wId}','${tabId}','${wName}')"
+                title="Cerrar este módulo"
+                style="padding:3px 8px;font-size:11px;font-weight:600;
+                       border:none;border-radius:6px;cursor:pointer;
+                       background:#fee2e2;color:#b91c1c;white-space:nowrap"
+              >✕ Cerrar</button>` : ""}
+            </div>`;
+          });
+        }
+        html += `</div>`;
+
+        /* ── Historial de sesiones ── */
+        // Separar activas de cerradas para mostrarlas diferenciadas
+        const activeSess  = history.filter(s => classifySession(s) === "activo");
+        const closedSess  = history.filter(s => classifySession(s) !== "activo");
+
+        html += `<div>
+          <div class="sd-section-title">
+            🕐 Sesiones activas
+            <span class="sd-badge" style="background:var(--success)">${activeSess.length}</span>
+          </div>`;
+        if (!activeSess.length) {
+          html += `<div class="sd-empty">Sin sesiones activas registradas</div>`;
+        } else {
+          activeSess.forEach(s => { html += buildHistRow(s, classifySession, sessionLabel); });
+        }
+        html += `</div>`;
+
+        html += `<div>
+          <div class="sd-section-title">
+            🔒 Sesiones cerradas
+            <span class="sd-badge" style="background:var(--danger)">${closedSess.length}</span>
+          </div>`;
+        if (!closedSess.length) {
+          html += `<div class="sd-empty">Sin sesiones cerradas en el historial</div>`;
+        } else {
+          closedSess.forEach(s => { html += buildHistRow(s, classifySession, sessionLabel); });
+        }
+        html += `</div>`;
+
+        body.innerHTML = html;
+      }
+
+      function buildHistRow(s, classifyFn, labelFn) {
+        const cls     = classifyFn(s);
+        const lbl     = labelFn(cls);
+        const isOpen  = cls === "activo";
+
+        // Calcular hora de cierre
+        let endTime = null;
+        if (s.revoked_at) endTime = s.revoked_at;
+        else if (!isOpen && s.last_activity) endTime = s.last_activity;
+        else if (!isOpen && s.expires_at)    endTime = s.expires_at;
+
+        const dur    = sessionDuration(s.login_at, endTime);
+        const pageLbl = s.page_title || pageLabel(s.current_page) || s.current_page || "";
+
+        return `<div class="sd-history-row">
+          <div class="sd-hist-icon" style="background:${lbl.bg}">${lbl.icon}</div>
+          <div class="sd-hist-info">
+            <div class="sd-hist-status ${lbl.css}">${lbl.text}</div>
+            <div class="sd-hist-dates">
+              <b>Ingreso:</b> ${fmtDateTime(s.login_at)}<br>
+              ${endTime ? `<b>Cierre:</b> ${fmtDateTime(endTime)}<br>` : ""}
+              ${s.ip_address ? `<b>IP:</b> ${esc(s.ip_address)}` : ""}
+              ${cls === "revocada" && s.revoked_by_name
+                ? `<br><b>Desconectado por:</b> ${esc(s.revoked_by_name)}`
+                : ""}
+            </div>
+            ${pageLbl ? `<div class="sd-hist-page">📍 ${esc(pageLbl)}</div>` : ""}
+          </div>
+          <div class="sd-hist-dur">
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${dur}</div>
+            <div style="font-size:10px;color:var(--text3)">duración</div>
+          </div>
+        </div>`;
+      }
+
+      function togglePages(uid) {
+        const el = document.getElementById("pd-" + uid);
+        if (!el) return;
+        el.classList.toggle("open");
+        const btn = el.previousElementSibling?.querySelector(".pages-toggle");
+        if (btn) btn.textContent = el.classList.contains("open")
+          ? btn.textContent.replace("▾", "▴")
+          : btn.textContent.replace("▴", "▾");
+      }
+
+      // ─── Ayudante: tiempo relativo ───
+      function timeAgo(dateStr) {
+        if (!dateStr) return "—";
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const s = Math.floor(diff / 1000);
+        if (s < 60)  return "hace " + s + "s";
+        const m = Math.floor(s / 60);
+        if (m < 60)  return "hace " + m + "min";
+        const h = Math.floor(m / 60);
+        return "hace " + h + "h";
+      }
+
+      // Clasifica si una página está siendo usada activamente o solo está abierta.
+      // El cliente envía heartbeat inmediato al detectar actividad, así que 60 s es suficiente.
+      function pageActivityStatus(lastInteraction) {
+        if (!lastInteraction) return { label: "Sin datos",    dot: "⬜", css: "color:#94a3b8",                 idle: true  };
+        const secs = (Date.now() - new Date(lastInteraction)) / 1000;
+        if (secs < 60)  return      { label: "Usando ahora", dot: "🟢", css: "color:#16a34a;font-weight:700", idle: false };
+        if (secs < 600) return      { label: "Inactivo",     dot: "🟡", css: "color:#d97706;font-weight:600", idle: true  };
+        return                      { label: "Solo abierto", dot: "🔘", css: "color:#94a3b8",                 idle: true  };
+      }
+
+      // Mapa de página → etiqueta amigable
+      const PAGE_LABELS = {
+        "inicio.html":      "🏠 Portal",
+        "venta.html":       "🛒 Ventas",
+        "cambio.html":      "💱 Tipo de Cambio",
+        "registro.html":    "📦 Inventario",
+        "trabajadores.html":"👥 Trabajadores",
+        "control.html":     "🖥️ Control Admin",
+        "libro.html":       "📒 Libro Contable",
+        "marcacion.html":   "🕐 Marcación",
+        "clientes.html":    "👤 Gestión de Clientes",
+        "pedidos.html":     "📦 Pedidos de Entrega",
+      };
+      function pageLabel(url) {
+        return url ? (PAGE_LABELS[url] || url) : null;
+      }
+
       // ─── SESSIONS ───
       function renderSessions() {
+        $("nc-sessions").textContent = sessionsDB.length;
+        $("tb-sessions").textContent = sessionsDB.length;
+
+        if (!sessionsDB.length) {
+          $("sessionsOnline").innerHTML =
+            '<div class="empty-state" style="padding:28px"><div class="empty-icon">🔌</div><p>Sin sesiones activas.</p></div>';
+        } else {
+          $("sessionsOnline").innerHTML = sessionsDB.map(sess => {
+            const nombre  = esc(sess.worker_name || sess.first_name + " " + sess.last_name);
+            const rol     = esc(sess.role || "");
+            const col     = sess.avatar_color || "#4F46E5";
+            const ini     = (sess.first_name || sess.worker_name || "?")[0].toUpperCase() +
+                            ((sess.last_name || "")[0] || "").toUpperCase();
+            const act     = timeAgo(sess.last_activity);
+            const pages   = Array.isArray(sess.active_pages) ? sess.active_pages : [];
+            const count   = sess.page_count || pages.length || 0;
+            const uid     = sess.worker_id.replace(/-/g, "");
+
+            // Pill principal (página más reciente)
+            const mainPage = pages[0] || null;
+            const mainLabel = mainPage
+              ? esc(mainPage.page_title || pageLabel(mainPage.page_url) || mainPage.page_url)
+              : (sess.page_title || pageLabel(sess.current_page) || "Sin página activa");
+
+            // Filas del detalle expandible
+            const detailRows = pages.map((p, i) => {
+              const lbl    = esc(p.page_title || pageLabel(p.page_url) || p.page_url || "—");
+              const ago    = timeAgo(p.last_activity);
+              const status = pageActivityStatus(p.last_interaction);
+              return `<div class="page-row">
+                <span class="page-row-dot"></span>
+                <span style="flex:1;font-weight:600">${lbl}</span>
+                <span style="font-size:11px;${status.css};margin-right:6px">${status.dot} ${status.label}</span>
+                <span style="color:var(--text3);font-size:11px">${ago}</span>
+              </div>`;
+            }).join("");
+
+            return `<div class="session-card" id="sc-${uid}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div class="online-dot"></div>
+                  <div style="width:38px;height:38px;border-radius:50%;background:${col};color:#fff;
+                              display:flex;align-items:center;justify-content:center;
+                              font-size:13px;font-weight:700;flex-shrink:0">${ini}</div>
+                  <div>
+                    <div style="font-weight:700;font-size:14px">${nombre}</div>
+                    <div style="font-size:12px;color:var(--text3)">${rol} · ${act}</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span class="page-count-badge" title="${count} página(s) abierta(s)">${count}</span>
+                  <button class="btn btn-danger btn-sm" onclick="disconnectWorker('${sess.worker_id}','${sess.id}')">⏏ Desconectar</button>
+                </div>
+              </div>
+
+              <div class="pages-summary">
+                <span class="page-pill">📍 ${mainLabel}</span>
+                ${count > 1
+                  ? `<button class="pages-toggle" onclick="togglePages('${uid}')">
+                       + ${count - 1} más ▾
+                     </button>`
+                  : ""}
+              </div>
+
+              ${count > 1 ? `
+              <div class="pages-detail" id="pd-${uid}">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);
+                            letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">
+                  Todas las páginas abiertas (${count})
+                </div>
+                ${detailRows}
+              </div>` : ""}
+            </div>`;
+          }).join("");
+        }
+
+        // "Todos los trabajadores" — combina DB.workers con sessionsDB
+        const sessionByWorker = {};
+        sessionsDB.forEach(s => { sessionByWorker[s.worker_id] = s; });
+
         const online = DB.workers.filter(
           (w) => w.status === "activo" && w.currentPage,
         );
@@ -3959,73 +4803,82 @@
         $("ks-cesados").textContent = DB.workers.filter(
           (w) => w.status === "cesado",
         ).length;
-        $("nc-sessions").textContent = online.length;
-        $("tb-sessions").textContent = online.length;
-        if (!online.length) {
-          $("sessionsOnline").innerHTML =
-            '<div class="empty-state" style="padding:28px"><div class="empty-icon">🔌</div><p>Sin sesiones activas.</p></div>';
-        } else {
-          $("sessionsOnline").innerHTML = online
-            .map((w) => {
-              const auth = (AUTHORIZED[w.role] || []).includes(w.currentPage);
-              const opts = ["activo", "desconectado", "suspendido", "cesado"]
-                .map(
-                  (s) =>
-                    `<option value="${s}"${w.status === s ? " selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`,
-                )
-                .join("");
-              return `<div class="session-card ${auth ? "" : "unauthorized"}">
-        <div style="display:flex;align-items:center;gap:12px"><div class="online-dot"></div>${avatar(w.firstName + " " + w.lastName, 40)}
-          <div><div style="font-weight:600;font-size:14px">${esc(w.firstName)} ${esc(w.lastName)}</div><div style="font-size:12px;color:var(--text3)">${esc(w.role)} · ${esc(w.schedule)}</div></div></div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="${auth ? "page-ok" : "page-warn"}">${auth ? "✓" : "⚠"} ${esc(w.currentPage)}</span>
-          <span style="font-size:11px;color:var(--text3)">${esc(w.lastSeen || "—")}</span>
-          <button class="btn btn-danger btn-sm" onclick="disconnectWorker('${w.id}')">⏏ Desconectar</button>
-          <select class="inp sel" style="padding:4px 7px;font-size:11.5px;width:auto;border-radius:7px" onchange="quickStatus('${w.id}',this.value)">${opts}</select>
-        </div></div>`;
-            })
-            .join("");
-        }
+        // Tabla "Todos los trabajadores" — muestra páginas y actividad en tiempo real
         $("sessionsAllBody").innerHTML = DB.workers
-          .map(
-            (w) => `<tr>
-    <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 30)}<div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}</div></div></div></td>
-    <td style="font-size:12px">${esc(w.role)}</td><td>${badgeStatus(w.status)}</td>
-    <td>${w.currentPage ? `<span class="badge badge-info">${esc(w.currentPage)}</span>` : "—"}</td>
-    <td style="font-size:12px;color:var(--text3)">${esc(w.lastSeen || "—")}</td>
-    <td>${w.currentPage ? `<button class="btn btn-danger btn-sm" onclick="disconnectWorker('${w.id}')">⏏</button>` : "—"}</td>
-  </tr>`,
-          )
-          .join("");
+          .map((w) => {
+            const sess   = sessionByWorker[w.id];
+            const pages  = sess && Array.isArray(sess.active_pages) ? sess.active_pages : [];
+            const count  = sess ? (sess.page_count || pages.length) : 0;
+            const act    = timeAgo(sess ? sess.last_activity : w.lastSeen);
+            const sid    = sess ? sess.id : null;
+            const col    = w.avatarColor || "#4F46E5";
+
+            // Construir pills de páginas
+            let pagCell = "—";
+            if (count > 0) {
+              const pills = pages.slice(0, 3).map(p => {
+                const lbl    = esc(p.page_title || pageLabel(p.page_url) || p.page_url || "?");
+                const status = pageActivityStatus(p.last_interaction);
+                return `<span class="page-pill page-pill-faded" style="font-size:11px" title="${status.label}">${status.dot} ${lbl}</span>`;
+              }).join(" ");
+              const extra = count > 3
+                ? `<span style="font-size:11px;color:var(--text3)">+${count - 3} más</span>`
+                : "";
+              pagCell = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+                <span class="page-count-badge" title="${count} pestaña(s)">${count}</span>
+                ${pills}${extra}
+              </div>`;
+            }
+
+            return `<tr>
+    <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 30)}
+      <div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}</div></div>
+    </div></td>
+    <td style="font-size:12px">${esc(w.role)}</td>
+    <td>${badgeStatus(w.status)}</td>
+    <td>${pagCell}</td>
+    <td style="font-size:12px;color:var(--text3)">${act}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" style="padding:4px 8px" title="Ver sesiones" onclick="openSdDrawer('${w.id}','${esc(w.firstName)} ${esc(w.lastName)}','${w.role}','${col || '#4F46E5'}')">👁</button>
+      ${sid ? `<button class="btn btn-danger btn-sm" style="padding:4px 8px;margin-left:4px" onclick="disconnectWorker('${w.id}','${sid}')">⏏</button>` : ""}
+    </td>
+  </tr>`;
+          }).join("");
       }
-      function disconnectWorker(id) {
-        const w = DB.workers.find((x) => x.id === id);
-        if (!w) return;
-        w.currentPage = null;
-        w.lastSeen = nowStr();
-        saveDB();
-        addLog(
-          id,
-          "Desconexión",
-          `Sesión cerrada: ${w.firstName} ${w.lastName}`,
-        );
-        renderSessions();
-        renderWorkers();
-        toast("Sesión cerrada", "success");
+      async function disconnectWorker(workerId, sessionId) {
+        const w = DB.workers.find((x) => x.id === workerId);
+        try {
+          if (sessionId) await API.sessions.revoke(sessionId);
+          if (w) {
+            w.currentPage = null;
+            w.lastSeen = nowStr();
+            addLog(workerId, "Desconexión", `Sesión cerrada: ${w.firstName} ${w.lastName}`);
+          }
+          sessionsDB = sessionsDB.filter((s) => s.id !== sessionId);
+          renderSessions();
+          renderWorkers();
+          toast("Sesión cerrada", "success");
+        } catch (err) {
+          toast("Error al desconectar: " + err.message, "error");
+        }
       }
-      function disconnectAll() {
-        const online = DB.workers.filter(
-          (w) => w.status === "activo" && w.currentPage,
-        );
-        online.forEach((w) => {
-          w.currentPage = null;
-          w.lastSeen = nowStr();
-          addLog(w.id, "Desconexión", `Sesión cerrada en desconexión masiva`);
-        });
-        saveDB();
-        renderSessions();
-        renderWorkers();
-        toast(`${online.length} sesiones cerradas`, "warn");
+      async function disconnectAll() {
+        if (!sessionsDB.length) { toast("Sin sesiones activas", "warn"); return; }
+        try {
+          await Promise.all(sessionsDB.map((s) => API.sessions.revoke(s.id).catch(() => {})));
+          sessionsDB.forEach((s) => {
+            const w = DB.workers.find((x) => x.id === s.worker_id);
+            if (w) { w.currentPage = null; w.lastSeen = nowStr(); }
+            addLog(s.worker_id, "Desconexión", "Sesión cerrada en desconexión masiva");
+          });
+          const count = sessionsDB.length;
+          sessionsDB = [];
+          renderSessions();
+          renderWorkers();
+          toast(`${count} sesiones cerradas`, "warn");
+        } catch (err) {
+          toast("Error: " + err.message, "error");
+        }
       }
 
       // ─── ATTENDANCE ───
@@ -4636,10 +5489,20 @@
         if (!sel) return;
         const cur = sel.value;
         sel.innerHTML = '<option value="">Todos</option>';
-        DB.workers.forEach((w) => {
+        // Incluir trabajadores del servidor que quizá no están en DB.workers
+        const seen = new Set();
+        const combined = [
+          ...DB.workers.map(w => ({ id: w.id, name: `${w.firstName} ${w.lastName}` })),
+          ...DB.serverAudit
+            .filter(r => r.workerId && r.workerName)
+            .map(r => ({ id: r.workerId, name: r.workerName })),
+        ];
+        combined.forEach(({ id, name }) => {
+          if (seen.has(id)) return;
+          seen.add(id);
           const o = document.createElement("option");
-          o.value = w.id;
-          o.textContent = `${w.firstName} ${w.lastName}`;
+          o.value = id;
+          o.textContent = name;
           sel.appendChild(o);
         });
         sel.value = cur;
@@ -4696,7 +5559,15 @@
         const exactDate = $("auditDateFilter")?.value || "",
           dateFrom = $("auditDateFrom")?.value || "",
           dateTo = $("auditDateTo")?.value || "";
-        let logs = [...DB.auditLog];
+
+        // Fusionar registros del servidor + en memoria, sin duplicados, ordenados por fecha desc
+        const serverIds = new Set(DB.serverAudit.map(r => r.id));
+        const merged = [
+          ...DB.serverAudit,
+          ...DB.auditLog.filter(r => !serverIds.has(r.id)),
+        ].sort((a, b) => new Date(b.atISO || 0) - new Date(a.atISO || 0));
+
+        let logs = [...merged];
         if (q)
           logs = logs.filter((l) =>
             JSON.stringify(l).toLowerCase().includes(q),
@@ -4715,8 +5586,9 @@
             if (dateTo && d > dateTo) return false;
             return true;
           });
-        $("nc-audit").textContent = DB.auditLog.length;
-        $("tb-audit").textContent = DB.auditLog.length;
+        const _totalAudit = DB.serverAudit.length + DB.auditLog.length;
+        $("nc-audit").textContent = _totalAudit;
+        $("tb-audit").textContent = _totalAudit;
         const cnt = $("auditResultCount");
         if (cnt)
           cnt.textContent = `${logs.length} resultado${logs.length !== 1 ? "s" : ""}`;
@@ -4781,10 +5653,11 @@
           .join("");
       }
       function openAuditDetail(logId) {
-        const l = DB.auditLog.find((x) => x.id === logId);
+        const l = DB.auditLog.find((x) => x.id === logId)
+               || DB.serverAudit.find((x) => x.id === logId);
         if (!l) return;
-        const w = DB.workers.find((x) => x.id === l.workerId),
-          wName = w ? `${w.firstName} ${w.lastName}` : "Sistema";
+        const w = DB.workers.find((x) => x.id === l.workerId);
+        const wName = w ? `${w.firstName} ${w.lastName}` : (l.workerName || "Sistema");
         const ICONS = {
           Creación: "✨",
           Eliminación: "🗑",
@@ -5096,13 +5969,264 @@
         if (monthSel) monthSel.value = today.slice(5, 7);
       })();
 
+      // ─── PERMISSIONS ───
+      // ── Lista de módulos: se carga desde el servidor ──────────────────────
+      // Para agregar un nuevo módulo edita PERM_PAGES en routes/permissions.js
+      // ──────────────────────────────────────────────────────────────────────
+      let PERM_PAGES = [
+        { url:"inicio.html",       label:"🏠 Portal",    short:"Portal"     },
+        { url:"venta.html",        label:"🛒 Ventas",     short:"Ventas"     },
+        { url:"cambio.html",       label:"💱 T. Cambio",  short:"T.Cambio"   },
+        { url:"registro.html",     label:"📦 Inventario", short:"Inventario" },
+        { url:"libro.html",        label:"📒 Libro",      short:"Libro"      },
+        { url:"marcacion.html",    label:"🕐 Marcación",  short:"Marcación"  },
+        { url:"trabajadores.html", label:"👥 Personal",   short:"Personal"   },
+        { url:"clientes.html",     label:"👤 Clientes",   short:"Clientes"   },
+        { url:"catalogo.html",     label:"📋 Catálogo",   short:"Catálogo"   },
+        { url:"pedidos.html",      label:"📦 Pedidos",    short:"Pedidos"    },
+      ];
+
+      function _buildModuleDropdown() {
+        const sel = document.getElementById("pfModule");
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Cualquier módulo</option>' +
+          PERM_PAGES.map(p => `<option value="${p.url}">${p.label}</option>`).join("");
+        if (cur) sel.value = cur;
+      }
+
+      let _permData    = {}; // { worker_id: { page_url: allowed } }
+      let _permWorkers = []; // todos los workers cargados de la API
+      let _permFilters = { search:"", role:"", status:"", modulo:"", access:"" };
+
+      // ── Filtra los workers según los filtros activos ──
+      function _getFilteredPermWorkers() {
+        const f = _permFilters;
+        return _permWorkers.filter(w => {
+          const full = `${w.first_name} ${w.last_name} ${w.email || ""}`.toLowerCase();
+          if (f.search && !full.includes(f.search.toLowerCase())) return false;
+          if (f.role   && w.role   !== f.role)   return false;
+          if (f.status && w.status !== f.status) return false;
+          if (f.modulo && f.access) {
+            const isAdmin = w.role === "admin";
+            if (!isAdmin) {
+              const allowed = _permData[w.id]?.[f.modulo] ?? false;
+              if (f.access === "con" && !allowed) return false;
+              if (f.access === "sin" &&  allowed) return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      // ── Sólo re-renderiza la tabla (sin fetch) ──
+      function _renderPermTable() {
+        const box = $("permMatrix");
+        if (!box) return;
+
+        const filtered = _getFilteredPermWorkers();
+        const count    = $("permCount");
+        if (count) count.textContent =
+          filtered.length === _permWorkers.length
+            ? `${_permWorkers.length} trabajador(es)`
+            : `${filtered.length} de ${_permWorkers.length} trabajadores`;
+
+        // Cabeceras con acciones masivas por columna
+        const headerCols = PERM_PAGES.map(p => `
+          <th title="${p.label}" style="min-width:100px">
+            <div>${p.label}</div>
+            <div style="display:flex;gap:3px;justify-content:center;margin-top:4px">
+              <button onclick="bulkPerm('${p.url}',true)"
+                style="font-size:10px;padding:1px 5px;border:1px solid #86efac;
+                       background:#dcfce7;color:#16a34a;border-radius:4px;cursor:pointer"
+                title="Dar acceso a todos">✓ todos</button>
+              <button onclick="bulkPerm('${p.url}',false)"
+                style="font-size:10px;padding:1px 5px;border:1px solid #fca5a5;
+                       background:#fee2e2;color:#dc2626;border-radius:4px;cursor:pointer"
+                title="Bloquear a todos">✕ todos</button>
+            </div>
+          </th>`).join("");
+
+        const rows = filtered.map(w => {
+          const isAdmin = w.role === "admin";
+          const cells = PERM_PAGES.map(p => {
+            if (isAdmin)
+              return `<td><button class="perm-toggle admin" disabled title="Admin — acceso total">Admin</button></td>`;
+            const allowed = _permData[w.id]?.[p.url] ?? false;
+            return `<td><button
+              class="perm-toggle ${allowed ? "on" : "off"}"
+              title="${allowed ? "Permitido — clic para bloquear" : "Bloqueado — clic para permitir"}"
+              onclick="togglePerm('${w.id}','${p.url}',${!allowed})"
+            >${allowed ? "✓" : "✕"}</button></td>`;
+          }).join("");
+
+          const ini   = ((w.first_name||"")[0]||"") + ((w.last_name||"")[0]||"");
+          const color = w.avatar_color || "#4F46E5";
+          return `<tr>
+            <td class="perm-worker-td">
+              <div style="display:flex;align-items:center;gap:9px">
+                <div style="width:32px;height:32px;border-radius:50%;background:${color};
+                             color:#fff;display:flex;align-items:center;justify-content:center;
+                             font-size:12px;font-weight:700;flex-shrink:0">${esc(ini.toUpperCase())}</div>
+                <div class="perm-worker-info">
+                  <strong>${esc(w.first_name + " " + w.last_name)}</strong>
+                  <small>${esc(w.email || "")}</small>
+                  <span class="perm-role-badge">${esc(w.role)}</span>
+                </div>
+              </div>
+            </td>${cells}
+          </tr>`;
+        }).join("");
+
+        box.innerHTML = `
+          <table class="perm-table">
+            <thead><tr>
+              <th class="perm-worker-th">Trabajador</th>
+              ${headerCols}
+            </tr></thead>
+            <tbody>${rows || `<tr><td colspan="99"
+              style="padding:32px;color:var(--text3);text-align:center">
+              Sin trabajadores que coincidan con los filtros.</td></tr>`}</tbody>
+          </table>`;
+      }
+
+      // ── Carga datos de la API y renderiza ──
+      async function renderPermissions() {
+        const box = $("permMatrix");
+        if (!box) return;
+        box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;
+          color:var(--text3);font-size:13px;padding:32px 0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" style="animation:spin 1s linear infinite">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4
+                     M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Cargando permisos...</div>`;
+        try {
+          const [workers, perms, pages] = await Promise.all([
+            API.workers.list(),
+            API.permissions.list(),
+            fetch("/api/permissions/pages").then(r => r.json()).catch(() => []),
+          ]);
+          if (Array.isArray(pages) && pages.length) {
+            PERM_PAGES = pages;
+            _buildModuleDropdown();
+          }
+          _permWorkers = workers;
+          _permData    = {};
+          perms.forEach(p => {
+            if (!_permData[p.worker_id]) _permData[p.worker_id] = {};
+            _permData[p.worker_id][p.page_url] = p.allowed;
+          });
+          _renderPermTable();
+        } catch (err) {
+          box.innerHTML = `<div style="color:var(--danger);padding:20px">
+            ❌ Error al cargar permisos: ${esc(err.message)}</div>`;
+        }
+      }
+
+      // ── Lee filtros del DOM y re-renderiza ──
+      function applyPermFilters() {
+        _permFilters = {
+          search: ($("pfSearch")?.value  || "").trim(),
+          role:   $("pfRole")?.value     || "",
+          status: $("pfStatus")?.value   || "",
+          modulo: $("pfModule")?.value   || "",
+          access: $("pfAccess")?.value   || "",
+        };
+        _renderPermTable();
+      }
+
+      function clearPermFilters() {
+        ["pfSearch","pfRole","pfStatus","pfModule","pfAccess"]
+          .forEach(id => { const el = $(id); if (el) el.value = ""; });
+        _permFilters = { search:"", role:"", status:"", modulo:"", access:"" };
+        _renderPermTable();
+      }
+
+      // ── Toggle individual con actualización optimista ──
+      async function togglePerm(workerId, pageUrl, newValue) {
+        if (!_permData[workerId]) _permData[workerId] = {};
+        _permData[workerId][pageUrl] = newValue;
+        // Actualizar solo el botón afectado
+        document.querySelectorAll(".perm-toggle:not(.admin)").forEach(btn => {
+          const oc = btn.getAttribute("onclick") || "";
+          if (oc.includes(`'${workerId}'`) && oc.includes(`'${pageUrl}'`)) {
+            btn.className = `perm-toggle ${newValue ? "on" : "off"}`;
+            btn.textContent = newValue ? "✓" : "✕";
+            btn.title = newValue ? "Permitido — clic para bloquear" : "Bloqueado — clic para permitir";
+            btn.setAttribute("onclick", `togglePerm('${workerId}','${pageUrl}',${!newValue})`);
+          }
+        });
+        try {
+          await API.permissions.set(workerId, pageUrl, newValue);
+        } catch (err) {
+          _permData[workerId][pageUrl] = !newValue;
+          alert("Error al guardar permiso: " + err.message);
+          _renderPermTable();
+        }
+      }
+
+      // ── Acción masiva: habilitar/deshabilitar todos para un módulo ──
+      async function bulkPerm(pageUrl, newValue) {
+        const nonAdmins = _permWorkers.filter(w => w.role !== "admin");
+        if (!nonAdmins.length) return;
+        const verb = newValue ? "habilitar" : "deshabilitar";
+        const page = PERM_PAGES.find(p => p.url === pageUrl);
+        if (!confirm(`¿${verb.charAt(0).toUpperCase()+verb.slice(1)} acceso a "${page?.short || pageUrl}" para todos los trabajadores no-admin?`)) return;
+
+        nonAdmins.forEach(w => {
+          if (!_permData[w.id]) _permData[w.id] = {};
+          _permData[w.id][pageUrl] = newValue;
+        });
+        _renderPermTable();
+
+        try {
+          await Promise.all(nonAdmins.map(w =>
+            API.permissions.set(w.id, pageUrl, newValue)
+          ));
+        } catch (err) {
+          alert("Error al guardar permisos masivos: " + err.message);
+          renderPermissions();
+        }
+      }
+
       // ─── BOOT ───
       if (!API.requireAuth()) { /* redirige al login */ }
+
+      // Rellenar sidebar con el trabajador logueado (síncrono, desde localStorage)
+      (function loadSidebarWorker() {
+        const worker = API.getWorker();
+        if (!worker) return;
+        const fn = worker.first_name || "";
+        const ln = worker.last_name  || "";
+        const fullName = `${fn} ${ln}`.trim() || worker.username || "Usuario";
+        const initials = ((fn[0] || "") + (ln[0] || "")).toUpperCase() || "U";
+        const roleLabels = {
+          admin: "Administrador", supervisor: "Supervisor",
+          vendedor: "Vendedor", cajero: "Cajero",
+          almacen: "Almacén", contabilidad: "Contabilidad", soporte: "Soporte",
+        };
+        const av = $("twSidebarAvatar");
+        const nm = $("twSidebarName");
+        const rl = $("twSidebarRole");
+        if (av) { av.textContent = initials; if (worker.avatar_color) av.style.background = worker.avatar_color; }
+        if (nm) nm.textContent = fullName;
+        if (rl) rl.textContent = roleLabels[worker.role] || worker.role || "Usuario";
+      })();
+
       (async () => {
-        await loadFromAPI();
+        API.startHeartbeat("trabajadores.html", "Control de Personal");
+        await Promise.all([loadFromAPI(), loadSessionsFromAPI()]);
         updateCounts();
         renderWorkers();
         renderDashboard();
+        renderSessions();
+        // Polling: actualiza sesiones + trabajadores cada 5 s
+        setInterval(async () => {
+          await Promise.all([loadFromAPI(), loadSessionsFromAPI()]);
+          updateCounts();
+          renderSessions();
+        }, 5000);
       })();
     </script>
   </body>
