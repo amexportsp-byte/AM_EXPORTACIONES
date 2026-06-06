@@ -9,6 +9,7 @@ const pool   = require("../db");
 const ARCHIVOS_PUBLICOS = new Set([
   "login.html",
   "inicio.html", "inicio.js", "inicio.css",
+  "catalogo.html",
   "api.js",
   "auth-guard.js",
 ]);
