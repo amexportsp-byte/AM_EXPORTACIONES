@@ -17,24 +17,8 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-/* ─── CORS ─── */
-// Si ALLOWED_ORIGINS está definido → whitelist estricta.
-// Si no está definido → se permite todo (mismo dominio en Render no envía Origin header,
-// y requests sin Origin siempre pasan).
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-  : null;
-
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);               // petición sin Origin (same-origin)
-    if (!allowedOrigins) return cb(null, true);       // sin whitelist → permitir todo
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error("Origen no permitido por CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-}));
+/* ─── CORS: permitir todos los orígenes ─── */
+app.use(cors({ origin: true, credentials: true }));
 
 /* ─── Monitoreo de seguridad: log estructurado de eventos críticos (ISO A.8.16) ─── */
 function secLog(type, req, detail) {
