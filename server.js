@@ -448,11 +448,27 @@ pool.query(`
 `).then(() => console.log("✓  Migración: delivery_order_alerts OK"))
   .catch(err => console.error("✗  Migración delivery_order_alerts:", err.message));
 
+/* ─── Health check (Render lo usa para verificar que el servicio está vivo) ─── */
+app.get("/api/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ ok: true, db: "connected", ts: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ ok: false, db: "error", message: err.message });
+  }
+});
+
 /* ─── Inicio ─── */
 const server = app.listen(PORT, () => {
   console.log(`✓  A&M Importaciones corriendo en http://localhost:${PORT}`);
   console.log(`✓  Base de datos: Neon PostgreSQL`);
   console.log(`✓  Frontend servido desde: ./public/`);
+
+  // Calentar la conexión a Neon inmediatamente al arrancar
+  // para que el primer usuario no espere el cold start
+  pool.query("SELECT 1")
+    .then(() => console.log("✓  Neon: conexión precalentada"))
+    .catch(err => console.warn("⚠️  Neon warm-up falló:", err.message));
 });
 
 server.on("error", (err) => {
