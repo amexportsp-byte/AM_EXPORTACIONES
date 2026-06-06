@@ -20,6 +20,17 @@ app.use(helmet({
 /* ─── CORS: permitir todos los orígenes ─── */
 app.use(cors({ origin: true, credentials: true }));
 
+/* ─── Bloquear archivos sensibles del servidor (nunca deben ser públicos) ─── */
+const ARCHIVOS_BLOQUEADOS = /\.env($|\.)|\.gitignore|\.lock$|\.log$|\.sh$|\.key$|\.pem$|\.crt$|\.bak$|\.sql$|\.md$|^\/package(-lock)?\.json$|^\/render\.ya?ml$|^\/node_modules\//i;
+
+app.use((req, res, next) => {
+  if (ARCHIVOS_BLOQUEADOS.test(req.path)) {
+    secLog("BLOCKED_FILE", req, "intento de acceso a archivo sensible");
+    return res.status(404).end(); // 404 en vez de 403 para no revelar que existe
+  }
+  next();
+});
+
 /* ─── Monitoreo de seguridad: log estructurado de eventos críticos (ISO A.8.16) ─── */
 function secLog(type, req, detail) {
   const ip  = req.ip || req.headers["x-forwarded-for"] || "-";
