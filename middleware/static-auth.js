@@ -34,42 +34,51 @@ function bloquear(res, ext) {
   res.status(403).end();
 }
 
+// Consulta a la BD con timeout de 5 s.
+// Si la BD está en cold start y no responde a tiempo,
+// resuelve con null en lugar de lanzar error (fail-open).
+function checkSession(tokenHash) {
+  return Promise.race([
+    pool.query(
+      `SELECT id FROM worker_sessions
+       WHERE token_hash = $1 AND status = 'activo' AND expires_at > NOW()
+       LIMIT 1`,
+      [tokenHash]
+    ),
+    new Promise(resolve => setTimeout(() => resolve(null), 5000)),
+  ]);
+}
+
 module.exports = async function staticAuth(req, res, next) {
   const ext      = path.extname(req.path).toLowerCase();
   const filename = path.basename(req.path);
 
-  // Extensión no protegida (imágenes, fuentes, etc.)
   if (!EXTENSIONES_PROTEGIDAS.has(ext)) return next();
-
-  // Archivo público (login, tienda, auth-guard)
-  if (ARCHIVOS_PUBLICOS.has(filename)) return next();
+  if (ARCHIVOS_PUBLICOS.has(filename))  return next();
 
   const token = parseCookie(req.headers.cookie, "am_session");
-
   if (!token) return bloquear(res, ext);
 
   try {
     // 1. Verificar firma y expiración del JWT
     jwt.verify(token, process.env.JWT_SECRET);
 
-    // 2. Para HTML: verificar que la sesión siga activa en BD
-    //    Esto bloquea acceso aunque el JWT sea criptográficamente válido
-    //    si la sesión fue revocada (logout, nuevo login, admin-revoke)
+    // 2. Para HTML: verificar sesión activa en BD con timeout de 5 s.
+    //    Si la BD no responde (cold start), dejamos pasar al usuario
+    //    porque el JWT ya fue validado. El auth-guard.js detectará
+    //    sesiones revocadas en máximo 15 segundos desde el cliente.
     if (ext === ".html") {
       const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-      const { rows } = await pool.query(
-        `SELECT id FROM worker_sessions
-         WHERE token_hash = $1 AND status = 'activo' AND expires_at > NOW()
-         LIMIT 1`,
-        [tokenHash]
-      );
-      if (!rows.length) {
+      const result    = await checkSession(tokenHash);
+
+      if (result !== null && !result.rows.length) {
+        // BD respondió y la sesión está revocada → bloquear
         clearCookie(res);
         return bloquear(res, ext);
       }
+      // result === null → timeout de BD → fail-open (JWT válido = acceso concedido)
     }
 
-    // Evitar que el navegador cachee páginas protegidas
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
     return next();
