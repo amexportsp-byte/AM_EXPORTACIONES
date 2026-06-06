@@ -41,26 +41,23 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ error: "Cuenta no disponible" });
     }
 
-    // Revocar TODAS las sesiones activas anteriores de este usuario
-    // → cualquier pestaña abierta con este usuario detectará el 401 en 15 s
+    // Revocar sesiones anteriores y cerrar pestañas — no crítico para el login
     await pool.query(
-      `UPDATE worker_sessions
-         SET status = 'revocada', revoked_at = NOW()
+      `UPDATE worker_sessions SET status = 'revocada', revoked_at = NOW()
        WHERE worker_id = $1 AND status = 'activo'`,
       [worker.id]
-    );
+    ).catch(e => console.warn("revoke sessions:", e.message));
 
-    // Marcar pestañas del usuario como cerradas
     await pool.query(
       `UPDATE session_pages SET closed_at = NOW()
        WHERE worker_id = $1 AND closed_at IS NULL`,
       [worker.id]
-    );
+    ).catch(e => console.warn("close tabs:", e.message));
 
     await pool.query(
       "UPDATE workers SET last_login = NOW(), status = 'activo' WHERE id = $1",
       [worker.id]
-    );
+    ).catch(e => console.warn("update last_login:", e.message));
 
     const token = jwt.sign(
       { id: worker.id, role: worker.role, username: worker.username },
