@@ -15,34 +15,34 @@ function esc(v) {
 // ===== PRODUCTOS (cargados desde la DB) =====
 let products = [];
 
-// Mapeo categoría → clave interna + ícono emoji
+// Mapeo categoría (tal cual está en la BD) → clave interna + ícono emoji
+// Debe reflejar EXACTAMENTE los nombres de la tabla `categories` (bd.sql).
 const CAT_MAP = {
-  limpieza:     { cat: 'limpieza',     icon: '🧹' },
-  herramientas: { cat: 'herramientas', icon: '🔧' },
-  iluminacion:  { cat: 'iluminacion',  icon: '💡' },
-  iluminación:  { cat: 'iluminacion',  icon: '💡' },
-  ferreteria:   { cat: 'ferreteria',   icon: '🚪' },
-  ferretería:   { cat: 'ferreteria',   icon: '🚪' },
-  construccion: { cat: 'construccion', icon: '🧱' },
-  construcción: { cat: 'construccion', icon: '🧱' },
-  tecnologia:   { cat: 'tecnologia',   icon: '💻' },
-  tecnología:   { cat: 'tecnologia',   icon: '💻' },
-  electrohogar: { cat: 'electrohogar', icon: '🏠' },
-  jardineria:   { cat: 'jardineria',   icon: '🌿' },
-  jardinería:   { cat: 'jardineria',   icon: '🌿' },
-  pinturas:     { cat: 'pinturas',     icon: '🎨' },
-  pintura:      { cat: 'pinturas',     icon: '🎨' },
-  muebles:      { cat: 'muebles',      icon: '🛋️' },
-  mueble:       { cat: 'muebles',      icon: '🛋️' },
-  'baño':       { cat: 'bano',         icon: '🚿' },
-  bano:         { cat: 'bano',         icon: '🚿' },
-  cocina:       { cat: 'cocina',       icon: '🍳' },
-  automotriz:   { cat: 'automotriz',   icon: '🚗' },
-  mascotas:     { cat: 'mascotas',     icon: '🐾' },
-  moda:         { cat: 'moda',         icon: '👗' },
-  ropa:         { cat: 'moda',         icon: '👗' },
-  calzado:      { cat: 'calzado',      icon: '👟' },
-  accesorios:   { cat: 'accesorios',   icon: '💍' },
+  'año nuevo':                  { cat: 'anio-nuevo',        icon: '🎆' },
+  'belleza':                    { cat: 'belleza',           icon: '💄' },
+  'cocina':                     { cat: 'cocina',            icon: '🍳' },
+  'deportivo':                  { cat: 'deportivo',         icon: '🏐' },
+  'festivo':                    { cat: 'festivo',           icon: '🎂' },
+  'herramientas':               { cat: 'herramientas',      icon: '🪚' },
+  'hogar':                      { cat: 'hogar',             icon: '🏠' },
+  'jugetes':                    { cat: 'jugetes',           icon: '🕹️' },
+  'juguetes':                   { cat: 'jugetes',           icon: '🕹️' },
+  'limpieza':                   { cat: 'limpieza',          icon: '🧹' },
+  'mascota':                    { cat: 'mascota',           icon: '🐶' },
+  'moda':                       { cat: 'moda',              icon: '👗' },
+  'navideño':                   { cat: 'navideno',          icon: '🎅' },
+  'salud':                      { cat: 'salud',             icon: '🩺' },
+  'san valentin':               { cat: 'san-valentin',      icon: '🥰' },
+  'tecnología':                 { cat: 'tecnologia',        icon: '💻' },
+  'utiles escolares':           { cat: 'utiles-escolares',  icon: '🎒' },
+  'día de la madre':            { cat: 'dia-de-la-madre',   icon: '🤱' },
+  'día del padre':              { cat: 'dia-del-padre',     icon: '👨' },
+  'mes morado':                 { cat: 'mes-morado',        icon: '💜' },
+  'día de santa rosa de lima':  { cat: 'dia-santa-rosa',    icon: '🌹' },
+  'día del trabajador':         { cat: 'dia-del-trabajador',icon: '👷' },
+  'aniversario':                { cat: 'aniversario',       icon: '🍾' },
+  'verano':                     { cat: 'verano',            icon: '🏖️' },
+  'fiestas patrias':            { cat: 'fiestas-patrias',   icon: '🇵🇪' },
 };
 
 function mapDbProduct(p) {
@@ -113,25 +113,34 @@ async function loadProducts() {
 const WHATSAPP_NUMBER = "51928020850"; // Perú +51
 
 // ===== DISPLAY INFO POR CATEGORÍA =====
+// Claves = catInfo.cat generado por CAT_MAP. Debe cubrir las 24
+// categorías reales del negocio (ver bd.sql), no un rubro genérico.
 const CAT_DISPLAY = {
-  limpieza:     { label: 'Limpieza',      emoji: '🧹' },
-  herramientas: { label: 'Herramientas',  emoji: '🔧' },
-  iluminacion:  { label: 'Iluminación',   emoji: '💡' },
-  ferreteria:   { label: 'Ferretería',    emoji: '🚪' },
-  construccion: { label: 'Construcción',  emoji: '🧱' },
-  tecnologia:   { label: 'Tecnología',    emoji: '💻' },
-  electrohogar: { label: 'Electrohogar',  emoji: '🏠' },
-  jardineria:   { label: 'Jardinería',    emoji: '🌿' },
-  pinturas:     { label: 'Pinturas',      emoji: '🎨' },
-  muebles:      { label: 'Muebles',       emoji: '🛋️' },
-  bano:         { label: 'Baño',          emoji: '🚿' },
-  cocina:       { label: 'Cocina',        emoji: '🍳' },
-  automotriz:   { label: 'Automotriz',    emoji: '🚗' },
-  mascotas:     { label: 'Mascotas',      emoji: '🐾' },
-  moda:         { label: 'Moda',          emoji: '👗' },
-  calzado:      { label: 'Calzado',       emoji: '👟' },
-  accesorios:   { label: 'Accesorios',    emoji: '💍' },
-  otros:        { label: 'Varios',        emoji: '📦' },
+  'anio-nuevo':         { label: 'Año Nuevo',                  emoji: '🎆' },
+  'belleza':            { label: 'Belleza',                    emoji: '💄' },
+  'cocina':             { label: 'Cocina',                     emoji: '🍳' },
+  'deportivo':          { label: 'Deportivo',                  emoji: '🏐' },
+  'festivo':            { label: 'Festivo',                    emoji: '🎂' },
+  'herramientas':       { label: 'Herramientas',               emoji: '🪚' },
+  'hogar':              { label: 'Hogar',                      emoji: '🏠' },
+  'jugetes':            { label: 'Juguetes',                   emoji: '🕹️' },
+  'limpieza':           { label: 'Limpieza',                   emoji: '🧹' },
+  'mascota':            { label: 'Mascota',                    emoji: '🐶' },
+  'moda':               { label: 'Moda',                       emoji: '👗' },
+  'navideno':           { label: 'Navideño',                   emoji: '🎅' },
+  'salud':              { label: 'Salud',                      emoji: '🩺' },
+  'san-valentin':       { label: 'San Valentín',                emoji: '🥰' },
+  'tecnologia':         { label: 'Tecnología',                 emoji: '💻' },
+  'utiles-escolares':   { label: 'Útiles Escolares',           emoji: '🎒' },
+  'dia-de-la-madre':    { label: 'Día de la Madre',            emoji: '🤱' },
+  'dia-del-padre':      { label: 'Día del Padre',              emoji: '👨' },
+  'mes-morado':         { label: 'Mes Morado',                 emoji: '💜' },
+  'dia-santa-rosa':     { label: 'Día de Santa Rosa de Lima',  emoji: '🌹' },
+  'dia-del-trabajador': { label: 'Día del Trabajador',         emoji: '👷' },
+  'aniversario':        { label: 'Aniversario',                emoji: '🍾' },
+  'verano':             { label: 'Verano',                     emoji: '🏖️' },
+  'fiestas-patrias':    { label: 'Fiestas Patrias',            emoji: '🇵🇪' },
+  otros:                { label: 'Varios',                     emoji: '📦' },
 };
 
 // ===== MEGA MENU DATA =====
@@ -297,24 +306,6 @@ function goToWhatsAppCheckout() {
     return;
   }
 
-  // Obtener categoría y subcategoría del producto (basado en cat)
-  const catMap = {
-    limpieza: { cat: 'Limpieza', subcat: 'Productos de limpieza' },
-    ferreteria: { cat: 'Ferretería', subcat: 'Materiales y accesorios' },
-    herramientas: { cat: 'Herramientas', subcat: 'Herramientas profesionales' },
-    iluminacion: { cat: 'Iluminación', subcat: 'Focos y luminarias' },
-    construccion: { cat: 'Construcción', subcat: 'Materiales de construcción' },
-    electrohogar: { cat: 'Electrohogar', subcat: 'Electrodomésticos' },
-    tecnologia: { cat: 'Tecnología', subcat: 'Equipos tecnológicos' },
-    jardineria: { cat: 'Jardinería', subcat: 'Herramientas y plantas' },
-    pinturas: { cat: 'Pinturas', subcat: 'Pinturas y acabados' },
-    muebles: { cat: 'Muebles', subcat: 'Mobiliario y decoración' },
-    bano: { cat: 'Baño', subcat: 'Sanitarios y accesorios' },
-    cocina: { cat: 'Cocina', subcat: 'Electrodomésticos y vajilla' },
-    automotriz: { cat: 'Automotriz', subcat: 'Accesorios y mantenimiento' },
-    mascotas: { cat: 'Mascotas', subcat: 'Alimento y accesorios' }
-  };
-
   let totalFinal = 0;
   let totalAhorro = 0;
 
@@ -326,7 +317,10 @@ function goToWhatsAppCheckout() {
     const subtotal = it.price * it.qty;
     const ahorro = (it.old - it.price) * it.qty;
     const sku = it.codigo || `PRO-${String(it.id).slice(0, 8).toUpperCase()}`;
-    const catInfo = catMap[it.cat] || { cat: 'General', subcat: 'Varios' };
+    const catInfo = {
+      cat: CAT_DISPLAY[it.cat]?.label || 'General',
+      subcat: it.subcategoria || 'Varios',
+    };
 
     totalFinal += subtotal;
     totalAhorro += ahorro;
@@ -667,11 +661,6 @@ function renderPromoBar() {
   // Definición de cada chip: ícono, texto, filtro y validación de existencia
   const chips = [
     {
-      icon: '💡', label: 'Iluminación',
-      check: () => products.some(p => p.cat === 'iluminacion'),
-      filter: () => { filterCatalogByCat('iluminacion'); }
-    },
-    {
       icon: '🔥', label: 'Desde S/ 1',
       check: () => products.some(p => p.price <= 1),
       filter: () => {
@@ -680,34 +669,39 @@ function renderPromoBar() {
       }
     },
     {
+      icon: '🎂', label: 'Festivo',
+      check: () => products.some(p => p.cat === 'festivo'),
+      filter: () => { filterCatalogByCat('festivo'); }
+    },
+    {
+      icon: '🕹️', label: 'Juguetes',
+      check: () => products.some(p => p.cat === 'jugetes'),
+      filter: () => { filterCatalogByCat('jugetes'); }
+    },
+    {
+      icon: '💄', label: 'Belleza',
+      check: () => products.some(p => p.cat === 'belleza'),
+      filter: () => { filterCatalogByCat('belleza'); }
+    },
+    {
       icon: '💻', label: 'Tecnología',
       check: () => products.some(p => p.cat === 'tecnologia'),
       filter: () => { filterCatalogByCat('tecnologia'); }
     },
     {
-      icon: '🧱', label: 'Construcción',
-      check: () => products.some(p => p.cat === 'construccion'),
-      filter: () => { filterCatalogByCat('construccion'); }
+      icon: '🎒', label: 'Útiles Escolares',
+      check: () => products.some(p => p.cat === 'utiles-escolares'),
+      filter: () => { filterCatalogByCat('utiles-escolares'); }
     },
     {
-      icon: '🔧', label: 'Herramientas',
-      check: () => products.some(p => p.cat === 'herramientas'),
-      filter: () => { filterCatalogByCat('herramientas'); }
+      icon: '🍳', label: 'Cocina',
+      check: () => products.some(p => p.cat === 'cocina'),
+      filter: () => { filterCatalogByCat('cocina'); }
     },
     {
       icon: '🧹', label: 'Limpieza',
       check: () => products.some(p => p.cat === 'limpieza'),
       filter: () => { filterCatalogByCat('limpieza'); }
-    },
-    {
-      icon: '🌿', label: 'Jardinería',
-      check: () => products.some(p => p.cat === 'jardineria'),
-      filter: () => { filterCatalogByCat('jardineria'); }
-    },
-    {
-      icon: '👗', label: 'Moda',
-      check: () => products.some(p => p.cat === 'moda'),
-      filter: () => { filterCatalogByCat('moda'); }
     },
   ];
 
@@ -1467,7 +1461,24 @@ function refreshAIRecs() {
 function applyAIFilter() {
   const query = document.getElementById('aiFilterInput').value.toLowerCase();
   if (!query.trim()) return;
-  const keywords = {limpieza:['limpiar','lejía','detergente','desinfectar','lavar'],herramientas:['taladro','tornillo','llave','martillo','construir'],iluminacion:['luz','foco','led','iluminar','lámpara'],ferreteria:['puerta','cerradura','silicona']};
+  const keywords = {
+    limpieza: ['limpiar','lejía','detergente','desinfectar','lavar','jabón','escoba'],
+    herramientas: ['taladro','tornillo','llave','martillo','clavos','alicate'],
+    festivo: ['globo','fiesta','cumpleaños','piñata','vela','decoración fiesta'],
+    navideno: ['navidad','árbol de navidad','papá noel','luces navideñas','adorno navideño'],
+    jugetes: ['juguete','muñeca','muñeco','carro','peluche','jugar'],
+    belleza: ['maquillaje','labial','crema','cabello','uñas','perfume'],
+    cocina: ['olla','sartén','cuchara','taza','cocinar','vajilla'],
+    tecnologia: ['drone','audífono','parlante','cargador','cámara','luz led','tecnología'],
+    'utiles-escolares': ['cuaderno','lápiz','lapicero','mochila','colegio','escolar'],
+    salud: ['alcohol','algodón','vendaje','curita','parche'],
+    moda: ['ropa','gorro','lentes','bolso','cartera'],
+    mascota: ['perro','gato','mascota','correa'],
+    deportivo: ['pelota','deporte','patines'],
+    'san-valentin': ['san valentín','enamorados','corazón','amor'],
+    verano: ['playa','verano','piscina','sol'],
+    hogar: ['mueble','decoración hogar','cuadro','tapete'],
+  };
   let filtered = [...products];
   for(const [cat, words] of Object.entries(keywords)){
     if(words.some(w => query.includes(w))) { filtered = products.filter(p => p.cat === cat); break; }
