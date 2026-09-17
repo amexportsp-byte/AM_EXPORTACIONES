@@ -419,6 +419,7 @@ const API = {
     me()             { return this.request("GET", "/api/customers/me"); },
     updateProfile(d) { return this.request("PUT", "/api/customers/me", d); },
     orders()         { return this.request("GET", "/api/customers/orders"); },
+    createOrder(items, notes) { return this.request("POST", "/api/customers/orders", { items, notes }); },
     deliveryOrders() { return this.request("GET", "/api/delivery-orders/customer/my-orders"); },
     confirmDelivery(id) { return this.request("PUT", `/api/delivery-orders/${id}/confirm`, {}); },
     cancelDelivery(id, reason) { return this.request("PUT", `/api/delivery-orders/${id}/cancel`, { reason }); },

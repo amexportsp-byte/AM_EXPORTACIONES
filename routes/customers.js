@@ -161,10 +161,10 @@ router.put("/me", custAuth, async (req, res) => {
 router.get("/orders", custAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT o.id, o.order_number, o.status, o.total, o.created_at,
+      `SELECT o.id, o.order_number, o.status, o.total, o.notes, o.created_at,
               json_agg(json_build_object(
-                'name', od.product_name, 'qty', od.quantity,
-                'price', od.unit_price, 'subtotal', od.subtotal
+                'name', od.product_name, 'sku', od.product_code,
+                'qty', od.quantity, 'price', od.unit_price, 'subtotal', od.subtotal
               )) AS items
        FROM orders o
        LEFT JOIN order_details od ON od.order_id = o.id
@@ -176,6 +176,58 @@ router.get("/orders", custAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /customers/orders:", err);
     res.status(500).json({ error: "Error al obtener pedidos" });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/customers/orders  (protegido)
+// Pedido generado desde el checkout del portal web (Pagar con Yape/Plin).
+// No requiere trabajador: el cliente lo crea directamente y queda
+// 'pendiente' hasta que el negocio confirme el pago manualmente.
+// Body: { items: [{product_id, product_code, product_name, quantity, unit_price}], notes }
+// ─────────────────────────────────────────────
+router.post("/orders", custAuth, async (req, res) => {
+  const { items, notes } = req.body;
+  if (!Array.isArray(items) || !items.length)
+    return res.status(400).json({ error: "El pedido no tiene productos" });
+
+  for (const it of items) {
+    if (!it.product_id || !it.product_name || !(Number(it.quantity) > 0) || !(Number(it.unit_price) >= 0))
+      return res.status(400).json({ error: "Datos de producto incompletos en el pedido" });
+  }
+
+  const db = await pool.connect();
+  try {
+    await db.query("BEGIN");
+
+    const subtotal = items.reduce((s, it) => s + Number(it.unit_price) * Number(it.quantity), 0);
+
+    const { rows: [{ n: seq }] } = await db.query("SELECT nextval('order_seq') AS n");
+    const orderNumber = `PED-${String(seq).padStart(8, "0")}`;
+
+    const { rows: [order] } = await db.query(
+      `INSERT INTO orders (order_number, client_id, subtotal, total, status, notes)
+       VALUES ($1, $2, $3, $3, 'pendiente', $4)
+       RETURNING id, order_number, created_at`,
+      [orderNumber, req.customer.client_id, subtotal, notes || null]
+    );
+
+    for (const it of items) {
+      await db.query(
+        `INSERT INTO order_details (order_id, product_id, product_code, product_name, quantity, unit_price, subtotal)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [order.id, it.product_id, it.product_code || "", it.product_name, it.quantity, it.unit_price, Number(it.unit_price) * Number(it.quantity)]
+      );
+    }
+
+    await db.query("COMMIT");
+    res.status(201).json({ id: order.id, order_number: order.order_number, created_at: order.created_at, total: subtotal });
+  } catch (err) {
+    await db.query("ROLLBACK");
+    console.error("POST /customers/orders:", err);
+    res.status(500).json({ error: "Error al registrar el pedido" });
+  } finally {
+    db.release();
   }
 });
 

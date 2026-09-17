@@ -314,15 +314,18 @@ function openYapePayment() {
     showToast('⚠️ Tu carrito está vacío');
     return;
   }
-  const { total } = cartTotals();
-  document.getElementById('yapeAmount').textContent = `S/ ${total.toFixed(2)}`;
-  document.getElementById('yapePaymentModal').classList.add('show');
+  // Para pagar es obligatorio iniciar sesión: el pedido se registra
+  // en la cuenta del cliente como historial de compras.
+  requireLogin(() => {
+    const { total } = cartTotals();
+    document.getElementById('yapeAmount').textContent = `S/ ${total.toFixed(2)}`;
+    document.getElementById('yapePaymentModal').classList.add('show');
+  });
 }
 
-function buildPurchaseSummaryHTML() {
+function buildPurchaseSummaryHTML(orderId, clientName) {
   const { subtotal, ahorro, total } = cartTotals();
   const fecha = new Date().toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' });
-  const orderId = 'AM-' + Date.now().toString().slice(-8);
   const rows = cart.map((it, i) => `
     <tr style="background:${i % 2 ? '#faf8f5' : '#fff'}">
       <td>
@@ -376,8 +379,8 @@ function buildPurchaseSummaryHTML() {
         <span class="status-badge">✅ PAGADO</span>
       </div>
       <div class="meta">
-        <div>RUC: <b>10764275981</b> · Lima, Perú<br>+51 928 020 850</div>
-        <div style="text-align:right">N° <b>${orderId}</b><br>${fecha}</div>
+        <div>RUC: <b>10764275981</b> · Lima, Perú<br>+51 928 020 850${clientName ? `<br>Cliente: <b>${esc(clientName)}</b>` : ''}</div>
+        <div style="text-align:right">N° <b>${esc(orderId)}</b><br>${fecha}</div>
       </div>
       <div class="body">
         <table>
@@ -403,32 +406,64 @@ function buildPurchaseSummaryHTML() {
   </body></html>`;
 }
 
-function downloadPurchaseSummaryPDF() {
+function downloadPurchaseSummaryPDF(orderId, clientName) {
   const win = window.open('', '_blank');
-  win.document.write(buildPurchaseSummaryHTML());
+  win.document.write(buildPurchaseSummaryHTML(orderId, clientName));
   win.document.close();
   win.print();
 }
 
-function confirmYapePayment() {
+async function confirmYapePayment() {
   if (!cart.length) return;
-  const { total } = cartTotals();
-  downloadPurchaseSummaryPDF();
+  if (!API.customers.isLogged()) {
+    showToast('⚠️ Debes iniciar sesión primero');
+    closeModal('yapePaymentModal');
+    document.getElementById('loginModal').classList.add('show');
+    return;
+  }
 
-  let msg = `💜 *COMPROBANTE DE PAGO - A&M IMPORTACIONES*\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `He realizado el pago de *S/ ${total.toFixed(2)}* por Yape/Plin.\n`;
-  msg += `Adjunto la captura de mi comprobante de pago.\n\n`;
-  msg += `*Resumen de mi pedido:*\n`;
-  cart.forEach((it, idx) => {
-    msg += `${idx + 1}. ${it.name} x${it.qty} — S/ ${(it.price * it.qty).toFixed(2)}\n`;
-  });
-  msg += `\n✅ *TOTAL PAGADO: S/ ${total.toFixed(2)}*\n\n`;
-  msg += `Quedo atento(a) a la confirmación de mi pedido. ¡Gracias! 🙏`;
+  const btn = document.querySelector('#yapePaymentModal .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Registrando pedido...'; }
 
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-  window.open(waUrl, '_blank');
-  closeModal('yapePaymentModal');
+  try {
+    const { total } = cartTotals();
+    const items = cart.map(it => ({
+      product_id: it.id,
+      product_code: it.codigo || '',
+      product_name: it.name,
+      quantity: it.qty,
+      unit_price: it.price,
+    }));
+    const order = await API.customers.createOrder(items, 'Pago reportado por Yape/Plin — pendiente de verificación');
+    const orderId = order.order_number;
+    const user = getCurrentUser();
+
+    downloadPurchaseSummaryPDF(orderId, user?.name);
+
+    let msg = `💜 *COMPROBANTE DE PAGO - A&M IMPORTACIONES*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `Pedido *${orderId}*\n`;
+    msg += `He realizado el pago de *S/ ${total.toFixed(2)}* por Yape/Plin.\n`;
+    msg += `Adjunto la captura de mi comprobante de pago.\n\n`;
+    msg += `*Resumen de mi pedido:*\n`;
+    cart.forEach((it, idx) => {
+      msg += `${idx + 1}. ${it.name} x${it.qty} — S/ ${(it.price * it.qty).toFixed(2)}\n`;
+    });
+    msg += `\n✅ *TOTAL PAGADO: S/ ${total.toFixed(2)}*\n\n`;
+    msg += `Quedo atento(a) a la confirmación de mi pedido. ¡Gracias! 🙏`;
+
+    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    closeModal('yapePaymentModal');
+
+    cart = [];
+    renderCart(); renderCartPage(); updateCartCount();
+    showToast(`✅ Pedido ${orderId} registrado. Revisa "Mis pedidos" para ver su estado.`);
+  } catch (err) {
+    showToast('❌ No se pudo registrar el pedido: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Ya pagué, enviar comprobante'; }
+  }
 }
 
 // ===== WHATSAPP CHECKOUT =====
@@ -2321,11 +2356,17 @@ function omOpenDetail(id) {
   const orig      = omCalcOrig(items);
 
   const statusLabel = { agendado:'📅 Agendado', preparando:'🔧 Preparando', alistado:'📦 Alistado',
-    en_curso:'🚚 En camino', entrega:'🏠 Entregado', conformidad:'✅ Confirmado', cancelado:'❌ Cancelado' };
+    en_curso:'🚚 En camino', entrega:'🏠 Entregado', conformidad:'✅ Confirmado', cancelado:'❌ Cancelado',
+    pendiente:'📝 Pendiente de confirmación', confirmado:'✅ Confirmado', en_preparacion:'🔧 Preparando',
+    enviado:'🚚 Enviado', entregado:'🏠 Entregado', devuelto:'↩️ Devuelto' };
   const statusBg  = { agendado:'#eff6ff', preparando:'#fff7ed', alistado:'#f5f3ff', en_curso:'#fffbeb',
-    entrega:'#eff6ff', conformidad:'#e8f5ee', cancelado:'#fef2f2' };
+    entrega:'#eff6ff', conformidad:'#e8f5ee', cancelado:'#fef2f2',
+    pendiente:'#fff7ed', confirmado:'#e8f5ee', en_preparacion:'#fff7ed', enviado:'#fffbeb',
+    entregado:'#eff6ff', devuelto:'#fef2f2' };
   const statusClr = { agendado:'#1d4ed8', preparando:'#c2410c', alistado:'#5b21b6', en_curso:'#92400e',
-    entrega:'#0369a1', conformidad:'#157a3f', cancelado:'#b91c1c' };
+    entrega:'#0369a1', conformidad:'#157a3f', cancelado:'#b91c1c',
+    pendiente:'#c2410c', confirmado:'#157a3f', en_preparacion:'#c2410c', enviado:'#92400e',
+    entregado:'#0369a1', devuelto:'#b91c1c' };
 
   // ── Timeline horizontal ──
   const tlHTML = tracking.map((t,i) => {
@@ -2575,33 +2616,88 @@ function showOrdersModal() {
     const wrap = document.getElementById('ordersListWrap');
     wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa"><div style="font-size:36px">⏳</div><p style="margin-top:12px">Cargando tus pedidos...</p></div>';
 
-    try {
-      const apiOrders = await API.customers.deliveryOrders();
-      omAllOrders = apiOrders.map(o => ({
-        _raw:       o,
-        id:         o.order_number || o.id,
-        dbId:       o.id,
-        date:       new Date(o.created_at || o.scheduled_at).toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        status:     mapDeliveryStatus(o.status),
-        rawStatus:  o.status,
-        voucher:    (o.invoice_number && o.invoice_number !== '') ? o.invoice_number : (o.sale_number || '—'),
-        payMethod:  '—',
-        address:    o.delivery_address || '—',
-        items:      (o.items || []).filter(i => i.product_name).map(i => ({
-          icon: '📦', name: i.product_name, brand: '—', qty: i.quantity,
-          price: parseFloat(i.unit_price || 0), old: parseFloat(i.unit_price || 0), sku: '—'
-        })),
-        tracking: buildDeliveryTracking(o),
-        alert:    omGetDeliveryAlert(o),
-        alertMsg: omGetDeliveryAlertMsg(o),
-      }));
-    } catch {
-      omAllOrders = [];
-    }
+    let deliveryOrders = [];
+    let portalOrders = [];
+    try { deliveryOrders = await API.customers.deliveryOrders(); } catch {}
+    try { portalOrders = await API.customers.orders(); } catch {}
+
+    const mappedDelivery = deliveryOrders.map(o => ({
+      _raw:       o,
+      id:         o.order_number || o.id,
+      dbId:       o.id,
+      dateRaw:    o.created_at || o.scheduled_at,
+      date:       new Date(o.created_at || o.scheduled_at).toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+      status:     mapDeliveryStatus(o.status),
+      rawStatus:  o.status,
+      voucher:    (o.invoice_number && o.invoice_number !== '') ? o.invoice_number : (o.sale_number || '—'),
+      payMethod:  '—',
+      address:    o.delivery_address || '—',
+      items:      (o.items || []).filter(i => i.product_name).map(i => ({
+        icon: '📦', name: i.product_name, brand: '—', qty: i.quantity,
+        price: parseFloat(i.unit_price || 0), old: parseFloat(i.unit_price || 0), sku: '—'
+      })),
+      tracking: buildDeliveryTracking(o),
+      alert:    omGetDeliveryAlert(o),
+      alertMsg: omGetDeliveryAlertMsg(o),
+    }));
+
+    const mappedPortal = portalOrders.map(o => ({
+      _raw:       o,
+      id:         o.order_number || o.id,
+      dbId:       o.id,
+      dateRaw:    o.created_at,
+      date:       new Date(o.created_at).toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+      status:     mapPortalStatus(o.status),
+      rawStatus:  o.status,
+      voucher:    o.order_number || '—',
+      payMethod:  o.notes || 'Pago web',
+      address:    '—',
+      items:      (o.items || []).filter(i => i.name).map(i => ({
+        icon: '📦', name: i.name, brand: '—', qty: i.qty,
+        price: parseFloat(i.price || 0), old: parseFloat(i.price || 0), sku: i.sku || '—'
+      })),
+      tracking: buildPortalTracking(o.status),
+      alert:    o.status === 'cancelado' ? 'cancelado' : null,
+      alertMsg: o.status === 'cancelado' ? 'Pedido cancelado.' : '',
+    }));
+
+    omAllOrders = [...mappedPortal, ...mappedDelivery]
+      .sort((a, b) => new Date(b.dateRaw) - new Date(a.dateRaw));
     omFiltered = [...omAllOrders];
     omRenderStats();
     filterOrdersModal();
   });
+}
+
+function mapPortalStatus(s) {
+  const map = {
+    pendiente:      'proceso',
+    confirmado:     'almacen',
+    en_preparacion: 'empaquetado',
+    enviado:        'envio',
+    entregado:      'entregado',
+    cancelado:      'cancelado',
+    devuelto:       'cancelado',
+  };
+  return map[s] || 'proceso';
+}
+
+function buildPortalTracking(status) {
+  const steps = [
+    { key: 'pendiente',      label: '📝 Recibido' },
+    { key: 'confirmado',     label: '✅ Confirmado' },
+    { key: 'en_preparacion', label: '🔧 Preparando' },
+    { key: 'enviado',        label: '🚚 Enviado' },
+    { key: 'entregado',      label: '🏠 Entregado' },
+  ];
+  const order = steps.map(s => s.key);
+  const curIdx = (status === 'cancelado' || status === 'devuelto') ? -1 : order.indexOf(status);
+  return steps.map((s, i) => ({
+    label: s.label, icon: s.label.split(' ')[0],
+    done: i < curIdx, active: i === curIdx,
+    cancelled: status === 'cancelado' || status === 'devuelto',
+    date: '',
+  }));
 }
 
 function mapDeliveryStatus(s) {
