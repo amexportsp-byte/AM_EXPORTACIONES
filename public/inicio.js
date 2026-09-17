@@ -83,6 +83,7 @@ async function loadProducts() {
     renderMegaSidebar();
     renderQuickCats();
     renderPromoBar();
+    renderHeroProducts();
 
     // Primera carga: renderizar home Y restaurar la última ruta
     if (_firstLoad) {
@@ -915,6 +916,24 @@ function renderPromoBar() {
 
   // Guardar filtros para el onclick
   bar._chips = visible;
+}
+
+// ===== PRODUCTOS DESTACADOS EN EL BANNER (hero) =====
+function renderHeroProducts() {
+  const pool = products.filter(p => p.stock > 0 && p.imageUrl);
+  if (pool.length < 4) return; // no hay suficientes productos con imagen y stock
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById('heroProducts' + i);
+    if (!el) continue;
+    const items = [];
+    for (let j = 0; j < 4; j++) items.push(shuffled[(i * 4 + j) % shuffled.length]);
+    el.innerHTML = items.map(p => `
+      <div class="hero-icon-card" onclick="showDetail('${p.id}')" title="${esc(p.name)}">
+        <img src="${p.imageUrl}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"/>
+        <span>${esc(p.name)}</span>
+      </div>`).join('');
+  }
 }
 
 function _promoFilter(i) {
