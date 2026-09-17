@@ -512,19 +512,21 @@ a{text-decoration:none;color:inherit;}
 .ai-recs{display:flex;gap:10px;flex:1;overflow-x:auto;padding-bottom:4px;}
 
 .ai-rec-card{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.3);
   border-radius:var(--radius);
   cursor:pointer;
   transition:var(--transition);
   min-width:130px;
   max-width:150px;
   text-align:center;
-  backdrop-filter:blur(4px);
+  backdrop-filter:blur(10px) saturate(140%);
+  -webkit-backdrop-filter:blur(10px) saturate(140%);
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
   overflow:hidden;
   flex-shrink:0;
 }
-.ai-rec-card:hover{background:rgba(255,255,255,.18);transform:translateY(-3px);}
+.ai-rec-card:hover{background:rgba(255,255,255,.24);transform:translateY(-3px);}
 
 /* Imagen dentro de la tarjeta IA */
 .ai-rec-img{
