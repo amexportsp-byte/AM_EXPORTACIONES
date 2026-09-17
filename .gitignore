@@ -1,10 +1,8 @@
 node_modules/
 .env
 
-# Volcados de datos reales (PII de clientes/proveedores, hashes de
-# contraseñas) — el repo es público, nunca deben subirse.
-# El schema y los datos ya viven en Neon; estos archivos son solo
-# respaldo/herramienta local.
-bd.sql
-seed_datos_reales.sql
+# Archivos SQL (schema, seeds, scripts de mantenimiento) — todo ya
+# vive aplicado en Neon, no tiene sentido versionar volcados locales
+# en un repo público. Se guardan solo como respaldo en la máquina.
+*.sql
 DATOS_NO_COMPATIBLES.md
