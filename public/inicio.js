@@ -2950,7 +2950,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('accountMenu').classList.remove('show');
   });
   document.getElementById('openRegister').addEventListener('click', () => {
-    document.getElementById('registerModal').classList.add('show');
+    resetAuthModal();
+    document.getElementById('loginModal').classList.add('show');
     document.getElementById('accountMenu').classList.remove('show');
   });
 
