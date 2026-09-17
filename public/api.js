@@ -413,6 +413,9 @@ const API = {
     login(doc_type, doc_number) {
       return this.request("POST", "/api/customers/login", { doc_type, doc_number });
     },
+    loginByPhone(phone) {
+      return this.request("POST", "/api/customers/login", { phone });
+    },
     register(data) {
       return this.request("POST", "/api/customers/register", data);
     },

@@ -534,26 +534,51 @@
           <img src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png" alt="A&M" style="height:56px;object-fit:contain"/>
         </div>
 
-        <!-- PASO 1: Buscar por documento -->
+        <!-- PASO 1: Buscar por documento o celular -->
         <div id="authStep1">
           <h2>Iniciar sesión</h2>
-          <p class="login-sub">Ingresa tu documento de identidad para acceder</p>
+          <p class="login-sub">Ingresa tu documento o tu celular para acceder</p>
+          <div class="auth-mode-tabs" style="display:flex;gap:8px;margin-bottom:16px;">
+            <button type="button" id="authTabDoc" onclick="setAuthMode('doc')"
+              style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">
+              📄 Documento
+            </button>
+            <button type="button" id="authTabPhone" onclick="setAuthMode('phone')"
+              style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #ddd;background:#fff;color:#555;font-weight:700;font-size:13px;cursor:pointer;">
+              📱 Celular
+            </button>
+          </div>
           <div id="authError1" class="login-error" style="display:none"></div>
-          <div class="form-group">
-            <label>Tipo de documento</label>
-            <select id="authDocType">
-              <option value="">— Seleccionar —</option>
-              <option value="DNI">DNI</option>
-              <option value="CE">Carnet de extranjería</option>
-              <option value="Pasaporte">Pasaporte</option>
-              <option value="RUC">RUC</option>
-            </select>
+
+          <div id="authDocFields">
+            <div class="form-group">
+              <label>Tipo de documento</label>
+              <select id="authDocType">
+                <option value="">— Seleccionar —</option>
+                <option value="DNI">DNI</option>
+                <option value="CE">Carnet de extranjería</option>
+                <option value="Pasaporte">Pasaporte</option>
+                <option value="RUC">RUC</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de documento</label>
+              <input type="text" id="authDocNum" placeholder="Ej: 12345678" autocomplete="off" maxlength="20"
+                onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Número de documento</label>
-            <input type="text" id="authDocNum" placeholder="Ej: 12345678" autocomplete="off" maxlength="20"
-              onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
+
+          <div id="authPhoneFields" style="display:none">
+            <div class="form-group">
+              <label>Número de celular</label>
+              <input type="tel" id="authPhoneNum" placeholder="Ej: 987654321" autocomplete="tel" maxlength="20"
+                onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
+              <p style="font-size:11px;color:#999;margin-top:4px">
+                Debe ser el mismo celular que registraste al crear tu cuenta.
+              </p>
+            </div>
           </div>
+
           <button class="btn-primary full-width" onclick="handleAuthCheck()">Continuar</button>
         </div>
 

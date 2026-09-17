@@ -13,25 +13,35 @@ function makeToken(payload) {
 
 // ─────────────────────────────────────────────
 // POST /api/customers/login
-// Body: { doc_type, doc_number }
-// Retorna token si el documento existe
+// Body: { doc_type, doc_number } o { phone }
+// Retorna token si el documento (o el celular registrado) existe
 // ─────────────────────────────────────────────
 router.post("/login", async (req, res) => {
-  const { doc_type, doc_number } = req.body;
-  if (!doc_type || !doc_number)
-    return res.status(400).json({ error: "Tipo y número de documento son requeridos" });
+  const { doc_type, doc_number, phone } = req.body;
+
+  let query, params, notFoundMsg;
+  if (phone) {
+    const phoneClean = String(phone).trim();
+    if (!phoneClean)
+      return res.status(400).json({ error: "Ingresa tu número de celular" });
+    query = `SELECT id, first_name, last_name, email, phone, address, district, status
+              FROM clients WHERE phone = $1 AND deleted_at IS NULL LIMIT 1`;
+    params = [phoneClean];
+    notFoundMsg = "Celular no registrado";
+  } else {
+    if (!doc_type || !doc_number)
+      return res.status(400).json({ error: "Tipo y número de documento son requeridos" });
+    query = `SELECT id, first_name, last_name, email, phone, address, district, status
+              FROM clients WHERE document_type = $1 AND document_number = $2 AND deleted_at IS NULL LIMIT 1`;
+    params = [doc_type, doc_number];
+    notFoundMsg = "Documento no registrado";
+  }
 
   try {
-    const { rows } = await pool.query(
-      `SELECT id, first_name, last_name, email, phone, address, district, status
-       FROM clients
-       WHERE document_type = $1 AND document_number = $2 AND deleted_at IS NULL
-       LIMIT 1`,
-      [doc_type, doc_number]
-    );
+    const { rows } = await pool.query(query, params);
 
     if (!rows.length)
-      return res.status(404).json({ notFound: true, error: "Documento no registrado" });
+      return res.status(404).json({ notFound: true, error: notFoundMsg });
 
     const c = rows[0];
     if (c.status !== "activo")
