@@ -299,6 +299,99 @@ let currentPlanTab = 'basico';
 let currentPage = 'none';
 let currentSort = 'recommended';
 
+// ===== PAGO CON YAPE / PLIN =====
+function cartTotals() {
+  let subtotal = 0, ahorro = 0;
+  cart.forEach(it => {
+    subtotal += it.price * it.qty;
+    ahorro += (it.old - it.price) * it.qty;
+  });
+  return { subtotal, ahorro, total: subtotal };
+}
+
+function openYapePayment() {
+  if (!cart.length) {
+    showToast('⚠️ Tu carrito está vacío');
+    return;
+  }
+  const { total } = cartTotals();
+  document.getElementById('yapeAmount').textContent = `S/ ${total.toFixed(2)}`;
+  document.getElementById('yapePaymentModal').classList.add('show');
+}
+
+function buildPurchaseSummaryHTML() {
+  const { subtotal, ahorro, total } = cartTotals();
+  const fecha = new Date().toLocaleString('es-PE');
+  const orderId = 'AM-' + Date.now().toString().slice(-8);
+  const rows = cart.map(it => `
+    <tr>
+      <td>${esc(it.name)}</td>
+      <td>${esc(it.brand)}</td>
+      <td style="text-align:center">${it.qty}</td>
+      <td style="text-align:right">S/ ${it.price.toFixed(2)}</td>
+      <td style="text-align:right">S/ ${(it.price * it.qty).toFixed(2)}</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resumen de compra ${orderId}</title>
+    <style>
+      body{font-family:sans-serif;color:#222;padding:24px;max-width:620px;margin:0 auto}
+      h1{font-size:20px;margin:0 0 2px}
+      .sub{color:#666;font-size:12px;margin-bottom:18px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th{background:#111;color:#fff;padding:8px;text-align:left;font-size:11px;text-transform:uppercase}
+      td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+      .totals{margin-top:14px;text-align:right;font-size:13px}
+      .totals .final{font-size:18px;font-weight:700;color:#742284}
+      .footer{margin-top:24px;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:10px}
+    </style>
+  </head><body>
+    <h1>A&M Importaciones</h1>
+    <div class="sub">RUC 10764275981 · Lima, Perú · +51 928 020 850</div>
+    <div class="sub">Resumen de compra N° ${orderId} — ${fecha}</div>
+    <table>
+      <thead><tr><th>Producto</th><th>Marca</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="totals">
+      <div>Subtotal: S/ ${subtotal.toFixed(2)}</div>
+      ${ahorro > 0 ? `<div>Ahorro: -S/ ${ahorro.toFixed(2)}</div>` : ''}
+      <div class="final">Total pagado: S/ ${total.toFixed(2)}</div>
+    </div>
+    <div class="footer">
+      Este es un resumen de compra referencial, no tiene validez tributaria
+      como factura/boleta electrónica. Gracias por tu compra en A&M Importaciones.
+    </div>
+  </body></html>`;
+}
+
+function downloadPurchaseSummaryPDF() {
+  const win = window.open('', '_blank');
+  win.document.write(buildPurchaseSummaryHTML());
+  win.document.close();
+  win.print();
+}
+
+function confirmYapePayment() {
+  if (!cart.length) return;
+  const { total } = cartTotals();
+  downloadPurchaseSummaryPDF();
+
+  let msg = `💜 *COMPROBANTE DE PAGO - A&M IMPORTACIONES*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `He realizado el pago de *S/ ${total.toFixed(2)}* por Yape/Plin.\n`;
+  msg += `Adjunto la captura de mi comprobante de pago.\n\n`;
+  msg += `*Resumen de mi pedido:*\n`;
+  cart.forEach((it, idx) => {
+    msg += `${idx + 1}. ${it.name} x${it.qty} — S/ ${(it.price * it.qty).toFixed(2)}\n`;
+  });
+  msg += `\n✅ *TOTAL PAGADO: S/ ${total.toFixed(2)}*\n\n`;
+  msg += `Quedo atento(a) a la confirmación de mi pedido. ¡Gracias! 🙏`;
+
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+  closeModal('yapePaymentModal');
+}
+
 // ===== WHATSAPP CHECKOUT =====
 function goToWhatsAppCheckout() {
   if (!cart.length) {
@@ -2694,7 +2787,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // CERRAR MODALES AL HACER CLICK FUERA
-  ['loginModal','profileModal','ordersModal','addressModal','pointsModal','contactModal','aiAssistantModal'].forEach(id => {
+  ['loginModal','profileModal','ordersModal','addressModal','pointsModal','contactModal','aiAssistantModal','yapePaymentModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', e => { if (e.target === el) closeModal(id); });
   });

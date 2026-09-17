@@ -147,8 +147,8 @@
                   <button class="btn-primary" onclick="showPage('catalog')">
                     Ver catálogo
                   </button>
-                  <button class="btn-ghost" onclick="showPage('catalog')">
-                    Ver productos
+                  <button class="btn-ghost" onclick="window.open('https://wa.me/51928020850?text=Hola%20A%26M%20Importaciones%2C%20quiero%20comunicarme%20con%20ustedes','_blank')">
+                    📞 Comunícate con nosotros
                   </button>
                 </div>
               </div>
@@ -178,8 +178,8 @@
                   <button class="btn-primary" onclick="openAIAssistant()">
                     🤖 Buscar con IA
                   </button>
-                  <button class="btn-ghost" onclick="showPage('catalog')">
-                    Ver productos
+                  <button class="btn-ghost" onclick="window.location.href='tel:+51928020850'">
+                    📅 Agendar llamada
                   </button>
                 </div>
               </div>
@@ -414,6 +414,13 @@
             <div class="summary-row total-row">
               <span>Total</span><span id="summaryTotal">S/ 0.00</span>
             </div>
+            <button
+              class="btn-whatsapp-checkout"
+              style="background: #742284"
+              onclick="openYapePayment()"
+            >
+              💜 Pagar con Yape / Plin
+            </button>
             <button
               class="btn-whatsapp-checkout"
               onclick="goToWhatsAppCheckout()"
@@ -779,6 +786,69 @@
     </div>
 
     <!-- ========== MODAL CONTÁCTANOS ========== -->
+    <div class="modal-overlay" id="yapePaymentModal">
+      <div class="login-box">
+        <button class="modal-close" onclick="closeModal('yapePaymentModal')">
+          ×
+        </button>
+        <h2 style="margin-bottom: 6px">💜 Pagar con Yape / Plin</h2>
+        <p style="color: var(--gray); font-size: 13px; margin-bottom: 12px">
+          Escanea el código y envía el monto exacto. No cobramos ninguna
+          comisión adicional.
+        </p>
+        <div style="text-align: center; margin-bottom: 12px">
+          <img
+            id="yapeQrImg"
+            src="images/yape-qr.png"
+            alt="QR de pago Yape / Plin"
+            style="
+              width: 220px;
+              height: 220px;
+              object-fit: contain;
+              border: 1px solid #eee;
+              border-radius: 12px;
+              padding: 8px;
+              background: #fff;
+            "
+            onerror="this.style.display='none'; document.getElementById('yapeQrFallback').style.display='block';"
+          />
+          <div
+            id="yapeQrFallback"
+            style="display: none; padding: 20px; border: 1px dashed #ccc; border-radius: 12px"
+          >
+            <p style="margin: 0 0 6px">
+              📱 Yape / Plin al número:
+            </p>
+            <p style="font-size: 20px; font-weight: 700; margin: 0">
+              928 020 850
+            </p>
+            <p style="font-size: 12px; color: var(--gray); margin-top: 6px">
+              A nombre de A&M Importaciones
+            </p>
+          </div>
+        </div>
+        <div class="summary-row total-row" style="margin-bottom: 12px">
+          <span>Monto a pagar</span>
+          <span id="yapeAmount">S/ 0.00</span>
+        </div>
+        <button class="btn-primary full-width" onclick="confirmYapePayment()">
+          ✅ Ya pagué, enviar comprobante
+        </button>
+        <button
+          class="btn-outline full-width"
+          style="margin-top: 8px"
+          onclick="closeModal('yapePaymentModal')"
+        >
+          Cancelar
+        </button>
+        <p style="font-size: 11px; color: var(--gray); margin-top: 10px">
+          Al confirmar se descarga el resumen de tu compra y se abre WhatsApp
+          para que nos envíes la captura de tu pago. Verificaremos y
+          confirmaremos tu pedido a la brevedad.
+        </p>
+      </div>
+    </div>
+
     <div class="modal-overlay" id="contactModal">
       <div class="login-box">
         <button class="modal-close" onclick="closeModal('contactModal')">
@@ -791,7 +861,7 @@
         <div class="contact-item-row">
           <span>📱</span>
           <div>
-            <b>WhatsApp</b>
+            <b>WhatsApp / Llamada</b>
             <p
               onclick="window.open('https://wa.me/51928020850', '_blank')"
               style="cursor: pointer; color: var(--orange)"
@@ -824,9 +894,16 @@
         <button
           class="btn-primary full-width"
           style="margin-top: 16px"
-          onclick="window.open('https://wa.me/51928020850', '_blank')"
+          onclick="window.open('https://wa.me/51928020850?text=Hola%20A%26M%20Importaciones%2C%20quiero%20comunicarme%20con%20ustedes', '_blank')"
         >
-          💬 Escribir por WhatsApp
+          💬 Comunícate con nosotros
+        </button>
+        <button
+          class="btn-outline full-width"
+          style="margin-top: 8px"
+          onclick="window.location.href='tel:+51928020850'"
+        >
+          📞 Llamar ahora
         </button>
       </div>
     </div>
@@ -873,7 +950,7 @@
     <script src="api.js"></script>
     <script>
       // Número de WhatsApp de la empresa para recuperación sin correo
-      window.WHATSAPP_NUMBER = '51999999999'; // Actualizar con el número real
+      window.WHATSAPP_NUMBER = '51928020850';
     </script>
     <script src="inicio.js"></script>
   </body>
