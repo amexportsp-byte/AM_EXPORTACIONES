@@ -323,11 +323,13 @@ function openYapePayment() {
   });
 }
 
+const AM_LOGO_URL = 'https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png';
+
 function buildPurchaseSummaryHTML(orderId, clientName) {
   const { subtotal, ahorro, total } = cartTotals();
   const fecha = new Date().toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' });
-  const rows = cart.map((it, i) => `
-    <tr style="background:${i % 2 ? '#faf8f5' : '#fff'}">
+  const rows = cart.map((it) => `
+    <tr>
       <td>
         <div style="font-weight:600;color:#1a1a1a">${esc(it.name)}</div>
         <div style="font-size:11px;color:#8a8a8a">${esc(it.brand)}${it.codigo ? ' · ' + esc(it.codigo) : ''}</div>
@@ -337,50 +339,80 @@ function buildPurchaseSummaryHTML(orderId, clientName) {
       <td style="text-align:right;font-weight:700">S/ ${(it.price * it.qty).toFixed(2)}</td>
     </tr>`).join('');
 
+  // Nota de diseño: los navegadores NO imprimen background-color por
+  // defecto (salvo que el usuario active "Gráficos de fondo"), así que
+  // toda la estructura visible se apoya en bordes y color de texto,
+  // que SÍ se imprimen siempre. Los colores de fondo son solo un bonus
+  // para quien vea/guarde con gráficos de fondo activados.
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resumen de compra ${orderId}</title>
     <style>
-      @page { margin: 18px; }
-      *{box-sizing:border-box}
-      body{font-family:'Segoe UI',Arial,sans-serif;color:#2b2b2b;background:#f2ede7;margin:0;padding:32px 16px;}
-      .receipt{max-width:640px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08);}
-      .receipt-header{background:linear-gradient(135deg,#1a1a1a,#3a2e22);color:#fff;padding:26px 28px 22px;position:relative}
-      .receipt-header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#E89E48,#7b2ff7);}
-      .brand{font-size:22px;font-weight:800;letter-spacing:.5px;margin:0}
+      @page { margin: 16mm 14mm; }
+      *{box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#2b2b2b;background:#f2ede7;margin:0;padding:28px 16px;}
+      .receipt{max-width:680px;margin:0 auto;background:#fff;border:1px solid #e8e2d8;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.06);}
+
+      .receipt-header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+        padding:24px 28px;border-bottom:3px solid #E89E48;background:#fff;}
+      .brand-block{display:flex;align-items:center;gap:14px;}
+      .brand-logo{height:52px;width:52px;object-fit:contain;flex-shrink:0;}
+      .brand{font-size:20px;font-weight:800;letter-spacing:.4px;margin:0;color:#1a1a1a;}
       .brand span{color:#E89E48}
-      .tagline{font-size:12px;color:#d8d0c6;margin-top:2px}
-      .status-badge{position:absolute;top:26px;right:28px;background:#27ae60;color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.5px}
-      .meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:16px 28px;background:#faf8f5;border-bottom:1px solid #f0ece5;font-size:12px;color:#6b6b6b}
-      .meta b{color:#2b2b2b}
-      .body{padding:22px 28px 8px}
+      .tagline{font-size:11.5px;color:#8a8a8a;margin-top:2px}
+      .status-badge{border:1.5px solid #27ae60;color:#1c8a4a;font-size:11px;font-weight:800;
+        padding:5px 14px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;height:fit-content}
+
+      .meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+        padding:16px 28px;border-bottom:1px solid #eee;font-size:12px;color:#6b6b6b;line-height:1.6}
+      .meta b{color:#1a1a1a}
+      .meta .right{text-align:right}
+
+      .body{padding:20px 28px 6px}
       table{width:100%;border-collapse:collapse}
-      thead th{background:#1a1a1a;color:#fff;padding:9px 10px;text-align:left;font-size:10px;letter-spacing:.6px;text-transform:uppercase}
+      thead th{padding:0 10px 10px;text-align:left;font-size:10px;letter-spacing:.6px;
+        text-transform:uppercase;color:#1a1a1a;border-bottom:2px solid #1a1a1a;}
       thead th:not(:first-child){text-align:right}
       thead th:nth-child(2){text-align:center}
-      tbody td{padding:10px;font-size:13px;border-bottom:1px solid #f0ece5}
-      .totals{padding:16px 28px 4px;margin-top:6px}
-      .totals-row{display:flex;justify-content:space-between;font-size:13px;color:#6b6b6b;padding:3px 0}
-      .totals-row.ahorro{color:#27ae60;font-weight:600}
-      .totals-row.final{font-size:20px;font-weight:800;color:#1a1a1a;border-top:2px solid #1a1a1a;margin-top:8px;padding-top:10px}
+      tbody td{padding:11px 10px;font-size:13px;border-bottom:1px solid #eee}
+
+      .totals{padding:16px 28px 4px;margin-top:4px}
+      .totals-row{display:flex;justify-content:space-between;font-size:13px;color:#6b6b6b;padding:4px 0}
+      .totals-row.ahorro{color:#1c8a4a;font-weight:700}
+      .totals-row.final{font-size:21px;font-weight:800;color:#1a1a1a;
+        border-top:2px solid #1a1a1a;margin-top:8px;padding-top:12px}
       .totals-row.final span:last-child{color:#7b2ff7}
-      .footer{padding:20px 28px 26px;text-align:center}
+
+      .footer{padding:22px 28px 26px;text-align:center;border-top:1px dashed #e6e0d8;margin-top:10px}
       .thanks{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
       .contact{font-size:12px;color:#8a8a8a;margin-bottom:14px}
-      .disclaimer{font-size:10.5px;color:#b3b3b3;border-top:1px dashed #e6e0d8;padding-top:12px;line-height:1.5}
+      .disclaimer{font-size:10.5px;color:#b3b3b3;line-height:1.5}
+
       @media print{
         body{background:#fff;padding:0}
-        .receipt{box-shadow:none;border-radius:0;max-width:100%}
+        .receipt{box-shadow:none;border-radius:0;border:none;max-width:100%}
       }
     </style>
   </head><body>
     <div class="receipt">
       <div class="receipt-header">
-        <p class="brand">A&<span>M</span> IMPORTACIONES</p>
-        <p class="tagline">Conectando mercados, impulsando negocios</p>
+        <div class="brand-block">
+          <img class="brand-logo" src="${AM_LOGO_URL}" alt="A&M" />
+          <div>
+            <p class="brand">A&<span>M</span> IMPORTACIONES</p>
+            <p class="tagline">Conectando mercados, impulsando negocios</p>
+          </div>
+        </div>
         <span class="status-badge">✅ PAGADO</span>
       </div>
       <div class="meta">
-        <div>RUC: <b>10764275981</b> · Lima, Perú<br>+51 928 020 850${clientName ? `<br>Cliente: <b>${esc(clientName)}</b>` : ''}</div>
-        <div style="text-align:right">N° <b>${esc(orderId)}</b><br>${fecha}</div>
+        <div>
+          RUC: <b>10764275981</b> · Lima, Perú<br>
+          Tel: +51 928 020 850
+          ${clientName ? `<br>Cliente: <b>${esc(clientName)}</b>` : ''}
+        </div>
+        <div class="right">
+          N° de pedido: <b>${esc(orderId)}</b><br>
+          ${fecha}
+        </div>
       </div>
       <div class="body">
         <table>
