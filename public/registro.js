@@ -831,6 +831,7 @@ function applyFilters() {
     parseFloat(document.getElementById("filterPriceMax")?.value) || Infinity;
   const expired = document.getElementById("filterExpired")?.checked;
   const noStock = document.getElementById("filterNoStock")?.checked;
+  const inStock = document.getElementById("filterInStock")?.checked;
   const discount = document.getElementById("filterDiscount")?.checked;
   const sort = document.getElementById("filterSort")?.value || "";
 
@@ -850,6 +851,7 @@ function applyFilters() {
     if (p.precioVenta < priceMin || p.precioVenta > priceMax) return false;
     if (expired && !isExpired(p.fechaVence)) return false;
     if (noStock && p.stock !== 0) return false;
+    if (inStock && p.stock <= 0) return false;
     if (discount && p.descuento <= 0) return false;
     return true;
   });
@@ -2120,7 +2122,7 @@ async function init() {
   ].forEach((id) => {
     document.getElementById(id)?.addEventListener("change", applyFilters);
   });
-  ["filterExpired", "filterNoStock", "filterDiscount"].forEach((id) => {
+  ["filterExpired", "filterNoStock", "filterInStock", "filterDiscount"].forEach((id) => {
     document.getElementById(id)?.addEventListener("change", applyFilters);
   });
 
@@ -2136,6 +2138,7 @@ async function init() {
     document.getElementById("filterPriceMax").value = "";
     document.getElementById("filterExpired").checked = false;
     document.getElementById("filterNoStock").checked = false;
+    document.getElementById("filterInStock").checked = false;
     document.getElementById("filterDiscount").checked = false;
     document.getElementById("filterSort").value = "";
     applyFilters();
