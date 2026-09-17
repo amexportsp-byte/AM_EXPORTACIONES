@@ -2927,7 +2927,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // CUENTA
   document.getElementById('btnCuenta').addEventListener('click', e => {
     e.stopPropagation();
-    document.getElementById('accountMenu').classList.toggle('show');
+    const btn = document.getElementById('btnCuenta');
+    const menu = document.getElementById('accountMenu');
+    const willShow = !menu.classList.contains('show');
+    if (willShow) {
+      const r = btn.getBoundingClientRect();
+      const menuWidth = 230;
+      let left = r.right - menuWidth; // alinear borde derecho del menú con el botón
+      left = Math.max(10, Math.min(left, window.innerWidth - menuWidth - 10));
+      menu.style.top = (r.bottom + 8) + 'px';
+      menu.style.left = left + 'px';
+      menu.style.right = 'auto';
+    }
+    menu.classList.toggle('show');
   });
   document.addEventListener('click', () => document.getElementById('accountMenu').classList.remove('show'));
   document.getElementById('accountMenu').addEventListener('click', e => e.stopPropagation());
