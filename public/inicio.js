@@ -321,45 +321,84 @@ function openYapePayment() {
 
 function buildPurchaseSummaryHTML() {
   const { subtotal, ahorro, total } = cartTotals();
-  const fecha = new Date().toLocaleString('es-PE');
+  const fecha = new Date().toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' });
   const orderId = 'AM-' + Date.now().toString().slice(-8);
-  const rows = cart.map(it => `
-    <tr>
-      <td>${esc(it.name)}</td>
-      <td>${esc(it.brand)}</td>
+  const rows = cart.map((it, i) => `
+    <tr style="background:${i % 2 ? '#faf8f5' : '#fff'}">
+      <td>
+        <div style="font-weight:600;color:#1a1a1a">${esc(it.name)}</div>
+        <div style="font-size:11px;color:#8a8a8a">${esc(it.brand)}${it.codigo ? ' · ' + esc(it.codigo) : ''}</div>
+      </td>
       <td style="text-align:center">${it.qty}</td>
       <td style="text-align:right">S/ ${it.price.toFixed(2)}</td>
-      <td style="text-align:right">S/ ${(it.price * it.qty).toFixed(2)}</td>
+      <td style="text-align:right;font-weight:700">S/ ${(it.price * it.qty).toFixed(2)}</td>
     </tr>`).join('');
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resumen de compra ${orderId}</title>
     <style>
-      body{font-family:sans-serif;color:#222;padding:24px;max-width:620px;margin:0 auto}
-      h1{font-size:20px;margin:0 0 2px}
-      .sub{color:#666;font-size:12px;margin-bottom:18px}
-      table{width:100%;border-collapse:collapse;margin-top:10px}
-      th{background:#111;color:#fff;padding:8px;text-align:left;font-size:11px;text-transform:uppercase}
-      td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
-      .totals{margin-top:14px;text-align:right;font-size:13px}
-      .totals .final{font-size:18px;font-weight:700;color:#742284}
-      .footer{margin-top:24px;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:10px}
+      @page { margin: 18px; }
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#2b2b2b;background:#f2ede7;margin:0;padding:32px 16px;}
+      .receipt{max-width:640px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+      .receipt-header{background:linear-gradient(135deg,#1a1a1a,#3a2e22);color:#fff;padding:26px 28px 22px;position:relative}
+      .receipt-header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#E89E48,#7b2ff7);}
+      .brand{font-size:22px;font-weight:800;letter-spacing:.5px;margin:0}
+      .brand span{color:#E89E48}
+      .tagline{font-size:12px;color:#d8d0c6;margin-top:2px}
+      .status-badge{position:absolute;top:26px;right:28px;background:#27ae60;color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.5px}
+      .meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:16px 28px;background:#faf8f5;border-bottom:1px solid #f0ece5;font-size:12px;color:#6b6b6b}
+      .meta b{color:#2b2b2b}
+      .body{padding:22px 28px 8px}
+      table{width:100%;border-collapse:collapse}
+      thead th{background:#1a1a1a;color:#fff;padding:9px 10px;text-align:left;font-size:10px;letter-spacing:.6px;text-transform:uppercase}
+      thead th:not(:first-child){text-align:right}
+      thead th:nth-child(2){text-align:center}
+      tbody td{padding:10px;font-size:13px;border-bottom:1px solid #f0ece5}
+      .totals{padding:16px 28px 4px;margin-top:6px}
+      .totals-row{display:flex;justify-content:space-between;font-size:13px;color:#6b6b6b;padding:3px 0}
+      .totals-row.ahorro{color:#27ae60;font-weight:600}
+      .totals-row.final{font-size:20px;font-weight:800;color:#1a1a1a;border-top:2px solid #1a1a1a;margin-top:8px;padding-top:10px}
+      .totals-row.final span:last-child{color:#7b2ff7}
+      .footer{padding:20px 28px 26px;text-align:center}
+      .thanks{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+      .contact{font-size:12px;color:#8a8a8a;margin-bottom:14px}
+      .disclaimer{font-size:10.5px;color:#b3b3b3;border-top:1px dashed #e6e0d8;padding-top:12px;line-height:1.5}
+      @media print{
+        body{background:#fff;padding:0}
+        .receipt{box-shadow:none;border-radius:0;max-width:100%}
+      }
     </style>
   </head><body>
-    <h1>A&M Importaciones</h1>
-    <div class="sub">RUC 10764275981 · Lima, Perú · +51 928 020 850</div>
-    <div class="sub">Resumen de compra N° ${orderId} — ${fecha}</div>
-    <table>
-      <thead><tr><th>Producto</th><th>Marca</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="totals">
-      <div>Subtotal: S/ ${subtotal.toFixed(2)}</div>
-      ${ahorro > 0 ? `<div>Ahorro: -S/ ${ahorro.toFixed(2)}</div>` : ''}
-      <div class="final">Total pagado: S/ ${total.toFixed(2)}</div>
-    </div>
-    <div class="footer">
-      Este es un resumen de compra referencial, no tiene validez tributaria
-      como factura/boleta electrónica. Gracias por tu compra en A&M Importaciones.
+    <div class="receipt">
+      <div class="receipt-header">
+        <p class="brand">A&<span>M</span> IMPORTACIONES</p>
+        <p class="tagline">Conectando mercados, impulsando negocios</p>
+        <span class="status-badge">✅ PAGADO</span>
+      </div>
+      <div class="meta">
+        <div>RUC: <b>10764275981</b> · Lima, Perú<br>+51 928 020 850</div>
+        <div style="text-align:right">N° <b>${orderId}</b><br>${fecha}</div>
+      </div>
+      <div class="body">
+        <table>
+          <thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <div class="totals-row"><span>Subtotal</span><span>S/ ${subtotal.toFixed(2)}</span></div>
+        ${ahorro > 0 ? `<div class="totals-row ahorro"><span>Ahorro</span><span>-S/ ${ahorro.toFixed(2)}</span></div>` : ''}
+        <div class="totals-row final"><span>Total pagado</span><span>S/ ${total.toFixed(2)}</span></div>
+      </div>
+      <div class="footer">
+        <p class="thanks">¡Gracias por tu compra! 🎉</p>
+        <p class="contact">WhatsApp / Consultas: +51 928 020 850</p>
+        <p class="disclaimer">
+          Este es un resumen de compra referencial y no tiene validez
+          tributaria como factura o boleta electrónica ante SUNAT.
+          Consérvalo como constancia de tu pedido y pago.
+        </p>
+      </div>
     </div>
   </body></html>`;
 }
