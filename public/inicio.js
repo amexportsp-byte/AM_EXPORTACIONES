@@ -930,7 +930,9 @@ function renderHeroProducts() {
     for (let j = 0; j < 4; j++) items.push(shuffled[(i * 4 + j) % shuffled.length]);
     el.innerHTML = items.map(p => `
       <div class="hero-icon-card" onclick="showDetail('${p.id}')" title="${esc(p.name)}">
-        <img src="${p.imageUrl}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"/>
+        <div class="hero-icon-imgwrap">
+          <img src="${p.imageUrl}" alt="${esc(p.name)}" loading="lazy" onerror="this.parentElement.style.display='none'"/>
+        </div>
         <span>${esc(p.name)}</span>
       </div>`).join('');
   }
