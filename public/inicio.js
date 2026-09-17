@@ -935,7 +935,6 @@ function renderHeroProducts() {
         </div>
         <div class="ai-rec-info">
           <div class="ai-rec-name">${esc(p.name)}</div>
-          <div class="ai-rec-price">S/ ${p.price.toFixed(2)}</div>
         </div>
       </div>`).join('');
   }
