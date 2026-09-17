@@ -1828,21 +1828,6 @@ function openAccountWhatsApp() {
 // ── Variables de estado del auth modal ──
 let _authDocType = '';
 let _authDocNum  = '';
-let _authMode    = 'doc'; // 'doc' | 'phone'
-
-function setAuthMode(mode) {
-  _authMode = mode;
-  const tabDoc   = document.getElementById('authTabDoc');
-  const tabPhone = document.getElementById('authTabPhone');
-  const active   = 'border:1.5px solid var(--orange);background:var(--orange);color:#fff;font-weight:700;font-size:13px;';
-  const inactive = 'border:1.5px solid #ddd;background:#fff;color:#555;font-weight:700;font-size:13px;';
-  const base     = 'flex:1;padding:9px;border-radius:8px;cursor:pointer;';
-  tabDoc.style.cssText   = base + (mode === 'doc'   ? active : inactive);
-  tabPhone.style.cssText = base + (mode === 'phone' ? active : inactive);
-  document.getElementById('authDocFields').style.display   = mode === 'doc'   ? '' : 'none';
-  document.getElementById('authPhoneFields').style.display = mode === 'phone' ? '' : 'none';
-  document.getElementById('authError1').style.display = 'none';
-}
 
 function authGoStep1() {
   document.getElementById('authStep1').style.display = '';
@@ -1851,36 +1836,18 @@ function authGoStep1() {
 }
 
 async function handleAuthCheck() {
-  const errEl = document.getElementById('authError1');
-  errEl.style.display = 'none';
-
-  if (_authMode === 'phone') {
-    const phone = document.getElementById('authPhoneNum').value.trim();
-    if (!phone) { errEl.textContent = '⚠️ Ingresa tu número de celular'; errEl.style.display = 'block'; return; }
-    try {
-      const data = await API.customers.loginByPhone(phone);
-      API.customers.setSession(data.token, {
-        name: data.name, email: data.email,
-        phone: data.phone || '', address: data.address || '', district: data.district || '',
-      });
-      updateHeaderUser();
-      closeModal('loginModal');
-      showToast('✅ ¡Bienvenido de vuelta, ' + data.name.split(' ')[0] + '!');
-    } catch (err) {
-      errEl.textContent = '⚠️ No encontramos una cuenta con ese celular. Si eres nuevo, ingresa con tu documento.';
-      errEl.style.display = 'block';
-    }
-    return;
-  }
-
+  const errEl   = document.getElementById('authError1');
   const docType = document.getElementById('authDocType').value;
   const docNum  = document.getElementById('authDocNum').value.trim();
-  if (!docType)  { errEl.textContent = '⚠️ Selecciona el tipo de documento'; errEl.style.display = 'block'; return; }
-  if (!docNum)   { errEl.textContent = '⚠️ Ingresa tu número de documento';  errEl.style.display = 'block'; return; }
+  const phone   = document.getElementById('authPhoneNum').value.trim();
+  errEl.style.display = 'none';
+  if (!docType) { errEl.textContent = '⚠️ Selecciona el tipo de documento'; errEl.style.display = 'block'; return; }
+  if (!docNum)  { errEl.textContent = '⚠️ Ingresa tu número de documento';  errEl.style.display = 'block'; return; }
+  if (!phone)   { errEl.textContent = '⚠️ Ingresa tu número de celular';    errEl.style.display = 'block'; return; }
 
   try {
-    const data = await API.customers.login(docType, docNum);
-    // Documento encontrado → login directo
+    const data = await API.customers.login(docType, docNum, phone);
+    // Documento + celular coinciden → login directo
     API.customers.setSession(data.token, {
       name: data.name, email: data.email,
       phone: data.phone || '', address: data.address || '', district: data.district || '',
@@ -1902,7 +1869,10 @@ async function handleAuthCheck() {
       document.getElementById('regFirstName').value = '';
       document.getElementById('regLastName').value  = '';
       document.getElementById('regEmail').value     = '';
-      document.getElementById('regPhone').value     = '';
+      document.getElementById('regPhone').value     = phone; // ya lo escribió en el paso 1
+    } else if (err.message && err.message.includes('no coincide')) {
+      errEl.textContent = '⚠️ El celular no coincide con el registrado para ese documento.';
+      errEl.style.display = 'block';
     } else {
       errEl.textContent = '⚠️ ' + err.message;
       errEl.style.display = 'block';
@@ -1920,6 +1890,7 @@ async function handleRegister() {
   if (!firstName) { errEl.textContent = '⚠️ El nombre es obligatorio';             errEl.style.display = 'block'; return; }
   if (!lastName)  { errEl.textContent = '⚠️ Los apellidos son obligatorios';        errEl.style.display = 'block'; return; }
   if (!email)     { errEl.textContent = '⚠️ El correo electrónico es obligatorio';  errEl.style.display = 'block'; return; }
+  if (!phone)     { errEl.textContent = '⚠️ El celular es obligatorio';             errEl.style.display = 'block'; return; }
   try {
     const data = await API.customers.register({
       doc_type: _authDocType, doc_number: _authDocNum,
@@ -1972,7 +1943,6 @@ function resetAuthModal() {
   if (err1)    err1.style.display = 'none';
   const phoneNum = document.getElementById('authPhoneNum');
   if (phoneNum) phoneNum.value = '';
-  if (document.getElementById('authTabDoc')) setAuthMode('doc');
   // Limpiar campos del paso 2 (registro)
   ['regFirstName','regLastName','regEmail','regPhone'].forEach(id => {
     const el = document.getElementById(id);

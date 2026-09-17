@@ -534,49 +534,34 @@
           <img src="https://raw.githubusercontent.com/amexportsp-byte/data_imagen/main/logo1.png" alt="A&M" style="height:56px;object-fit:contain"/>
         </div>
 
-        <!-- PASO 1: Buscar por documento o celular -->
+        <!-- PASO 1: Documento + celular -->
         <div id="authStep1">
           <h2>Iniciar sesión</h2>
-          <p class="login-sub">Ingresa tu documento o tu celular para acceder</p>
-          <div class="auth-mode-tabs" style="display:flex;gap:8px;margin-bottom:16px;">
-            <button type="button" id="authTabDoc" onclick="setAuthMode('doc')"
-              style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">
-              📄 Documento
-            </button>
-            <button type="button" id="authTabPhone" onclick="setAuthMode('phone')"
-              style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #ddd;background:#fff;color:#555;font-weight:700;font-size:13px;cursor:pointer;">
-              📱 Celular
-            </button>
-          </div>
+          <p class="login-sub">Ingresa tu documento y tu celular para acceder</p>
           <div id="authError1" class="login-error" style="display:none"></div>
 
-          <div id="authDocFields">
-            <div class="form-group">
-              <label>Tipo de documento</label>
-              <select id="authDocType">
-                <option value="">— Seleccionar —</option>
-                <option value="DNI">DNI</option>
-                <option value="CE">Carnet de extranjería</option>
-                <option value="Pasaporte">Pasaporte</option>
-                <option value="RUC">RUC</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Número de documento</label>
-              <input type="text" id="authDocNum" placeholder="Ej: 12345678" autocomplete="off" maxlength="20"
-                onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
-            </div>
+          <div class="form-group">
+            <label>Tipo de documento</label>
+            <select id="authDocType">
+              <option value="">— Seleccionar —</option>
+              <option value="DNI">DNI</option>
+              <option value="CE">Carnet de extranjería</option>
+              <option value="Pasaporte">Pasaporte</option>
+              <option value="RUC">RUC</option>
+            </select>
           </div>
-
-          <div id="authPhoneFields" style="display:none">
-            <div class="form-group">
-              <label>Número de celular</label>
-              <input type="tel" id="authPhoneNum" placeholder="Ej: 987654321" autocomplete="tel" maxlength="20"
-                onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
-              <p style="font-size:11px;color:#999;margin-top:4px">
-                Debe ser el mismo celular que registraste al crear tu cuenta.
-              </p>
-            </div>
+          <div class="form-group">
+            <label>Número de documento</label>
+            <input type="text" id="authDocNum" placeholder="Ej: 12345678" autocomplete="off" maxlength="20"
+              onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
+          </div>
+          <div class="form-group">
+            <label>Número de celular</label>
+            <input type="tel" id="authPhoneNum" placeholder="Ej: 987654321" autocomplete="tel" maxlength="20"
+              onkeydown="if(event.key==='Enter')handleAuthCheck()"/>
+            <p style="font-size:11px;color:#999;margin-top:4px">
+              Debe ser el mismo celular que registraste al crear tu cuenta.
+            </p>
           </div>
 
           <button class="btn-primary full-width" onclick="handleAuthCheck()">Continuar</button>
@@ -604,8 +589,11 @@
             <input type="email" id="regEmail" placeholder="correo@ejemplo.com" autocomplete="email"/>
           </div>
           <div class="form-group">
-            <label>Celular <span style="color:#aaa;font-weight:400">(opcional)</span></label>
+            <label>Celular *</label>
             <input type="tel" id="regPhone" placeholder="Ej: 987654321" autocomplete="tel"/>
+            <p style="font-size:11px;color:#999;margin-top:4px">
+              Lo necesitarás junto a tu documento para iniciar sesión después.
+            </p>
           </div>
           <button class="btn-primary full-width" onclick="handleRegister()">Crear mi cuenta</button>
         </div>

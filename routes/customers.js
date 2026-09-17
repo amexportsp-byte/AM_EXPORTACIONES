@@ -13,39 +13,36 @@ function makeToken(payload) {
 
 // ─────────────────────────────────────────────
 // POST /api/customers/login
-// Body: { doc_type, doc_number } o { phone }
-// Retorna token si el documento (o el celular registrado) existe
+// Body: { doc_type, doc_number, phone }
+// Requiere AMBOS: el documento debe existir Y el celular debe
+// coincidir con el registrado para esa cuenta.
 // ─────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   const { doc_type, doc_number, phone } = req.body;
-
-  let query, params, notFoundMsg;
-  if (phone) {
-    const phoneClean = String(phone).trim();
-    if (!phoneClean)
-      return res.status(400).json({ error: "Ingresa tu número de celular" });
-    query = `SELECT id, first_name, last_name, email, phone, address, district, status
-              FROM clients WHERE phone = $1 AND deleted_at IS NULL LIMIT 1`;
-    params = [phoneClean];
-    notFoundMsg = "Celular no registrado";
-  } else {
-    if (!doc_type || !doc_number)
-      return res.status(400).json({ error: "Tipo y número de documento son requeridos" });
-    query = `SELECT id, first_name, last_name, email, phone, address, district, status
-              FROM clients WHERE document_type = $1 AND document_number = $2 AND deleted_at IS NULL LIMIT 1`;
-    params = [doc_type, doc_number];
-    notFoundMsg = "Documento no registrado";
-  }
+  if (!doc_type || !doc_number)
+    return res.status(400).json({ error: "Tipo y número de documento son requeridos" });
+  if (!phone || !String(phone).trim())
+    return res.status(400).json({ error: "El número de celular es requerido" });
+  const phoneClean = String(phone).trim();
 
   try {
-    const { rows } = await pool.query(query, params);
+    const { rows } = await pool.query(
+      `SELECT id, first_name, last_name, email, phone, address, district, status
+       FROM clients
+       WHERE document_type = $1 AND document_number = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [doc_type, doc_number]
+    );
 
     if (!rows.length)
-      return res.status(404).json({ notFound: true, error: notFoundMsg });
+      return res.status(404).json({ notFound: true, error: "Documento no registrado" });
 
     const c = rows[0];
     if (c.status !== "activo")
       return res.status(403).json({ error: "Cuenta inactiva o bloqueada" });
+
+    if (!c.phone || c.phone.trim() !== phoneClean)
+      return res.status(401).json({ error: "El celular no coincide con el documento registrado" });
 
     const name  = `${c.first_name} ${c.last_name || ""}`.trim();
     const token = makeToken({ client_id: c.id, email: c.email || "", name });

@@ -410,11 +410,8 @@ const API = {
       return data;
     },
 
-    login(doc_type, doc_number) {
-      return this.request("POST", "/api/customers/login", { doc_type, doc_number });
-    },
-    loginByPhone(phone) {
-      return this.request("POST", "/api/customers/login", { phone });
+    login(doc_type, doc_number, phone) {
+      return this.request("POST", "/api/customers/login", { doc_type, doc_number, phone });
     },
     register(data) {
       return this.request("POST", "/api/customers/register", data);
