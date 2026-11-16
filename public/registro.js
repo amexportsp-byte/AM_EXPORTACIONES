@@ -196,6 +196,15 @@ function safeImgUrl(u) {
   return "";
 }
 
+// Línea "Costo Joanis": costo de compra referencial (lo que cobra Joanis).
+// No es el precio de venta: ese lo define A&M.
+function costoJoanisLine(p) {
+  if (!p.importSource) return "";
+  const costo = p.sourcePrice != null ? p.sourcePrice : p.precioCompra;
+  return `<div style="font-size:11px;color:var(--text-muted)" title="Costo de compra referencial (precio de Joanis). Tu precio de venta es el de arriba.">
+    Costo Joanis: <strong style="color:var(--text-secondary)">${costo > 0 ? fmt(costo) : "—"}</strong></div>`;
+}
+
 // Etiqueta de origen: distingue los productos importados (ej. de Joanis) de los propios.
 function sourceBadge(p) {
   if (!p.importSource) return "";
@@ -933,10 +942,13 @@ function renderGrid() {
         <div class="product-card-name">${p.nombre}</div>
         <div class="product-card-meta">${p.categoria} · ${p.marca}</div>
         <div class="product-card-meta" style="font-size:11px;color:var(--text-muted)">${p.codigo}</div>
+        ${p.importSource ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">Precio de venta</div>` : ""}
         <div class="product-card-price">
-          ${fmt(finalPrice)}
-          ${p.descuento > 0 ? `<span class="original">${fmt(p.precioVenta)}</span>` : ""}
+          ${p.importSource && !(p.precioVenta > 0)
+            ? `<span onclick="openEdit('${p.id}')" title="Definir tu precio de venta" style="cursor:pointer;font-size:13px;color:#d97706">✎ Pon tu precio</span>`
+            : `${fmt(finalPrice)}${p.descuento > 0 ? ` <span class="original">${fmt(p.precioVenta)}</span>` : ""}`}
         </div>
+        ${costoJoanisLine(p)}
         <div class="product-card-stock" style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "var(--text-muted)"}">
           Stock: ${p.stock} ${p.unidad}
         </div>
@@ -983,7 +995,12 @@ function renderList() {
       <div class="product-list-right">
         <span class="badge ${st.cls}">${st.label}</span>
         ${p.descuento > 0 ? `<span class="badge gold">-${p.descuento}%</span>` : ""}
-        <div class="product-list-price">${fmt(finalPrice)}</div>
+        <div class="product-list-price" style="text-align:right">
+          ${p.importSource && !(p.precioVenta > 0)
+            ? `<span onclick="openEdit('${p.id}')" style="cursor:pointer;font-size:13px;color:#d97706">✎ Pon tu precio</span>`
+            : fmt(finalPrice)}
+          ${costoJoanisLine(p)}
+        </div>
         <div class="action-btns">
           <button class="btn-icon view" onclick="openDetail('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           <button class="btn-icon edit" onclick="openEdit('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -1013,8 +1030,10 @@ function renderTable() {
       <td style="color:var(--text-primary);font-weight:600;max-width:180px;white-space:normal">${p.nombre}${sourceBadge(p)}</td>
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:${p.stock <= 5 ? 600 : 400}">${p.stock}</td>
-      <td style="color:var(--text-primary);font-weight:600">${fmt(p.precioVenta)}</td>
-      <td>${fmt(p.precioCompra)}</td>
+      <td style="color:var(--text-primary);font-weight:600">${p.importSource && !(p.precioVenta > 0)
+        ? `<span onclick="openEdit('${p.id}')" style="cursor:pointer;font-size:12px;color:#d97706">✎ Pon tu precio</span>`
+        : fmt(p.precioVenta)}</td>
+      <td>${fmt(p.precioCompra)}${p.importSource ? `<div style="font-size:10px;color:var(--text-muted)">Costo Joanis</div>` : ""}</td>
       <td>${p.descuento > 0 ? `<span class="badge gold">-${p.descuento}%</span>` : "—"}</td>
       <td style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
       <td>${p.proveedor}</td>
