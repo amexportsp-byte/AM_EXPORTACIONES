@@ -196,6 +196,14 @@ function safeImgUrl(u) {
   return "";
 }
 
+// Etiqueta de origen: distingue los productos importados (ej. de Joanis) de los propios.
+function sourceBadge(p) {
+  if (!p.importSource) return "";
+  return `<span class="badge" title="Producto importado (no es de tu stock propio)"
+    style="background:rgba(217,119,6,.15);color:#d97706;border-color:#d97706;font-size:10px;margin-left:6px;vertical-align:middle">
+    ⬇ ${escHtml(p.importSource)}</span>`;
+}
+
 function isExpired(fecha) {
   if (!fecha) return false;
   return new Date(fecha) < new Date();
@@ -917,6 +925,8 @@ function renderGrid() {
         <div class="product-card-badges">
           <span class="badge ${st.cls}" style="font-size:10px">${st.label}</span>
           ${p.descuento > 0 ? `<span class="badge gold" style="font-size:10px">-${p.descuento}%</span>` : ""}
+          ${p.importSource ? `<span class="badge" style="font-size:10px;background:rgba(217,119,6,.2);color:#d97706;border-color:#d97706">⬇ ${escHtml(p.importSource)}</span>` : ""}
+          ${p.published === false ? `<span class="badge" style="font-size:10px;background:rgba(156,163,175,.2);color:#9ca3af;border-color:#9ca3af">Borrador</span>` : ""}
         </div>
       </div>
       <div class="product-card-body">
@@ -967,7 +977,7 @@ function renderList() {
         ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.nombre}" onerror="this.style.display='none'">` : p.emoji}
       </div>
       <div class="product-list-info">
-        <div class="product-list-name">${p.nombre}</div>
+        <div class="product-list-name">${p.nombre}${sourceBadge(p)}</div>
         <div class="product-list-meta">${p.codigo} · ${p.categoria} · ${p.marca} · Stock: ${p.stock}</div>
       </div>
       <div class="product-list-right">
@@ -1000,7 +1010,7 @@ function renderTable() {
         ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:34px;height:34px;object-fit:cover">` : p.emoji}
       </div></td>
       <td><code style="font-size:11px;color:var(--text-muted)">${p.codigo}</code></td>
-      <td style="color:var(--text-primary);font-weight:600;max-width:180px;white-space:normal">${p.nombre}</td>
+      <td style="color:var(--text-primary);font-weight:600;max-width:180px;white-space:normal">${p.nombre}${sourceBadge(p)}</td>
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:${p.stock <= 5 ? 600 : 400}">${p.stock}</td>
       <td style="color:var(--text-primary);font-weight:600">${fmt(p.precioVenta)}</td>
@@ -1114,7 +1124,7 @@ function renderProductosMgmt() {
       <td><div style="display:flex;align-items:center;gap:10px">
         <div style="font-size:20px">${p.emoji}</div>
         <div>
-          <div style="font-weight:600;color:var(--text-primary)">${p.nombre}</div>
+          <div style="font-weight:600;color:var(--text-primary)">${p.nombre}${sourceBadge(p)}</div>
           <div style="font-size:11px;color:var(--text-muted)">${p.codigo}</div>
         </div>
       </div></td>
@@ -1286,7 +1296,7 @@ async function runImport() {
   btn.disabled = true;
   btn.textContent = "Importando…";
   try {
-    const r = await API.products.import(lista, "importado");
+    const r = await API.products.import(lista, "Joanis");
     toast(`Importados: ${r.insertados} · Omitidos (ya existían): ${r.omitidos} · Errores: ${r.errores}`, "success");
     closeImportModal();
     await refreshAfterProductChange();
