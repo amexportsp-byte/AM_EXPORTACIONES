@@ -1015,6 +1015,7 @@ function renderGrid() {
           ${p.descuento > 0 ? `<span class="badge gold" style="font-size:10px">-${p.descuento}%</span>` : ""}
           ${p.importSource ? `<span class="badge" style="font-size:10px;background:rgba(217,119,6,.2);color:#d97706;border-color:#d97706">⬇ ${escHtml(p.importSource)}</span>` : ""}
           ${p.published === false ? `<span class="badge" style="font-size:10px;background:rgba(156,163,175,.2);color:#9ca3af;border-color:#9ca3af">Borrador</span>` : ""}
+          ${isNewFromImport(p) ? `<span class="badge" style="font-size:10px;background:rgba(34,197,94,.2);color:#22c55e;border-color:#22c55e">🆕 Nuevo</span>` : ""}
         </div>
       </div>
       <div class="product-card-body">
@@ -1225,6 +1226,7 @@ function renderProductosMgmt() {
   if (origin === "mios")    lista = State.products.filter((p) => !p.importSource);
   if (origin === "joanis")  lista = State.products.filter((p) => !!p.importSource);
   if (origin === "cambios") lista = State.products.filter(porRevisar);
+  if (origin === "nuevos")  lista = State.products.filter(isNewFromImport);
 
   const countEl = document.getElementById("prodMgmtCount");
   if (countEl) {
@@ -1236,6 +1238,13 @@ function renderProductosMgmt() {
   if (chipCambios) {
     const n = State.products.filter(porRevisar).length;
     chipCambios.textContent = n ? ` (${n})` : "";
+  }
+  const chipNuevos = document.getElementById("chipNuevos");
+  if (chipNuevos) {
+    const nn = State.products.filter(isNewFromImport).length;
+    chipNuevos.style.display = nn ? "" : "none";
+    document.getElementById("chipNuevosCount").textContent = nn ? ` (${nn})` : "";
+    if (!nn && origin === "nuevos") { State.originFilter = "todos"; return setOriginFilter("todos"); }
   }
 
   if (!lista.length) {
@@ -1259,7 +1268,7 @@ function renderProductosMgmt() {
           ${thumb ? `<img src="${thumb}" style="width:34px;height:34px;object-fit:cover" onerror="this.style.display='none'">` : p.emoji}
         </div>
         <div>
-          <div style="font-weight:600;color:var(--text-primary)">${p.nombre}${sourceBadge(p)}</div>
+          <div style="font-weight:600;color:var(--text-primary)">${escHtml(p.nombre)}${sourceBadge(p)}${nuevoBadge(p)}</div>
           <div style="font-size:11px;color:var(--text-muted)">${p.codigo}${p.externalCode ? ` · Joanis: <strong>${escHtml(p.externalCode)}</strong>` : ""}${(p.images || []).length > 1 ? ` · 🖼 ${p.images.length}` : ""}</div>
         </div>
       </div></td>
@@ -1519,6 +1528,8 @@ function openImportModal() {
   document.getElementById("importSummary").textContent = "";
   document.getElementById("importPreviewWrap").style.display = "none";
   document.getElementById("importPreviewBody").innerHTML = "";
+  const ic = document.getElementById("importChips"); if (ic) ic.innerHTML = "";
+  State.importClassified = [];
   document.getElementById("importConfirmBtn").disabled = true;
   State.importParsed = [];
   document.getElementById("importModal").classList.add("open");
@@ -1697,6 +1708,54 @@ function normalizeImportItem(raw, ctx = {}) {
   return item;
 }
 
+/* ── Clasificar lo que trae Joanis contra lo que ya hay en A&M (misma lógica que el servidor) ── */
+const IMPORT_ESTADOS = {
+  nuevo:     { label: "🆕 Nuevo",            color: "#22c55e", desc: "Se agregará como borrador" },
+  cambio:    { label: "💲 Cambió costo",     color: "#eab308", desc: "Quedará como cambio sugerido para revisar" },
+  repuesto:  { label: "↺ Vuelve a stock",    color: "#3b82f6", desc: "Estaba sin stock y Joanis lo volvió a tener" },
+  sin_stock: { label: "⛔ Pasa a sin stock", color: "#ef4444", desc: "Joanis lo tiene agotado" },
+  existe:    { label: "= Sin cambios",       color: "#9ca3af", desc: "Ya lo tienes igual" },
+  propio:    { label: "Ya es tuyo",          color: "#a78bfa", desc: "Tienes un producto propio con el mismo nombre; no se agrega" },
+};
+
+function normName(s) {
+  return String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function classifyImport(items, fuente = "Joanis") {
+  const mine = State.products.filter((p) => p.importSource === fuente);
+  const byExt = new Map(), byCode = new Map(), byName = new Map();
+  mine.forEach((p) => {
+    if (p.externalId) byExt.set(String(p.externalId), p);
+    if (p.externalCode) byCode.set(String(p.externalCode).toLowerCase(), p);
+    if (p.codigo) byCode.set(String(p.codigo).toLowerCase(), p);
+    byName.set(normName(p.nombre), p);
+  });
+  const ownNames = new Set(State.products.filter((p) => !p.importSource).map((p) => normName(p.nombre)));
+
+  return items.map((it) => {
+    const match =
+      (it.externalId && byExt.get(String(it.externalId))) ||
+      (it.codigo && byCode.get(String(it.codigo).toLowerCase())) ||
+      byName.get(normName(it.nombre)) || null;
+    let estado;
+    if (match) {
+      const costoNuevo = it.precioFuente != null ? Number(it.precioFuente) : null;
+      if (it.agotado) estado = (Number(match.stock) || 0) > 0 ? "sin_stock" : "existe";
+      else if (match.sourcePrice != null && costoNuevo != null && Math.abs(costoNuevo - match.sourcePrice) > 0.005) estado = "cambio";
+      else if ((Number(match.stock) || 0) <= 0) estado = "repuesto";
+      else estado = "existe";
+    } else if (it.agotado) {
+      estado = null;                       // agotado y no lo tenemos → no se importa
+    } else if (ownNames.has(normName(it.nombre))) {
+      estado = "propio";
+    } else {
+      estado = "nuevo";
+    }
+    return { ...it, _estado: estado, _match: match };
+  }).filter((x) => x._estado);
+}
+
 function previewImport() {
   const txt = document.getElementById("importJson").value.trim();
   const summary = document.getElementById("importSummary");
@@ -1705,7 +1764,7 @@ function previewImport() {
   try {
     data = JSON.parse(txt);
   } catch (err) {
-    summary.innerHTML = `<span style="color:var(--danger)">JSON inválido: ${err.message}</span>`;
+    summary.innerHTML = `<span style="color:var(--danger)">JSON inválido: ${escHtml(err.message)}</span>`;
     return;
   }
   const arr = findProductArray(data);
@@ -1725,24 +1784,90 @@ function previewImport() {
     document.getElementById("importConfirmBtn").disabled = true;
     return;
   }
-  summary.innerHTML = `<span style="color:#22c55e">${normalized.length} producto(s) disponible(s) detectado(s).</span>` +
-    (agotados ? ` <span style="color:var(--text-muted)">${agotados} agotados omitidos.</span>` : "") +
-    ` Entrarán como <strong>borrador</strong>.`;
-  document.getElementById("importPreviewBody").innerHTML = normalized.slice(0, 50).map((p) => {
-    const img = safeImgUrl(p.imageUrl);
-    return `
-    <tr>
-      <td><div style="width:30px;height:30px;border-radius:5px;background:var(--bg-input);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px">
-        ${img ? `<img src="${img}" style="width:30px;height:30px;object-fit:cover" onerror="this.style.display='none'">` : "📦"}</div></td>
-      <td style="color:var(--text-primary);font-weight:600;max-width:200px;white-space:normal">${escHtml(p.nombre)}</td>
-      <td>${escHtml(p.categoria)}</td>
-      <td>${fmt(p.precioFuente != null ? p.precioFuente : p.precioVenta)}</td>
-      <td>${p.descuento > 0 ? "-" + escHtml(p.descuento) + "%" : "—"}</td>
-      <td>${escHtml(p.stock)}</td>
-    </tr>`;
-  }).join("");
+
+  State.importClassified = classifyImport(all);
+  const counts = {};
+  State.importClassified.forEach((p) => { counts[p._estado] = (counts[p._estado] || 0) + 1; });
+  State.importCounts = counts;
+
+  summary.innerHTML =
+    `<span style="color:#22c55e;font-weight:700">${counts.nuevo || 0} producto(s) nuevo(s)</span> ` +
+    `<span style="color:var(--text-muted)">de ${normalized.length} disponibles en Joanis` +
+    (agotados ? ` · ${agotados} agotados` : "") + `.</span>`;
+
+  // Por defecto se muestran primero los nuevos
+  State.importView = counts.nuevo ? "nuevo" : "todos";
+  renderImportPreview();
   document.getElementById("importPreviewWrap").style.display = "block";
   document.getElementById("importConfirmBtn").disabled = false;
+}
+
+function setImportView(v) {
+  State.importView = v;
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  const counts = State.importCounts || {};
+  const view = State.importView || "todos";
+  const lista = (State.importClassified || []).filter((p) => view === "todos" || p._estado === view);
+  const orden = ["nuevo", "cambio", "repuesto", "sin_stock", "existe", "propio"];
+  lista.sort((a, b) => orden.indexOf(a._estado) - orden.indexOf(b._estado));
+
+  const chip = (key, label, color, n) => `
+    <button type="button" class="btn-chip ${view === key ? "active" : ""}" onclick="setImportView('${key}')"
+      style="${view === key ? "" : `border-color:${color}55;color:${color}`}">${label} (${n})</button>`;
+  const total = (State.importClassified || []).length;
+  document.getElementById("importChips").innerHTML =
+    orden.filter((k) => counts[k]).map((k) => chip(k, IMPORT_ESTADOS[k].label, IMPORT_ESTADOS[k].color, counts[k])).join("") +
+    chip("todos", "Todos", "#9ca3af", total);
+
+  const MAX = 400;
+  document.getElementById("importPreviewBody").innerHTML = lista.slice(0, MAX).map((p) => {
+    const img = safeImgUrl(p.imageUrl);
+    const est = IMPORT_ESTADOS[p._estado];
+    const costo = p.precioFuente != null ? p.precioFuente : p.precioVenta;
+    const costoCell = p._estado === "cambio" && p._match
+      ? `<span style="text-decoration:line-through;color:var(--text-muted)">${fmt(p._match.sourcePrice)}</span> → <strong>${fmt(costo)}</strong>`
+      : fmt(costo);
+    return `
+    <tr ${p._estado === "nuevo" ? 'style="background:rgba(34,197,94,.07)"' : ""}>
+      <td><div style="width:30px;height:30px;border-radius:5px;background:var(--bg-input);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px">
+        ${img ? `<img src="${img}" style="width:30px;height:30px;object-fit:cover" onerror="this.style.display='none'">` : "📦"}</div></td>
+      <td><span class="badge" title="${escHtml(est.desc)}" style="font-size:10px;white-space:nowrap;background:${est.color}22;color:${est.color};border-color:${est.color}">${est.label}</span></td>
+      <td style="color:var(--text-primary);font-weight:600;max-width:220px;white-space:normal">${escHtml(p.nombre)}
+        ${p.codigo ? `<div style="font-size:10px;color:var(--text-muted);font-weight:400">${escHtml(p.codigo)}</div>` : ""}</td>
+      <td>${escHtml(p.categoria)}</td>
+      <td style="white-space:nowrap">${costoCell}</td>
+      <td>${p.descuento > 0 ? "-" + escHtml(p.descuento) + "%" : "—"}</td>
+      <td>${p.agotado ? '<span style="color:#ef4444">Agotado</span>' : escHtml(p.stock)}</td>
+    </tr>`;
+  }).join("") +
+  (lista.length > MAX ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);font-size:12px">… y ${lista.length - MAX} más</td></tr>` : "") +
+  (!lista.length ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Nada en este grupo</td></tr>` : "");
+}
+
+/* ── Productos nuevos de la última importación (se recuerdan en este navegador) ── */
+const LAST_IMPORT_KEY = "am_last_import_new_v1";
+function loadLastImportNew() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LAST_IMPORT_KEY) || "null");
+    if (d && Array.isArray(d.ids)) return { ids: new Set(d.ids), at: d.at };
+  } catch {}
+  return { ids: new Set(), at: null };
+}
+function saveLastImportNew(ids) {
+  try { localStorage.setItem(LAST_IMPORT_KEY, JSON.stringify({ ids: [...ids], at: new Date().toISOString() })); } catch {}
+  State.lastImportNew = { ids: new Set(ids), at: new Date().toISOString() };
+}
+function isNewFromImport(p) {
+  if (!State.lastImportNew) State.lastImportNew = loadLastImportNew();
+  return State.lastImportNew.ids.has(p.id);
+}
+function nuevoBadge(p) {
+  return isNewFromImport(p)
+    ? `<span class="badge" title="Agregado en la última importación de Joanis" style="font-size:10px;background:rgba(34,197,94,.18);color:#22c55e;border-color:#22c55e;margin-left:4px">🆕 NUEVO</span>`
+    : "";
 }
 
 async function runImport() {
@@ -1752,6 +1877,7 @@ async function runImport() {
   const btn = document.getElementById("importConfirmBtn");
   btn.disabled = true;
   btn.textContent = "Sincronizando…";
+  const idsAntes = new Set(State.products.map((p) => p.id));   // para identificar los nuevos
   try {
     // Enviar por tandas (el servidor limita el tamaño de cada envío)
     const TANDA = 50;
@@ -1777,11 +1903,14 @@ async function runImport() {
     );
     closeImportModal();
     await loadFromAPI();          // vuelve a traer los productos (incluye los importados)
+    // Los que no existían antes = nuevos de esta importación
+    const nuevos = State.products.filter((p) => p.importSource && !idsAntes.has(p.id)).map((p) => p.id);
+    if (nuevos.length) saveLastImportNew(nuevos);
     refreshAfterProductChange();  // re-dibuja todo sin recargar la página
     navigate("productos");
-    // Mostrar primero lo que necesita revisión
-    if (r.cambios > 0) setOriginFilter("cambios");
-    else if (r.insertados > 0) setOriginFilter("joanis");
+    // Mostrar primero lo recién agregado; luego lo que necesita revisión
+    if (nuevos.length) setOriginFilter("nuevos");
+    else if (r.cambios > 0) setOriginFilter("cambios");
   } catch (err) {
     toast("Error al importar: " + err.message, "warning");
   } finally {

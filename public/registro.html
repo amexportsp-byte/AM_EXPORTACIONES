@@ -788,6 +788,7 @@
             <button class="btn-chip" data-origin="mios" onclick="setOriginFilter('mios')">Solo míos</button>
             <button class="btn-chip" data-origin="joanis" onclick="setOriginFilter('joanis')">Solo Joanis</button>
             <button class="btn-chip" data-origin="cambios" onclick="setOriginFilter('cambios')">🕘 Por revisar<span id="chipCambiosCount"></span></button>
+            <button class="btn-chip" data-origin="nuevos" id="chipNuevos" onclick="setOriginFilter('nuevos')" style="display:none;border-color:#22c55e;color:#22c55e">🆕 Nuevos de la última importación<span id="chipNuevosCount"></span></button>
             <span id="prodMgmtCount" style="margin-left:auto;font-size:12px;color:var(--text-muted)"></span>
           </div>
           </div><!-- /catalog-sticky -->
@@ -1438,11 +1439,12 @@
             <button class="btn-secondary" id="importPreviewBtn" type="button">Detectar y previsualizar</button>
             <span id="importSummary" style="font-size:13px; color:var(--text-muted)"></span>
           </div>
-          <div id="importPreviewWrap" style="display:none; max-height:260px; overflow:auto; border:1px solid var(--border); border-radius:8px">
+          <div id="importChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="importPreviewWrap" style="display:none; max-height:340px; overflow:auto; border:1px solid var(--border); border-radius:8px">
             <table class="data-table" style="margin:0">
               <thead>
                 <tr>
-                  <th></th><th>Nombre</th><th>Categoría</th><th>Costo (Joanis)</th><th>Desc. Joanis</th><th>Stock</th>
+                  <th></th><th>Estado</th><th>Nombre</th><th>Categoría</th><th>Costo (Joanis)</th><th>Desc. Joanis</th><th>Stock</th>
                 </tr>
               </thead>
               <tbody id="importPreviewBody"></tbody>

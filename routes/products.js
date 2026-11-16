@@ -123,6 +123,7 @@ router.get("/", auth, async (req, res) => {
       published: p.published !== false,
       importSource: p.import_source || null,
       images: Array.isArray(p.images) ? p.images : [],
+      externalId: p.external_id || "",
       externalCode: p.external_code || "",
       sourcePrice: p.source_price != null ? parseFloat(p.source_price) : null,
       sourceSeenAt: p.source_seen_at || null,
