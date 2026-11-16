@@ -2094,3 +2094,20 @@ body {
   .cmp-offer-price { width: 100%; align-items: flex-start; text-align: left; }
 }
 .cmp-panel .btn-sm, .cmp-offer .btn-sm, .cmp-ref .btn-sm { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+
+/* Comparaciones: panel izquierdo fijo; su lista solo se mueve con su propio scroll */
+.cmp-header .section-header { margin-bottom: 14px; }
+.cmp-left {
+  position: sticky;
+  top: calc(var(--topbar-h) + 12px);
+  max-height: calc(100vh - var(--topbar-h) - 24px);
+  display: flex; flex-direction: column;
+}
+.cmp-left .cmp-mine-list {
+  flex: 1; min-height: 0; max-height: none;
+  overscroll-behavior: contain;   /* al llegar al final no arrastra la página */
+}
+@media (max-width: 1100px) {
+  .cmp-left { position: static; max-height: none; }
+  .cmp-left .cmp-mine-list { max-height: 60vh; }
+}
