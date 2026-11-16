@@ -1796,43 +1796,92 @@ function previewImport() {
     `<span style="color:var(--text-muted)">de ${normalized.length} disponibles en Joanis` +
     (agotados ? ` · ${agotados} agotados` : "") + `.</span>`;
 
-  // Por defecto se muestran primero los nuevos
-  State.importView = counts.nuevo ? "nuevo" : "todos";
+  // Por defecto se importa todo lo que trae novedades (los "sin cambios" y "ya es tuyo" no hacen falta)
+  State.importSel = new Set(["nuevo", "cambio", "repuesto", "sin_stock"].filter((k) => counts[k]));
+  if (!State.importSel.size) State.importSel = new Set(Object.keys(counts));
+  State.importExcluded = new Set();   // filas desmarcadas a mano
   renderImportPreview();
   document.getElementById("importPreviewWrap").style.display = "block";
-  document.getElementById("importConfirmBtn").disabled = false;
 }
 
-function setImportView(v) {
-  State.importView = v;
+const IMPORT_ORDEN = ["nuevo", "cambio", "repuesto", "sin_stock", "existe", "propio"];
+const importKey = (p) => String(p.externalId || p.codigo || p.nombre);
+
+// Chips de selección múltiple: lo marcado es lo que se importa
+function toggleImportGroup(k) {
+  const sel = State.importSel;
+  if (k === "todos") {
+    const all = IMPORT_ORDEN.filter((x) => State.importCounts[x]);
+    State.importSel = all.every((x) => sel.has(x)) ? new Set() : new Set(all);
+  } else if (sel.has(k)) sel.delete(k);
+  else sel.add(k);
   renderImportPreview();
+}
+function toggleImportRow(key, checked) {
+  if (checked) State.importExcluded.delete(key);
+  else State.importExcluded.add(key);
+  updateImportButton();
+}
+function toggleImportAllRows(checked) {
+  importVisibleRows().forEach((p) => {
+    if (checked) State.importExcluded.delete(importKey(p));
+    else State.importExcluded.add(importKey(p));
+  });
+  renderImportPreview();
+}
+function importVisibleRows() {
+  return (State.importClassified || [])
+    .filter((p) => State.importSel.has(p._estado))
+    .sort((a, b) => IMPORT_ORDEN.indexOf(a._estado) - IMPORT_ORDEN.indexOf(b._estado));
+}
+function importSelectedItems() {
+  return importVisibleRows().filter((p) => !State.importExcluded.has(importKey(p)));
+}
+function updateImportButton() {
+  const n = importSelectedItems().length;
+  const btn = document.getElementById("importConfirmBtn");
+  btn.disabled = n === 0;
+  btn.innerHTML = n ? `Importar ${n} seleccionado(s)` : "Marca qué importar";
+  const all = document.getElementById("importCheckAll");
+  if (all) {
+    const vis = importVisibleRows();
+    const marcados = vis.filter((p) => !State.importExcluded.has(importKey(p))).length;
+    all.checked = vis.length > 0 && marcados === vis.length;
+    all.indeterminate = marcados > 0 && marcados < vis.length;
+  }
 }
 
 function renderImportPreview() {
   const counts = State.importCounts || {};
-  const view = State.importView || "todos";
-  const lista = (State.importClassified || []).filter((p) => view === "todos" || p._estado === view);
-  const orden = ["nuevo", "cambio", "repuesto", "sin_stock", "existe", "propio"];
-  lista.sort((a, b) => orden.indexOf(a._estado) - orden.indexOf(b._estado));
+  const sel = State.importSel || new Set();
+  const lista = importVisibleRows();
 
-  const chip = (key, label, color, n) => `
-    <button type="button" class="btn-chip ${view === key ? "active" : ""}" onclick="setImportView('${key}')"
-      style="${view === key ? "" : `border-color:${color}55;color:${color}`}">${label} (${n})</button>`;
+  const chip = (key, label, color, n, on) => `
+    <button type="button" class="btn-chip ${on ? "active" : ""}" onclick="toggleImportGroup('${key}')"
+      title="${on ? "Clic para no importar este grupo" : "Clic para importar también este grupo"}"
+      style="${on ? "" : `border-color:${color}55;color:${color}`}">${on ? "☑" : "☐"} ${label} (${n})</button>`;
+  const presentes = IMPORT_ORDEN.filter((k) => counts[k]);
   const total = (State.importClassified || []).length;
   document.getElementById("importChips").innerHTML =
-    orden.filter((k) => counts[k]).map((k) => chip(k, IMPORT_ESTADOS[k].label, IMPORT_ESTADOS[k].color, counts[k])).join("") +
-    chip("todos", "Todos", "#9ca3af", total);
+    `<span style="font-size:12px;color:var(--text-muted);align-self:center">Importar:</span>` +
+    presentes.map((k) => chip(k, IMPORT_ESTADOS[k].label, IMPORT_ESTADOS[k].color, counts[k], sel.has(k))).join("") +
+    chip("todos", "Todos", "#9ca3af", total, presentes.length > 0 && presentes.every((k) => sel.has(k)));
 
   const MAX = 400;
   document.getElementById("importPreviewBody").innerHTML = lista.slice(0, MAX).map((p) => {
     const img = safeImgUrl(p.imageUrl);
     const est = IMPORT_ESTADOS[p._estado];
+    const key = importKey(p);
+    const on = !State.importExcluded.has(key);
     const costo = p.precioFuente != null ? p.precioFuente : p.precioVenta;
     const costoCell = p._estado === "cambio" && p._match
       ? `<span style="text-decoration:line-through;color:var(--text-muted)">${fmt(p._match.sourcePrice)}</span> → <strong>${fmt(costo)}</strong>`
       : fmt(costo);
     return `
-    <tr ${p._estado === "nuevo" ? 'style="background:rgba(34,197,94,.07)"' : ""}>
+    <tr style="${p._estado === "nuevo" ? "background:rgba(34,197,94,.07);" : ""}${on ? "" : "opacity:.45;"}">
+      <td><input type="checkbox" ${on ? "checked" : ""} data-key="${escHtml(key)}"
+        onchange="toggleImportRow(this.dataset.key, this.checked); this.closest('tr').style.opacity = this.checked ? '' : '.45'"
+        style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"></td>
       <td><div style="width:30px;height:30px;border-radius:5px;background:var(--bg-input);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px">
         ${img ? `<img src="${img}" style="width:30px;height:30px;object-fit:cover" onerror="this.style.display='none'">` : "📦"}</div></td>
       <td><span class="badge" title="${escHtml(est.desc)}" style="font-size:10px;white-space:nowrap;background:${est.color}22;color:${est.color};border-color:${est.color}">${est.label}</span></td>
@@ -1844,8 +1893,9 @@ function renderImportPreview() {
       <td>${p.agotado ? '<span style="color:#ef4444">Agotado</span>' : escHtml(p.stock)}</td>
     </tr>`;
   }).join("") +
-  (lista.length > MAX ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);font-size:12px">… y ${lista.length - MAX} más</td></tr>` : "") +
-  (!lista.length ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Nada en este grupo</td></tr>` : "");
+  (lista.length > MAX ? `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);font-size:12px">… y ${lista.length - MAX} más (también se importan si están marcados)</td></tr>` : "") +
+  (!lista.length ? `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">Marca arriba uno o más grupos para importar</td></tr>` : "");
+  updateImportButton();
 }
 
 /* ── Productos nuevos de la última importación (se recuerdan en este navegador) ── */
@@ -1892,9 +1942,12 @@ function nuevoBadge(p) {
 }
 
 async function runImport() {
-  // Se envían TODOS (también los agotados: sirven para poner sin stock a los que ya existen)
-  const lista = State.importAll && State.importAll.length ? State.importAll : (State.importParsed || []);
-  if (!lista.length) { toast("No hay productos para importar", "warning"); return; }
+  // Solo lo que el usuario dejó marcado (grupos + filas). Si no hubo vista previa clasificada, todo.
+  const sel = State.importSel || new Set();
+  const lista = State.importClassified && State.importClassified.length
+    ? importSelectedItems().map(({ _estado, _match, ...item }) => item)
+    : (State.importAll && State.importAll.length ? State.importAll : (State.importParsed || []));
+  if (!lista.length) { toast("Marca al menos un producto para importar", "warning"); return; }
   const btn = document.getElementById("importConfirmBtn");
   btn.disabled = true;
   btn.textContent = "Sincronizando…";
@@ -1909,8 +1962,9 @@ async function runImport() {
       Object.keys(r).forEach((k) => { r[k] += parcial[k] || 0; });
     }
     // Catálogo completo: los que ya no aparecen en Joanis → sin stock
-    if (State.importIsFull) {
-      const ids = lista.map((p) => p.externalId).filter(Boolean);
+    // (solo si se marcó "Pasa a sin stock"; se usa el catálogo COMPLETO, no solo lo seleccionado)
+    if (State.importIsFull && (!State.importClassified || !State.importClassified.length || sel.has("sin_stock"))) {
+      const ids = (State.importAll || lista).map((p) => p.externalId).filter(Boolean);
       if (ids.length) {
         const fin = await API.products.importFinalize(ids, "Joanis");
         r.sinStock += fin.retirados || 0;
@@ -1937,6 +1991,7 @@ async function runImport() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = `Importar como borrador`;
+    if (State.importClassified && State.importClassified.length) updateImportButton();
   }
 }
 
