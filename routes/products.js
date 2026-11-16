@@ -82,7 +82,11 @@ router.get("/", auth, async (req, res) => {
               c.name AS categoria, c.visible AS cat_visible, s.name AS subcategoria,
               b.name AS marca, su.business_name AS proveedor,
               o.name AS origen, co.name AS color,
-              sz.name AS tamano, u.name AS unidad
+              sz.name AS tamano, u.name AS unidad,
+              (SELECT COUNT(*) FROM product_source_changes sc
+                WHERE sc.product_id = p.id AND sc.status = 'pendiente')::int AS pending_changes,
+              (SELECT COUNT(*) FROM product_source_changes sc
+                WHERE sc.product_id = p.id)::int AS total_changes
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN subcategories s ON p.subcategory_id = s.id
@@ -118,6 +122,12 @@ router.get("/", auth, async (req, res) => {
       status: p.status,
       published: p.published !== false,
       importSource: p.import_source || null,
+      images: Array.isArray(p.images) ? p.images : [],
+      externalCode: p.external_code || "",
+      sourcePrice: p.source_price != null ? parseFloat(p.source_price) : null,
+      sourceSeenAt: p.source_seen_at || null,
+      pendingChanges: p.pending_changes || 0,
+      totalChanges: p.total_changes || 0,
       cat_visible: p.cat_visible !== false,
       createdAt: p.created_at,
       category_id: p.category_id,
@@ -355,10 +365,17 @@ router.get("/joanis-catalogo", auth, (req, res) => {
   reqJ.on("error", (err) => { res.status(502).json({ error: "No se pudo consultar Joanis: " + err.message }); });
 });
 
-// POST /api/products/import — importa productos como BORRADOR (published = FALSE).
-// Recibe { productos: [{ nombre, categoria, marca, imageUrl, descripcion,
-//                        precioVenta, precioCompra, descuento, stock, sku }] }
-// No se publican en la tienda hasta que el usuario le dé "Publicar".
+const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+const sameText = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+
+// POST /api/products/import — SINCRONIZA productos de una fuente externa (Joanis).
+// Recibe { fuente, productos: [{ externalId, codigo, nombre, categoria, imageUrl, images[],
+//          precioVenta (regular), precioFuente (final), descuento, stock, agotado }] }
+// Reglas:
+//  • Nuevo            → se crea como BORRADOR (no sale en la tienda hasta "Publicar").
+//  • Ya existe        → NO se reemplaza nada de A&M. Si la fuente cambió nombre/categoría/precio
+//                       se registra una SUGERENCIA (pendiente) en product_source_changes.
+//  • Agotado/sin stock → si existe, se pone stock 0. Si es nuevo, no se importa.
 router.post("/import", auth, async (req, res) => {
   if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
     return res.status(403).json({ error: "Sin autorización" });
@@ -367,48 +384,138 @@ router.post("/import", auth, async (req, res) => {
   const fuente = (req.body.fuente || "importado").toString().slice(0, 60);
   if (!lista.length) return res.status(400).json({ error: "No hay productos para importar" });
 
-  const resultado = { insertados: 0, omitidos: 0, errores: 0, detalles: [] };
+  const resultado = { insertados: 0, cambios: 0, sinStock: 0, repuestos: 0, sinCambios: 0, omitidos: 0, errores: 0, detalles: [] };
 
   for (const item of lista) {
-    const nombre = (item.nombre || "").toString().trim();
+    const nombre = (item.nombre || "").toString().trim().slice(0, 200);
     if (!nombre) { resultado.omitidos++; continue; }
-    const sku = item.sku ? item.sku.toString().trim().slice(0, 100) : null;
+    const extId   = item.externalId ? String(item.externalId).slice(0, 100) : null;
+    const extCode = item.codigo ? String(item.codigo).trim().slice(0, 100) : null;
+    const categoria = (item.categoria || "Importados").toString().trim() || "Importados";
+    const precioFuente = r2(item.precioFuente ?? item.precioVenta);
+    const images = Array.isArray(item.images) ? item.images.filter(Boolean).map(String).slice(0, 20) : [];
+    const stockNuevo = Number.isFinite(+item.stock) ? Math.max(0, Math.trunc(+item.stock)) : 0;
+    const agotado = item.agotado === true || stockNuevo <= 0;
 
     try {
-      // Evitar duplicados: por SKU (si viene) o por nombre exacto no borrado.
-      const dup = await pool.query(
-        `SELECT id FROM products
-         WHERE deleted_at IS NULL AND (
-           ($1::text IS NOT NULL AND sku = $1) OR LOWER(name) = LOWER($2)
+      // ¿Ya lo tenemos? (solo entre productos traídos de esta misma fuente)
+      const found = await pool.query(
+        `SELECT p.*, c.name AS categoria_nombre FROM products p
+         LEFT JOIN categories c ON c.id = p.category_id
+         WHERE p.deleted_at IS NULL AND p.import_source = $1 AND (
+           ($2::text IS NOT NULL AND p.external_id = $2) OR
+           (p.external_id IS NULL AND (
+             ($3::text IS NOT NULL AND (p.external_code = $3 OR p.sku = $3)) OR LOWER(p.name) = LOWER($4)
+           ))
          ) LIMIT 1`,
-        [sku, nombre]
+        [fuente, extId, extCode, nombre]
       );
-      if (dup.rows[0]) {
-        resultado.omitidos++;
-        resultado.detalles.push({ nombre, estado: "ya existe" });
+      const ex = found.rows[0];
+
+      if (ex) {
+        // ── EXISTENTE: no se toca nada de A&M, solo stock y sugerencias ──
+        if (agotado) {
+          if (ex.stock > 0) {
+            await pool.query(`UPDATE products SET stock = 0, status = 'agotado', updated_at = NOW() WHERE id = $1`, [ex.id]);
+            await pool.query(
+              `INSERT INTO product_source_changes (product_id, source, tipo, status, sale_price_at, old_source_price, new_source_price)
+               VALUES ($1,$2,'sin_stock','info',$3,$4,$4)`,
+              [ex.id, fuente, ex.sale_price, ex.source_price]
+            );
+            resultado.sinStock++;
+          } else resultado.sinCambios++;
+          await pool.query(`UPDATE products SET source_seen_at = NOW() WHERE id = $1`, [ex.id]);
+          continue;
+        }
+
+        // Repuesto: estaba sin stock y la fuente lo vuelve a tener
+        if (ex.stock <= 0 && stockNuevo > 0) {
+          await pool.query(`UPDATE products SET stock = $1, status = 'activo', updated_at = NOW() WHERE id = $2`, [stockNuevo, ex.id]);
+          await pool.query(
+            `INSERT INTO product_source_changes (product_id, source, tipo, status, sale_price_at, new_source_price)
+             VALUES ($1,$2,'repuesto','info',$3,$4)`,
+            [ex.id, fuente, ex.sale_price, precioFuente]
+          );
+          resultado.repuestos++;
+        }
+
+        // Detectar cambios contra la última "foto" de la fuente
+        const diffs = {};
+        if (ex.source_name != null && !sameText(ex.source_name, nombre))
+          diffs.nombre = { from: ex.source_name, to: nombre };
+        if (ex.source_category != null && !sameText(ex.source_category, categoria))
+          diffs.categoria = { from: ex.source_category, to: categoria };
+        if (ex.source_price != null && r2(ex.source_price) !== precioFuente)
+          diffs.precio = { from: r2(ex.source_price), to: precioFuente };
+
+        if (Object.keys(diffs).length) {
+          // Precio sugerido: mantener el mismo margen que A&M tenía sobre la fuente
+          let sugerido = precioFuente;
+          if (diffs.precio && +ex.source_price > 0 && +ex.sale_price > 0)
+            sugerido = r2(+ex.sale_price * (precioFuente / +ex.source_price));
+          else if (!diffs.precio) sugerido = r2(ex.sale_price);
+          await pool.query(
+            `INSERT INTO product_source_changes
+             (product_id, source, tipo, diffs, old_source_price, new_source_price, sale_price_at, suggested_price, status)
+             VALUES ($1,$2,'cambio',$3,$4,$5,$6,$7,'pendiente')`,
+            [ex.id, fuente, JSON.stringify(diffs), ex.source_price, precioFuente, ex.sale_price, sugerido]
+          );
+          resultado.cambios++;
+        } else if (!(ex.stock <= 0 && stockNuevo > 0)) {
+          resultado.sinCambios++;
+        }
+
+        // Actualizar SOLO la "foto" de la fuente (y completar ids/imágenes si faltaban)
+        await pool.query(
+          `UPDATE products SET
+             source_name = $1, source_category = $2, source_price = $3, source_regular = $4,
+             source_discount = $5, source_seen_at = NOW(),
+             external_id = COALESCE(external_id, $6), external_code = COALESCE(external_code, $7),
+             images = CASE WHEN images IS NULL OR cardinality(images) = 0 THEN $8::text[] ELSE images END
+           WHERE id = $9`,
+          [nombre, categoria, precioFuente, r2(item.precioVenta), r2(item.descuento), extId, extCode, images, ex.id]
+        );
         continue;
       }
 
-      const cat   = await findOrCreate("categories", "name", (item.categoria || "Importados").toString().trim() || "Importados");
-      const brand = item.marca ? await findOrCreate("brands", "name", item.marca.toString().trim()) : null;
-      const code  = await nextProductCode();
-      const stock = Number.isFinite(+item.stock) ? Math.max(0, Math.trunc(+item.stock)) : 0;
-      const status = stock > 0 ? "activo" : "agotado";
+      // ── NUEVO ──
+      if (agotado) { resultado.omitidos++; continue; } // los que ya no hay, no se jalan
 
+      // No duplicar si A&M ya tiene un producto PROPIO con ese mismo nombre
+      const propio = await pool.query(
+        `SELECT id FROM products WHERE deleted_at IS NULL AND import_source IS NULL AND LOWER(name) = LOWER($1) LIMIT 1`,
+        [nombre]
+      );
+      if (propio.rows[0]) {
+        resultado.omitidos++;
+        resultado.detalles.push({ nombre, estado: "ya existe en tus productos" });
+        continue;
+      }
+
+      const cat  = await findOrCreate("categories", "name", categoria);
+      const brand = item.marca ? await findOrCreate("brands", "name", item.marca.toString().trim()) : null;
+      const code = await nextProductCode();
       await pool.query(
         `INSERT INTO products
          (product_code, name, category_id, brand_id, description, short_description,
           purchase_quantity, stock, sale_price, purchase_price, discount,
-          image_url, sku, status, published, import_source, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,FALSE,$15,$16)`,
+          image_url, images, status, published, import_source, created_by,
+          external_id, external_code, source_name, source_category, source_price,
+          source_regular, source_discount, source_seen_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,'activo',FALSE,$13,$14,
+                 $15,$16,$2,$17,$9,$18,$10,NOW())`,
         [
-          code, nombre.slice(0, 200), cat, brand,
+          code, nombre, cat, brand,
           (item.descripcion || "").toString() || null,
           (item.descripcion || "").toString().slice(0, 300) || null,
-          stock, stock,
-          +item.precioVenta || 0, +item.precioCompra || 0, +item.descuento || 0,
-          (item.imageUrl || "").toString() || null,
-          sku, status, fuente, req.worker.id,
+          stockNuevo,
+          r2(item.precioVenta), // precio de venta A&M inicial = precio regular de la fuente
+          precioFuente,         // costo de compra A&M = precio final de la fuente
+          r2(item.descuento),
+          (item.imageUrl || images[0] || "").toString() || null,
+          images,
+          fuente, req.worker.id,
+          extId, extCode, categoria, r2(item.precioVenta),
         ]
       );
       resultado.insertados++;
@@ -419,7 +526,106 @@ router.post("/import", auth, async (req, res) => {
   }
 
   res.json(resultado);
-  if (resultado.insertados > 0) appEvents.emit("products_updated");
+  if (resultado.insertados || resultado.cambios || resultado.sinStock || resultado.repuestos)
+    appEvents.emit("products_updated");
+});
+
+// POST /api/products/import/finalize — tras una consulta COMPLETA del catálogo:
+// los productos de esa fuente que ya no vinieron en la respuesta se ponen SIN STOCK.
+router.post("/import/finalize", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+  const fuente = (req.body.fuente || "importado").toString().slice(0, 60);
+  const ids = Array.isArray(req.body.externalIds) ? req.body.externalIds.map(String) : [];
+  if (!ids.length) return res.status(400).json({ error: "Lista vacía" });
+  try {
+    const { rows } = await pool.query(
+      `UPDATE products SET stock = 0, status = 'agotado', updated_at = NOW()
+       WHERE deleted_at IS NULL AND import_source = $1 AND external_id IS NOT NULL
+         AND NOT (external_id = ANY($2::text[])) AND stock > 0
+       RETURNING id, sale_price, source_price`,
+      [fuente, ids]
+    );
+    for (const p of rows) {
+      await pool.query(
+        `INSERT INTO product_source_changes (product_id, source, tipo, status, sale_price_at, old_source_price, diffs)
+         VALUES ($1,$2,'sin_stock','info',$3,$4,'{"motivo":"ya no aparece en la fuente"}')`,
+        [p.id, fuente, p.sale_price, p.source_price]
+      );
+    }
+    res.json({ retirados: rows.length });
+    if (rows.length) appEvents.emit("products_updated");
+  } catch (err) {
+    console.error("POST /products/import/finalize:", err);
+    res.status(500).json({ error: "Error al finalizar sincronización" });
+  }
+});
+
+// GET /api/products/:id/source-changes — historial completo de cambios de la fuente
+router.get("/:id/source-changes", auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT sc.*, (w.first_name || ' ' || w.last_name) AS decided_by_name
+       FROM product_source_changes sc
+       LEFT JOIN workers w ON w.id = sc.decided_by
+       WHERE sc.product_id = $1 ORDER BY sc.created_at DESC`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /products/:id/source-changes:", err);
+    res.status(500).json({ error: "Error al obtener historial" });
+  }
+});
+
+// POST /api/products/source-changes/:changeId/decide — aceptar o rechazar una sugerencia.
+// body: { accion: 'aceptar'|'rechazar', precioVenta, aplicarNombre, aplicarCategoria }
+// El registro se conserva siempre (solo cambia su status).
+router.post("/source-changes/:changeId/decide", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+  const { accion, precioVenta, aplicarNombre, aplicarCategoria } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM product_source_changes WHERE id = $1 AND status = 'pendiente'`, [req.params.changeId]
+    );
+    const ch = rows[0];
+    if (!ch) return res.status(404).json({ error: "Sugerencia no encontrada o ya decidida" });
+
+    if (accion === "rechazar") {
+      await pool.query(
+        `UPDATE product_source_changes SET status = 'rechazado', decided_by = $1, decided_at = NOW() WHERE id = $2`,
+        [req.worker.id, ch.id]
+      );
+      return res.json({ ok: true, status: "rechazado" });
+    }
+    if (accion !== "aceptar") return res.status(400).json({ error: "Acción inválida" });
+
+    const diffs = ch.diffs || {};
+    const sets = ["updated_at = NOW()", "updated_by = $1"];
+    const vals = [req.worker.id];
+    const add = (sql, v) => { vals.push(v); sets.push(sql.replace("?", "$" + vals.length)); };
+
+    if (diffs.precio) add("purchase_price = ?", r2(ch.new_source_price)); // nuevo costo A&M
+    const pv = precioVenta != null && precioVenta !== "" ? r2(precioVenta) : null;
+    if (pv != null && pv > 0) add("sale_price = ?", pv);
+    if (diffs.nombre && aplicarNombre !== false) add("name = ?", String(diffs.nombre.to).slice(0, 200));
+    if (diffs.categoria && aplicarCategoria !== false) {
+      const cat = await findOrCreate("categories", "name", String(diffs.categoria.to));
+      add("category_id = ?", cat);
+    }
+    vals.push(ch.product_id);
+    await pool.query(`UPDATE products SET ${sets.join(", ")} WHERE id = $${vals.length}`, vals);
+    await pool.query(
+      `UPDATE product_source_changes SET status = 'aceptado', applied_sale_price = $1, decided_by = $2, decided_at = NOW() WHERE id = $3`,
+      [pv, req.worker.id, ch.id]
+    );
+    res.json({ ok: true, status: "aceptado" });
+    appEvents.emit("products_updated");
+  } catch (err) {
+    console.error("POST /source-changes/:id/decide:", err);
+    res.status(500).json({ error: "Error al aplicar la decisión" });
+  }
 });
 
 module.exports = router;

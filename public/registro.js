@@ -1129,14 +1129,20 @@ function renderProductosMgmt() {
   if (!tbody) return;
   const origin = State.originFilter || "todos";
   let lista = State.products;
-  if (origin === "mios")   lista = State.products.filter((p) => !p.importSource);
-  if (origin === "joanis") lista = State.products.filter((p) => !!p.importSource);
+  if (origin === "mios")    lista = State.products.filter((p) => !p.importSource);
+  if (origin === "joanis")  lista = State.products.filter((p) => !!p.importSource);
+  if (origin === "cambios") lista = State.products.filter((p) => p.pendingChanges > 0 || bajoFuente(p));
 
   const countEl = document.getElementById("prodMgmtCount");
   if (countEl) {
     const imp = State.products.filter((p) => !!p.importSource).length;
     const mine = State.products.length - imp;
     countEl.textContent = `${lista.length} mostrados · ${mine} míos · ${imp} de Joanis`;
+  }
+  const chipCambios = document.getElementById("chipCambiosCount");
+  if (chipCambios) {
+    const n = State.products.filter((p) => p.pendingChanges > 0 || bajoFuente(p)).length;
+    chipCambios.textContent = n ? ` (${n})` : "";
   }
 
   if (!lista.length) {
@@ -1146,17 +1152,33 @@ function renderProductosMgmt() {
   tbody.innerHTML = lista
     .map((p) => {
       const st = getStatus(p);
-      return `<tr>
+      const pendiente = p.pendingChanges > 0;
+      const bajo = bajoFuente(p);
+      const rowStyle = pendiente
+        ? "background:rgba(34,197,94,.10);box-shadow:inset 3px 0 0 #22c55e"
+        : bajo ? "background:rgba(224,82,82,.08);box-shadow:inset 3px 0 0 #e05252" : "";
+      const thumb = safeImgUrl(p.imageUrl);
+      return `<tr style="${rowStyle}">
       <td><div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:20px">${p.emoji}</div>
+        <div style="width:34px;height:34px;border-radius:6px;overflow:hidden;background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+          ${thumb ? `<img src="${thumb}" style="width:34px;height:34px;object-fit:cover" onerror="this.style.display='none'">` : p.emoji}
+        </div>
         <div>
           <div style="font-weight:600;color:var(--text-primary)">${p.nombre}${sourceBadge(p)}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${p.codigo}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${p.codigo}${p.externalCode ? ` · Joanis: <strong>${escHtml(p.externalCode)}</strong>` : ""}${(p.images || []).length > 1 ? ` · 🖼 ${p.images.length}` : ""}</div>
         </div>
       </div></td>
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:600">${p.stock}</td>
-      <td style="font-weight:600;color:var(--text-primary)">${fmt(p.precioVenta)}</td>
+      <td style="font-weight:600;color:var(--text-primary)">
+        ${fmt(p.precioVenta)}
+        ${p.sourcePrice != null ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Joanis: ${fmt(p.sourcePrice)}</div>` : ""}
+        ${bajo ? `<div style="font-size:11px;color:#e05252;font-weight:600">⚠ Bajo Joanis</div>` : ""}
+        ${(p.importSource || p.totalChanges) ? `<button type="button" onclick="openSourceHistory('${p.id}')" title="Historial de cambios de Joanis"
+            style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:600;
+            border:1px solid ${pendiente ? "#22c55e" : "var(--border)"};background:${pendiente ? "rgba(34,197,94,.15)" : "transparent"};color:${pendiente ? "#22c55e" : "var(--text-muted)"}">
+            🕘 ${pendiente ? `${p.pendingChanges} cambio${p.pendingChanges > 1 ? "s" : ""}` : "Historial"}</button>` : ""}
+      </td>
       <td><span class="badge ${st.cls}">${st.label}</span></td>
       <td>${publishToggle(p)}</td>
       <td style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
@@ -1197,6 +1219,181 @@ async function togglePublish(id, published) {
     renderProductosMgmt();
   } catch (err) {
     toast("No se pudo cambiar la publicación: " + err.message, "warning");
+  }
+}
+
+/* ============= HISTORIAL DE CAMBIOS DE LA FUENTE (JOANIS) ============= */
+// ¿El precio final de A&M quedó por debajo del precio al que vende la fuente?
+function bajoFuente(p) {
+  if (!p.importSource || p.sourcePrice == null) return false;
+  const finalAM = p.precioVenta * (1 - (p.descuento || 0) / 100);
+  return finalAM + 0.001 < p.sourcePrice;
+}
+
+function closeSourceHistory() {
+  document.getElementById("sourceHistoryModal").classList.remove("open");
+}
+
+async function openSourceHistory(id) {
+  const p = State.products.find((x) => x.id === id);
+  if (!p) return;
+  State.historyProductId = id;
+  document.getElementById("sourceHistoryTitle").textContent = "Historial de cambios · " + p.nombre;
+  const body = document.getElementById("sourceHistoryBody");
+  body.innerHTML = `<p style="color:var(--text-muted)">Cargando historial…</p>`;
+  document.getElementById("sourceHistoryModal").classList.add("open");
+  try {
+    const cambios = await API.products.sourceChanges(id);
+    renderSourceHistory(p, cambios);
+  } catch (err) {
+    body.innerHTML = `<p style="color:var(--danger)">No se pudo cargar el historial: ${escHtml(err.message)}</p>`;
+  }
+}
+
+function pct(from, to) {
+  if (!(+from > 0)) return "";
+  const v = ((to - from) / from) * 100;
+  return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
+}
+function fechaCorta(d) {
+  try { return new Date(d).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" }); }
+  catch { return d || ""; }
+}
+
+function renderSourceHistory(p, cambios) {
+  const body = document.getElementById("sourceHistoryBody");
+  const resumen = `
+    <div class="config-card" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      <div><div style="font-size:11px;color:var(--text-muted)">Tu precio de venta</div><div style="font-weight:700;color:var(--text-primary)">${fmt(p.precioVenta)}${p.descuento ? ` <span style="font-size:11px">(-${p.descuento}%)</span>` : ""}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Tu costo actual</div><div style="font-weight:700;color:var(--text-primary)">${fmt(p.precioCompra)}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Joanis lo vende a</div><div style="font-weight:700;color:var(--text-primary)">${p.sourcePrice != null ? fmt(p.sourcePrice) : "—"}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Código Joanis</div><div style="font-weight:700;color:var(--text-primary)">${escHtml(p.externalCode || "—")}</div></div>
+    </div>
+    ${bajoFuente(p) ? `<div style="margin-bottom:14px;padding:10px 12px;border-radius:8px;border:1px solid #e05252;background:rgba(224,82,82,.10);color:#e05252;font-size:13px;font-weight:600">
+      ⚠ Tu precio final está por debajo del precio al que Joanis vende este producto.</div>` : ""}`;
+
+  if (!cambios.length) {
+    body.innerHTML = resumen + `<p style="color:var(--text-muted)">Aún no hay cambios registrados para este producto. Se registrarán cuando una nueva consulta a Joanis detecte diferencias.</p>`;
+    return;
+  }
+
+  const pendientes = cambios.filter((c) => c.status === "pendiente");
+  const resto = cambios.filter((c) => c.status !== "pendiente");
+
+  body.innerHTML = resumen +
+    pendientes.map((c) => pendingCard(p, c)).join("") +
+    (resto.length ? `<h4 style="margin:18px 0 8px;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Historial</h4>` : "") +
+    resto.map((c) => historyCard(c)).join("");
+
+  pendientes.forEach((c) => updateChangeAlert(c.id));
+}
+
+function diffRows(d) {
+  const rows = [];
+  if (d.precio) {
+    const sube = d.precio.to > d.precio.from;
+    rows.push(`<div>Precio Joanis: <s style="color:var(--text-muted)">${fmt(d.precio.from)}</s> →
+      <strong style="color:${sube ? "#22c55e" : "#d97706"}">${fmt(d.precio.to)}</strong>
+      <span style="font-size:12px;color:${sube ? "#22c55e" : "#d97706"}">(${pct(d.precio.from, d.precio.to)})</span></div>`);
+  }
+  if (d.nombre) rows.push(`<div>Nombre: <s style="color:var(--text-muted)">${escHtml(d.nombre.from)}</s> → <strong style="color:#22c55e">${escHtml(d.nombre.to)}</strong></div>`);
+  if (d.categoria) rows.push(`<div>Categoría: <s style="color:var(--text-muted)">${escHtml(d.categoria.from)}</s> → <strong style="color:#22c55e">${escHtml(d.categoria.to)}</strong></div>`);
+  if (d.motivo) rows.push(`<div>${escHtml(d.motivo)}</div>`);
+  return rows.join("");
+}
+
+function pendingCard(p, c) {
+  const d = c.diffs || {};
+  const nuevo = c.new_source_price != null ? +c.new_source_price : null;
+  const antes = c.old_source_price != null ? +c.old_source_price : null;
+  let aviso = "";
+  if (d.precio && nuevo > antes) aviso = `📈 Joanis subió el precio. Tu costo sube a <strong>${fmt(nuevo)}</strong>; se recomienda actualizar tu precio de venta.`;
+  if (d.precio && nuevo < antes) aviso = `📉 Joanis bajó el precio a <strong>${fmt(nuevo)}</strong>. Evalúa si bajas el tuyo para seguir siendo competitivo.`;
+  return `
+  <div style="margin-bottom:14px;padding:14px;border-radius:10px;border:1px solid #22c55e;background:rgba(34,197,94,.08)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="color:#22c55e">🕘 Cambio recomendado</strong>
+      <span style="font-size:12px;color:var(--text-muted)">${fechaCorta(c.created_at)}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">${diffRows(d)}</div>
+    ${aviso ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">${aviso}</div>` : ""}
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end">
+      ${d.precio ? `<div><div style="font-size:11px;color:var(--text-muted)">Costo nuevo (precio Joanis)</div><div style="font-weight:700;color:var(--text-primary)">${fmt(nuevo)}</div></div>` : ""}
+      <div><div style="font-size:11px;color:var(--text-muted)">Tu precio de venta actual</div><div style="font-weight:700;color:var(--text-primary)">${fmt(c.sale_price_at != null ? c.sale_price_at : p.precioVenta)}</div></div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted)">Nuevo precio de venta A&M (sugerido)</label>
+        <input type="number" step="0.01" min="0" class="form-input" id="chg-price-${c.id}"
+          value="${c.suggested_price != null ? (+c.suggested_price).toFixed(2) : ""}"
+          data-source="${nuevo != null ? nuevo : ""}" oninput="updateChangeAlert('${c.id}')" style="margin-top:4px">
+      </div>
+    </div>
+    <div id="chg-alert-${c.id}" style="margin-top:8px;font-size:12px"></div>
+    ${d.nombre || d.categoria ? `<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary)">
+      ${d.nombre ? `<label><input type="checkbox" id="chg-name-${c.id}" checked> Aplicar nombre nuevo</label>` : ""}
+      ${d.categoria ? `<label><input type="checkbox" id="chg-cat-${c.id}" checked> Aplicar categoría nueva</label>` : ""}
+    </div>` : ""}
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost" type="button" onclick="decideSourceChange('${c.id}','rechazar')">Rechazar</button>
+      <button class="btn-primary" type="button" onclick="decideSourceChange('${c.id}','aceptar')">Aceptar cambio</button>
+    </div>
+  </div>`;
+}
+
+function historyCard(c) {
+  const d = c.diffs || {};
+  const estados = {
+    aceptado:  { t: "Aceptado",  col: "#22c55e" },
+    rechazado: { t: "Rechazado", col: "#9ca3af" },
+    info:      { t: c.tipo === "sin_stock" ? "Puesto sin stock" : c.tipo === "repuesto" ? "Repuesto (volvió a haber stock)" : "Info", col: c.tipo === "sin_stock" ? "#e05252" : "#3b82f6" },
+  };
+  const e = estados[c.status] || { t: c.status, col: "#9ca3af" };
+  return `
+  <div style="margin-bottom:8px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;color:var(--text-secondary)">
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">
+      <span style="font-weight:700;color:${e.col}">${e.t}</span>
+      <span style="font-size:12px;color:var(--text-muted)">${fechaCorta(c.decided_at || c.created_at)}${c.decided_by_name ? " · " + escHtml(c.decided_by_name) : ""}</span>
+    </div>
+    ${diffRows(d)}
+    ${c.applied_sale_price != null ? `<div>Precio de venta aplicado: <strong>${fmt(c.applied_sale_price)}</strong></div>` : ""}
+  </div>`;
+}
+
+// Alerta en vivo: el precio que se escribe queda por debajo del precio de Joanis
+function updateChangeAlert(changeId) {
+  const inp = document.getElementById("chg-price-" + changeId);
+  const box = document.getElementById("chg-alert-" + changeId);
+  if (!inp || !box) return;
+  const v = parseFloat(inp.value);
+  const src = parseFloat(inp.dataset.source);
+  if (!isFinite(v) || !isFinite(src)) { box.innerHTML = ""; return; }
+  const margen = src > 0 ? ((v - src) / src) * 100 : 0;
+  box.innerHTML = v < src
+    ? `<span style="color:#e05252;font-weight:600">⚠ Venderías por debajo de lo que Joanis lo vende (${fmt(src)}). Margen: ${margen.toFixed(1)}%</span>`
+    : `<span style="color:#22c55e">Margen sobre el costo: ${margen.toFixed(1)}%</span>`;
+}
+
+async function decideSourceChange(changeId, accion) {
+  const body = { accion };
+  if (accion === "aceptar") {
+    const inp = document.getElementById("chg-price-" + changeId);
+    const v = inp ? parseFloat(inp.value) : NaN;
+    if (inp && inp.value !== "" && !(v > 0)) { toast("Ingresa un precio de venta válido", "warning"); return; }
+    if (inp && v < parseFloat(inp.dataset.source) &&
+        !confirm("El precio queda por debajo del precio de Joanis. ¿Aceptar de todos modos?")) return;
+    body.precioVenta = inp && inp.value !== "" ? v : null;
+    const n = document.getElementById("chg-name-" + changeId);
+    const c = document.getElementById("chg-cat-" + changeId);
+    if (n) body.aplicarNombre = n.checked;
+    if (c) body.aplicarCategoria = c.checked;
+  }
+  try {
+    await API.products.decideChange(changeId, body);
+    toast(accion === "aceptar" ? "Cambio aplicado (queda en el historial)" : "Cambio rechazado (queda en el historial)", "success");
+    await loadFromAPI();
+    refreshAfterProductChange();
+    if (State.historyProductId) openSourceHistory(State.historyProductId);
+  } catch (err) {
+    toast("No se pudo guardar la decisión: " + err.message, "warning");
   }
 }
 
@@ -1311,11 +1508,16 @@ function normalizeImportItem(raw, ctx = {}) {
   const nombre = pick(raw, ["nombre", "name", "titulo", "title", "producto", "descripcion_corta", "descripcionCorta"]);
   if (!nombre) return null;
 
-  // Imagen: preferir fotos[] (detalle) y si no foto
-  let imgRaw = pick(raw, ["fotos", "imagenes", "images"]);
-  if (Array.isArray(imgRaw) && imgRaw.length === 0) imgRaw = undefined; // fotos vacío → usar foto
-  if (!imgRaw) imgRaw = pick(raw, ["foto", "imageUrl", "image_url", "imagen", "image", "img", "picture", "thumbnail", "thumb", "url_imagen"]);
-  const imageUrl = buildImageUrl(imgRaw);
+  // Imágenes: todas las de fotos[] (detalle); si no hay, la de foto
+  let lista = pick(raw, ["fotos", "imagenes", "images"]);
+  if (!Array.isArray(lista)) lista = lista ? [lista] : [];
+  let images = lista.map(buildImageUrl).filter(Boolean);
+  if (!images.length) {
+    const unica = buildImageUrl(pick(raw, ["foto", "imageUrl", "image_url", "imagen", "image", "img", "picture", "thumbnail", "thumb", "url_imagen"]));
+    if (unica) images = [unica];
+  }
+  images = [...new Set(images)];
+  const imageUrl = images[0] || "";
 
   // Categoría: por nombre directo, o resolviendo categoriaId con el mapa
   let categoria = pick(raw, ["categoria", "category", "categoria_nombre", "categoryName", "rubro", "linea"]);
@@ -1359,19 +1561,23 @@ function normalizeImportItem(raw, ctx = {}) {
   const sku = pick(raw, ["sku", "codigo", "code", "barcode", "ean", "modelo"]);
   const descripcion = pick(raw, ["descripcion", "description", "detalle", "detail", "resumen"]);
 
+  const externalId = pick(raw, ["id", "_id", "uuid", "productoId"]);
   const item = {
+    externalId: externalId != null ? String(externalId) : "",
+    codigo: sku ? String(sku).trim() : "",
     nombre: String(nombre).trim(),
     imageUrl,
+    images,
     categoria: categoria ? String(categoria).trim() : "Importados",
     marca: marca ? String(marca).trim() : "",
     descripcion: descripcion ? String(descripcion) : "",
-    precioVenta,
-    precioCompra: 0, // Joanis no expone el costo
+    precioVenta,                                              // precio regular de la fuente
+    precioFuente: parseFloat(precioActual) || precioVenta,    // precio final que cobra la fuente
     descuento: parseFloat(desc) || 0,
     stock,
-    sku: sku ? String(sku).trim() : "",
+    agotado: stock <= 0,
   };
-  // Los que ya no hay (agotados / stock 0) no se importan.
+  // Los agotados no se agregan como nuevos (pero sí sirven para poner sin stock a los existentes).
   if (stock <= 0) item._skip = "agotado";
   return item;
 }
@@ -1391,8 +1597,12 @@ function previewImport() {
   const catMap = buildCategoryMap(data);
   const all = arr.map((r) => normalizeImportItem(r, { catMap })).filter(Boolean);
   const agotados = all.filter((p) => p._skip === "agotado").length;
-  const normalized = all.filter((p) => !p._skip);  // se omiten los agotados
+  const normalized = all.filter((p) => !p._skip);  // los agotados no entran como nuevos
   State.importParsed = normalized;
+  State.importAll = all;                            // se envían todos (para marcar sin stock)
+  // Catálogo completo de Joanis (trae productos + categorías) → al final se marcan
+  // sin stock los que ya no aparecen.
+  State.importIsFull = !!(data && Array.isArray(data.productos) && Array.isArray(data.categorias));
 
   if (!normalized.length) {
     summary.innerHTML = `<span style="color:var(--warning)">No se detectaron productos disponibles en ese JSON${agotados ? ` (${agotados} estaban agotados y se omitieron)` : ""}.</span>`;
@@ -1421,29 +1631,42 @@ function previewImport() {
 }
 
 async function runImport() {
-  const lista = State.importParsed || [];
+  // Se envían TODOS (también los agotados: sirven para poner sin stock a los que ya existen)
+  const lista = State.importAll && State.importAll.length ? State.importAll : (State.importParsed || []);
   if (!lista.length) { toast("No hay productos para importar", "warning"); return; }
   const btn = document.getElementById("importConfirmBtn");
   btn.disabled = true;
-  btn.textContent = "Importando…";
+  btn.textContent = "Sincronizando…";
   try {
     // Enviar por tandas (el servidor limita el tamaño de cada envío)
     const TANDA = 50;
-    const r = { insertados: 0, omitidos: 0, errores: 0 };
+    const r = { insertados: 0, cambios: 0, sinStock: 0, repuestos: 0, sinCambios: 0, omitidos: 0, errores: 0 };
     for (let i = 0; i < lista.length; i += TANDA) {
-      btn.textContent = `Importando ${Math.min(i + TANDA, lista.length)} de ${lista.length}…`;
+      btn.textContent = `Sincronizando ${Math.min(i + TANDA, lista.length)} de ${lista.length}…`;
       const parcial = await API.products.import(lista.slice(i, i + TANDA), "Joanis");
-      r.insertados += parcial.insertados || 0;
-      r.omitidos   += parcial.omitidos   || 0;
-      r.errores    += parcial.errores    || 0;
+      Object.keys(r).forEach((k) => { r[k] += parcial[k] || 0; });
     }
-    toast(`Importados: ${r.insertados} · Omitidos (ya existían): ${r.omitidos} · Errores: ${r.errores}`, "success");
+    // Catálogo completo: los que ya no aparecen en Joanis → sin stock
+    if (State.importIsFull) {
+      const ids = lista.map((p) => p.externalId).filter(Boolean);
+      if (ids.length) {
+        const fin = await API.products.importFinalize(ids, "Joanis");
+        r.sinStock += fin.retirados || 0;
+      }
+    }
+    toast(
+      `Nuevos: ${r.insertados} · Con cambios sugeridos: ${r.cambios} · Puestos sin stock: ${r.sinStock}` +
+      (r.repuestos ? ` · Repuestos: ${r.repuestos}` : "") +
+      ` · Sin cambios: ${r.sinCambios}` + (r.errores ? ` · Errores: ${r.errores}` : ""),
+      r.errores ? "warning" : "success"
+    );
     closeImportModal();
     await loadFromAPI();          // vuelve a traer los productos (incluye los importados)
     refreshAfterProductChange();  // re-dibuja todo sin recargar la página
     navigate("productos");
-    // Mostrar de una los recién importados
-    if (r.insertados > 0) setOriginFilter("joanis");
+    // Mostrar primero lo que necesita revisión
+    if (r.cambios > 0) setOriginFilter("cambios");
+    else if (r.insertados > 0) setOriginFilter("joanis");
   } catch (err) {
     toast("Error al importar: " + err.message, "warning");
   } finally {
@@ -1685,12 +1908,22 @@ function openDetail(id) {
 
   document.getElementById("detailBody").innerHTML = `
     <div class="detail-grid">
-      <div class="detail-img">
-        ${
-          p.imageUrl
-            ? `<img src="${p.imageUrl}" alt="${p.nombre}" onerror="this.style.display='none'">`
-            : `<span style="font-size:72px">${p.emoji}</span>`
-        }
+      <div>
+        <div class="detail-img">
+          ${
+            p.imageUrl
+              ? `<img id="detailMainImg" src="${p.imageUrl}" alt="${p.nombre}" onerror="this.style.display='none'">`
+              : `<span style="font-size:72px">${p.emoji}</span>`
+          }
+        </div>
+        ${(p.images || []).length > 1 ? `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          ${p.images.map((u) => safeImgUrl(u)).filter(Boolean).map((u) => `
+            <img src="${u}" onclick="document.getElementById('detailMainImg').src=this.src"
+              style="width:48px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border)"
+              onerror="this.style.display='none'">`).join("")}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${p.images.length} imágenes · clic para ampliar</div>` : ""}
       </div>
       <div class="detail-fields">
         <div class="detail-field" style="grid-column:1/-1">

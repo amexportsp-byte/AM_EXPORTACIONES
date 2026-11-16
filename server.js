@@ -66,7 +66,7 @@ const loginLimiter = rateLimit({
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/customers/login", loginLimiter);
 
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
 /* ─── Protección de archivos estáticos ─── */
 // Debe ir ANTES de express.static para interceptar JS/CSS/HTML sin sesión.
@@ -189,6 +189,46 @@ pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS published BOOLEAN NOT 
 pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS import_source VARCHAR(60)`)
   .then(() => console.log("✓  Migración: products.import_source OK"))
   .catch(err => console.error("✗  Migración products.import_source:", err.message));
+
+// Datos de la fuente externa (Joanis): id/código externos y la última "foto" de lo que
+// publica la fuente. Sirven para reconocer el mismo producto y detectar cambios.
+[
+  ["external_id",      "VARCHAR(100)"],
+  ["external_code",    "VARCHAR(100)"],
+  ["source_name",      "TEXT"],
+  ["source_category",  "TEXT"],
+  ["source_price",     "NUMERIC(12,2)"], // precio final que cobra la fuente
+  ["source_regular",   "NUMERIC(12,2)"], // precio regular (antes del descuento)
+  ["source_discount",  "NUMERIC(5,2)"],
+  ["source_seen_at",   "TIMESTAMPTZ"],
+].forEach(([col, def]) => {
+  pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    .catch(err => console.error(`✗  Migración products.${col}:`, err.message));
+});
+pool.query(`CREATE INDEX IF NOT EXISTS idx_products_external ON products(import_source, external_id)`)
+  .catch(err => console.error("✗  Migración idx_products_external:", err.message));
+
+// Historial de cambios detectados en la fuente (sugerencias). NUNCA se borra:
+// sirve para estudio de métricas. status: pendiente | aceptado | rechazado | info
+pool.query(`
+  CREATE TABLE IF NOT EXISTS product_source_changes (
+    id                 UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id         UUID         NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    source             VARCHAR(60)  NOT NULL DEFAULT 'Joanis',
+    tipo               VARCHAR(30)  NOT NULL DEFAULT 'cambio', -- cambio | sin_stock | repuesto
+    diffs              JSONB        NOT NULL DEFAULT '{}',     -- {nombre:{from,to}, categoria:{...}, precio:{...}}
+    old_source_price   NUMERIC(12,2),
+    new_source_price   NUMERIC(12,2),
+    sale_price_at      NUMERIC(12,2),                          -- precio de venta A&M al detectar
+    suggested_price    NUMERIC(12,2),                          -- precio de venta sugerido
+    status             VARCHAR(20)  NOT NULL DEFAULT 'pendiente',
+    applied_sale_price NUMERIC(12,2),                          -- precio que se aplicó al aceptar
+    decided_by         UUID         REFERENCES workers(id) ON DELETE SET NULL,
+    decided_at         TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  )
+`).then(() => console.log("✓  Migración: product_source_changes OK"))
+  .catch(err => console.error("✗  Migración product_source_changes:", err.message));
 
 pool.query(`ALTER TABLE session_pages ADD COLUMN IF NOT EXISTS last_interaction TIMESTAMPTZ`)
   .then(() => console.log("✓  Migración: last_interaction OK"))

@@ -781,6 +781,7 @@
             <button class="btn-chip active" data-origin="todos" onclick="setOriginFilter('todos')">Todos (juntos)</button>
             <button class="btn-chip" data-origin="mios" onclick="setOriginFilter('mios')">Solo míos</button>
             <button class="btn-chip" data-origin="joanis" onclick="setOriginFilter('joanis')">Solo Joanis</button>
+            <button class="btn-chip" data-origin="cambios" onclick="setOriginFilter('cambios')">🕘 Con cambios<span id="chipCambiosCount"></span></button>
             <span id="prodMgmtCount" style="margin-left:auto;font-size:12px;color:var(--text-muted)"></span>
           </div>
           <div class="table-wrap">
@@ -1450,6 +1451,25 @@
               <line x1="12" y1="15" x2="12" y2="3"/></svg
             >Importar como borrador
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL HISTORIAL DE CAMBIOS DE LA FUENTE (JOANIS) -->
+    <div class="modal-overlay" id="sourceHistoryModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title" id="sourceHistoryTitle">Historial de cambios</h2>
+          <button class="modal-close" type="button" onclick="closeSourceHistory()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="sourceHistoryBody" style="max-height:70vh;overflow:auto"></div>
+        <div class="modal-footer">
+          <button class="btn-ghost" type="button" onclick="closeSourceHistory()">Cerrar</button>
         </div>
       </div>
     </div>

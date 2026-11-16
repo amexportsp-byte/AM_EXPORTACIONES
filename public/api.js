@@ -98,6 +98,9 @@ const API = {
     publishBulk(ids, published) { return API.post(`/api/products/publish-bulk`, { ids, published }); },
     import(productos, fuente) { return API.post(`/api/products/import`, { productos, fuente }); },
     fetchJoanis() { return API.get(`/api/products/joanis-catalogo`); },
+    importFinalize(externalIds, fuente) { return API.post(`/api/products/import/finalize`, { externalIds, fuente }); },
+    sourceChanges(id) { return API.get(`/api/products/${id}/source-changes`); },
+    decideChange(changeId, body) { return API.post(`/api/products/source-changes/${changeId}/decide`, body); },
   },
 
   catalogs: {
