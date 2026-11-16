@@ -1215,6 +1215,30 @@ function closeImportModal() {
   document.getElementById("importModal").classList.remove("open");
 }
 
+// Consulta (una vez, al dar clic) el catálogo público de Joanis y lo deja listo para revisar.
+async function fetchFromJoanis() {
+  const btn = document.getElementById("btnFetchJoanis");
+  const summary = document.getElementById("importSummary");
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "Consultando a Joanis…";
+  summary.innerHTML = `<span style="color:var(--text-muted)">Trayendo catálogo…</span>`;
+  try {
+    const resp = await fetch(JOANIS_CATALOGO_URL, { headers: { "Accept": "application/json" } });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    // Volcar el JSON al textarea y previsualizar con el mismo flujo
+    document.getElementById("importJson").value = JSON.stringify(data);
+    previewImport();
+  } catch (err) {
+    summary.innerHTML = `<span style="color:var(--warning)">No se pudo traer automáticamente (${err.message}).</span>
+      <br><span style="font-size:12px;color:var(--text-muted)">Usa el método manual: abre el enlace del catálogo, guarda el .json y súbelo aquí.</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
 // Busca el primer arreglo de objetos dentro de un JSON arbitrario.
 function findProductArray(data) {
   if (Array.isArray(data)) return data;
@@ -1247,6 +1271,8 @@ function pick(obj, keys) {
 
 // ── Soporte específico para el catálogo de Joanis (ERP grit) ──
 const JOANIS_BASE = "https://apiv2.erp-grit-server-lnx.com";
+const JOANIS_EMPRESA = "cf894123-13ae-4a14-9efe-c480622f841c";
+const JOANIS_CATALOGO_URL = `${JOANIS_BASE}/api/tienda/${JOANIS_EMPRESA}/catalogo`;
 // Joanis no expone stock exacto, solo un "nivel". Aproximación por nivel:
 const STOCK_APROX = { DISPONIBLE: 10, QUEDA_POCO: 5, MUY_POCO: 3, ULTIMO: 1, AGOTADO: 0 };
 // Orden de más disponible a menos (para elegir la mejor variante).
@@ -2251,6 +2277,7 @@ async function init() {
   document.getElementById("importCancelBtn")?.addEventListener("click", closeImportModal);
   document.getElementById("importPreviewBtn")?.addEventListener("click", previewImport);
   document.getElementById("importConfirmBtn")?.addEventListener("click", runImport);
+  document.getElementById("btnFetchJoanis")?.addEventListener("click", fetchFromJoanis);
   document.getElementById("importFile")?.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
