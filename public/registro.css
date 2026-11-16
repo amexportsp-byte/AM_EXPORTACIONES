@@ -1968,3 +1968,30 @@ body {
 .catalog-sticky .filters-panel { padding: 12px 14px; margin-bottom: 10px; }
 .catalog-sticky .section-header { margin-bottom: 12px; }
 .catalog-sticky .toolbar { margin-bottom: 8px; }
+
+/* Etiquetas llamativas: NUEVO / COSTO NUEVO */
+.alert-tags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.alert-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .04em;
+  padding: 3px 8px; border-radius: 6px; color: #fff; white-space: nowrap;
+  line-height: 1.3; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.alert-tag s { opacity: .75; font-weight: 600; }
+.alert-tag b { font-weight: 900; }
+.alert-tag.big { font-size: 12px; padding: 5px 10px; }
+.tag-nuevo {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  animation: tagPulseGreen 1.8s ease-in-out infinite;
+}
+.tag-costo.sube { background: linear-gradient(135deg, #dc2626, #f97316); animation: tagPulseRed 1.8s ease-in-out infinite; }
+.tag-costo.baja { background: linear-gradient(135deg, #0284c7, #06b6d4); animation: tagPulseBlue 1.8s ease-in-out infinite; }
+@keyframes tagPulseGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
+@keyframes tagPulseRed   { 0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,.6); } 50% { box-shadow: 0 0 0 6px rgba(249,115,22,0); } }
+@keyframes tagPulseBlue  { 0%,100% { box-shadow: 0 0 0 0 rgba(6,182,212,.6); } 50% { box-shadow: 0 0 0 6px rgba(6,182,212,0); } }
+@media (prefers-reduced-motion: reduce) { .alert-tag { animation: none !important; } }
+.product-card-img { position: relative; }
+.card-alert-tags {
+  position: absolute; top: 8px; left: 8px; z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+}

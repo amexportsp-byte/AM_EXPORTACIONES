@@ -86,7 +86,13 @@ router.get("/", auth, async (req, res) => {
               (SELECT COUNT(*) FROM product_source_changes sc
                 WHERE sc.product_id = p.id AND sc.status = 'pendiente')::int AS pending_changes,
               (SELECT COUNT(*) FROM product_source_changes sc
-                WHERE sc.product_id = p.id)::int AS total_changes
+                WHERE sc.product_id = p.id)::int AS total_changes,
+              (SELECT json_build_object('old', sc.old_source_price, 'new', sc.new_source_price, 'at', sc.created_at)
+                 FROM product_source_changes sc
+                WHERE sc.product_id = p.id AND sc.status = 'pendiente'
+                  AND sc.new_source_price IS NOT NULL
+                  AND sc.new_source_price IS DISTINCT FROM sc.old_source_price
+                ORDER BY sc.created_at DESC LIMIT 1) AS pending_cost
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN subcategories s ON p.subcategory_id = s.id
@@ -129,6 +135,7 @@ router.get("/", auth, async (req, res) => {
       sourceSeenAt: p.source_seen_at || null,
       pendingChanges: p.pending_changes || 0,
       totalChanges: p.total_changes || 0,
+      pendingCost: p.pending_cost ? { old: p.pending_cost.old != null ? parseFloat(p.pending_cost.old) : null, new: parseFloat(p.pending_cost.new), at: p.pending_cost.at } : null,
       cat_visible: p.cat_visible !== false,
       createdAt: p.created_at,
       category_id: p.category_id,

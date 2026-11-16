@@ -1010,12 +1010,12 @@ function renderGrid() {
             ? `<img src="${p.imageUrl}" alt="${p.nombre}" onerror="this.style.display='none'">`
             : `<span style="font-size:44px">${p.emoji}</span>`
         }
+        ${alertTags(p, true) ? `<div class="card-alert-tags">${alertTags(p, true)}</div>` : ""}
         <div class="product-card-badges">
           <span class="badge ${st.cls}" style="font-size:10px">${st.label}</span>
           ${p.descuento > 0 ? `<span class="badge gold" style="font-size:10px">-${p.descuento}%</span>` : ""}
           ${p.importSource ? `<span class="badge" style="font-size:10px;background:rgba(217,119,6,.2);color:#d97706;border-color:#d97706">⬇ ${escHtml(p.importSource)}</span>` : ""}
           ${p.published === false ? `<span class="badge" style="font-size:10px;background:rgba(156,163,175,.2);color:#9ca3af;border-color:#9ca3af">Borrador</span>` : ""}
-          ${isNewFromImport(p) ? `<span class="badge" style="font-size:10px;background:rgba(34,197,94,.2);color:#22c55e;border-color:#22c55e">🆕 Nuevo</span>` : ""}
         </div>
       </div>
       <div class="product-card-body">
@@ -1067,7 +1067,7 @@ function renderList() {
         ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.nombre}" onerror="this.style.display='none'">` : p.emoji}
       </div>
       <div class="product-list-info">
-        <div class="product-list-name">${p.nombre}${sourceBadge(p)}</div>
+        <div class="product-list-name">${escHtml(p.nombre)}${sourceBadge(p)}${nuevoBadge(p)}</div>
         <div class="product-list-meta">${p.codigo} · ${p.categoria} · ${p.marca} · Stock: ${p.stock}</div>
       </div>
       <div class="product-list-right">
@@ -1102,7 +1102,7 @@ function renderTable() {
         ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:34px;height:34px;object-fit:cover">` : p.emoji}
       </div></td>
       <td><code style="font-size:11px;color:var(--text-muted)">${p.codigo}</code></td>
-      <td style="color:var(--text-primary);font-weight:600;max-width:180px;white-space:normal">${p.nombre}${sourceBadge(p)}</td>
+      <td style="color:var(--text-primary);font-weight:600;max-width:180px;white-space:normal">${escHtml(p.nombre)}${sourceBadge(p)}${nuevoBadge(p)}</td>
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:${p.stock <= 5 ? 600 : 400}">${p.stock}</td>
       <td style="color:var(--text-primary);font-weight:600">${p.importSource && !(p.precioVenta > 0)
@@ -1860,14 +1860,34 @@ function saveLastImportNew(ids) {
   try { localStorage.setItem(LAST_IMPORT_KEY, JSON.stringify({ ids: [...ids], at: new Date().toISOString() })); } catch {}
   State.lastImportNew = { ids: new Set(ids), at: new Date().toISOString() };
 }
+// "Nuevo" = agregado en la última importación, o importado hace ≤ 7 días y aún sin publicar.
+const NUEVO_DIAS = 7;
 function isNewFromImport(p) {
   if (!State.lastImportNew) State.lastImportNew = loadLastImportNew();
-  return State.lastImportNew.ids.has(p.id);
+  if (State.lastImportNew.ids.has(p.id)) return true;
+  if (!p.importSource || p.published !== false || !p.createdAt) return false;
+  const t = new Date(p.createdAt).getTime();
+  return !isNaN(t) && Date.now() - t <= NUEVO_DIAS * 86400000;
+}
+// Etiquetas llamativas: NUEVO y COSTO NUEVO (cambio de costo de Joanis pendiente de revisar)
+function alertTags(p, big = false) {
+  const out = [];
+  if (isNewFromImport(p)) {
+    out.push(`<span class="alert-tag tag-nuevo${big ? " big" : ""}" title="Producto nuevo traído de Joanis">🆕 NUEVO</span>`);
+  }
+  const pc = p.pendingCost;
+  if (pc && pc.new != null) {
+    const sube = pc.old != null && pc.new > pc.old;
+    const flecha = pc.old == null ? "" : sube ? "▲" : "▼";
+    const antes = pc.old != null ? `<s>${fmt(pc.old)}</s> → ` : "";
+    out.push(`<span class="alert-tag tag-costo ${sube ? "sube" : "baja"}${big ? " big" : ""}"
+      title="Joanis cambió su precio. Revísalo en el Historial (🕘) y acepta o rechaza.">💲 COSTO NUEVO ${flecha} ${antes}<b>${fmt(pc.new)}</b></span>`);
+  }
+  return out.join("");
 }
 function nuevoBadge(p) {
-  return isNewFromImport(p)
-    ? `<span class="badge" title="Agregado en la última importación de Joanis" style="font-size:10px;background:rgba(34,197,94,.18);color:#22c55e;border-color:#22c55e;margin-left:4px">🆕 NUEVO</span>`
-    : "";
+  const t = alertTags(p);
+  return t ? `<div class="alert-tags-row">${t}</div>` : "";
 }
 
 async function runImport() {
