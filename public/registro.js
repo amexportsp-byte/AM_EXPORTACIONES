@@ -1325,8 +1325,11 @@ async function runImport() {
     const r = await API.products.import(lista, "Joanis");
     toast(`Importados: ${r.insertados} · Omitidos (ya existían): ${r.omitidos} · Errores: ${r.errores}`, "success");
     closeImportModal();
-    await refreshAfterProductChange();
+    await loadFromAPI();          // vuelve a traer los productos (incluye los importados)
+    refreshAfterProductChange();  // re-dibuja todo sin recargar la página
     navigate("productos");
+    // Mostrar de una los recién importados
+    if (r.insertados > 0) setOriginFilter("joanis");
   } catch (err) {
     toast("Error al importar: " + err.message, "warning");
   } finally {
