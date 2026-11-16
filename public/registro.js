@@ -196,6 +196,18 @@ function safeImgUrl(u) {
   return "";
 }
 
+// Línea "Precio de venta" (el definitivo, lo define A&M). Si no hay → "Poner precio".
+function precioVentaLine(p, big = true) {
+  if (!p.importSource) return "";
+  const final = p.descuento > 0 ? +(p.precioVenta * (1 - p.descuento / 100)).toFixed(2) : p.precioVenta;
+  const valor = p.precioVenta > 0
+    ? `<strong style="color:var(--text-primary);font-size:${big ? 16 : 13}px">${fmt(final)}</strong>${p.descuento > 0 ? ` <s style="font-size:11px;color:var(--text-muted)">${fmt(p.precioVenta)}</s>` : ""}`
+    : `<span onclick="openEdit('${p.id}')" title="Definir tu precio de venta"
+         style="cursor:pointer;font-weight:700;font-size:${big ? 14 : 12}px;color:#d97706">✎ Poner precio</span>`;
+  return `<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:6px">
+    <span style="font-size:11px;color:var(--text-muted)">Precio de venta:</span>${valor}</div>`;
+}
+
 // Línea "Costo Joanis": costo de compra referencial (lo que cobra Joanis).
 // No es el precio de venta: ese lo define A&M.
 function costoJoanisLine(p) {
@@ -942,13 +954,11 @@ function renderGrid() {
         <div class="product-card-name">${p.nombre}</div>
         <div class="product-card-meta">${p.categoria} · ${p.marca}</div>
         <div class="product-card-meta" style="font-size:11px;color:var(--text-muted)">${p.codigo}</div>
-        ${p.importSource ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">Precio de venta</div>` : ""}
-        <div class="product-card-price">
-          ${p.importSource && !(p.precioVenta > 0)
-            ? `<span onclick="openEdit('${p.id}')" title="Definir tu precio de venta" style="cursor:pointer;font-size:13px;color:#d97706">✎ Pon tu precio</span>`
-            : `${fmt(finalPrice)}${p.descuento > 0 ? ` <span class="original">${fmt(p.precioVenta)}</span>` : ""}`}
-        </div>
-        ${costoJoanisLine(p)}
+        ${p.importSource
+          ? `${precioVentaLine(p)}${costoJoanisLine(p)}`
+          : `<div class="product-card-price">
+               ${fmt(finalPrice)}${p.descuento > 0 ? ` <span class="original">${fmt(p.precioVenta)}</span>` : ""}
+             </div>`}
         <div class="product-card-stock" style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "var(--text-muted)"}">
           Stock: ${p.stock} ${p.unidad}
         </div>
@@ -996,10 +1006,7 @@ function renderList() {
         <span class="badge ${st.cls}">${st.label}</span>
         ${p.descuento > 0 ? `<span class="badge gold">-${p.descuento}%</span>` : ""}
         <div class="product-list-price" style="text-align:right">
-          ${p.importSource && !(p.precioVenta > 0)
-            ? `<span onclick="openEdit('${p.id}')" style="cursor:pointer;font-size:13px;color:#d97706">✎ Pon tu precio</span>`
-            : fmt(finalPrice)}
-          ${costoJoanisLine(p)}
+          ${p.importSource ? `${precioVentaLine(p, false)}${costoJoanisLine(p)}` : fmt(finalPrice)}
         </div>
         <div class="action-btns">
           <button class="btn-icon view" onclick="openDetail('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -1031,7 +1038,7 @@ function renderTable() {
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:${p.stock <= 5 ? 600 : 400}">${p.stock}</td>
       <td style="color:var(--text-primary);font-weight:600">${p.importSource && !(p.precioVenta > 0)
-        ? `<span onclick="openEdit('${p.id}')" style="cursor:pointer;font-size:12px;color:#d97706">✎ Pon tu precio</span>`
+        ? `<span onclick="openEdit('${p.id}')" style="cursor:pointer;font-size:12px;color:#d97706">✎ Poner precio</span>`
         : fmt(p.precioVenta)}</td>
       <td>${fmt(p.precioCompra)}${p.importSource ? `<div style="font-size:10px;color:var(--text-muted)">Costo Joanis</div>` : ""}</td>
       <td>${p.descuento > 0 ? `<span class="badge gold">-${p.descuento}%</span>` : "—"}</td>
@@ -1194,7 +1201,7 @@ function renderProductosMgmt() {
       <td style="font-weight:600;color:var(--text-primary)">
         ${sinPrecio
           ? `<button type="button" onclick="openEdit('${p.id}')" title="Definir precio de venta"
-               style="padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700;border:1px solid #d97706;background:rgba(217,119,6,.15);color:#d97706">✎ Pon tu precio</button>`
+               style="padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700;border:1px solid #d97706;background:rgba(217,119,6,.15);color:#d97706">✎ Poner precio</button>`
           : fmt(p.precioVenta)}
         ${p.sourcePrice != null ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Costo Joanis: ${fmt(p.sourcePrice)}</div>` : ""}
         ${bajo ? `<div style="font-size:11px;color:#e05252;font-weight:600">⚠ Bajo el costo</div>` : ""}
