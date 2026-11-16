@@ -733,6 +733,31 @@ body {
   white-space: nowrap;
 }
 
+/* ── Tabla de Gestión de Productos: todo cabe en pantalla ── */
+.prod-mgmt-table { table-layout: fixed; }
+.prod-mgmt-table th, .prod-mgmt-table td { padding: 9px 8px; }
+.prod-mgmt-table td { white-space: normal; overflow-wrap: anywhere; }
+.prod-mgmt-table .c-prod   { width: auto; }
+.prod-mgmt-table .c-cat    { width: 12%; }
+.prod-mgmt-table .c-marca  { width: 8%; }
+.prod-mgmt-table .c-stock  { width: 56px; }
+.prod-mgmt-table .c-precio { width: 140px; }
+.prod-mgmt-table .c-estado { width: 96px; }
+.prod-mgmt-table .c-tienda { width: 104px; }
+.prod-mgmt-table .c-venc   { width: 88px; }
+.prod-mgmt-table .c-acc    { width: 108px; }
+.prod-mgmt-table .price-cell > * { display: flex; width: fit-content; margin-top: 3px; }
+.prod-mgmt-table .price-cell > *:first-child { margin-top: 0; }
+.prod-mgmt-table .action-btns { flex-wrap: wrap; gap: 4px; }
+.prod-mgmt-table .badge { white-space: nowrap; }
+@media (max-width: 1280px) {
+  .prod-mgmt-table .col-marca, .prod-mgmt-table .col-venc { display: none; }
+}
+@media (max-width: 900px) {
+  .prod-mgmt-table .c-tienda { width: 92px; }
+  .prod-mgmt-table .c-estado { width: 80px; }
+}
+
 .data-table tbody tr:hover { background: var(--bg-input); }
 .data-table tbody tr:last-child td { border-bottom: none; }
 

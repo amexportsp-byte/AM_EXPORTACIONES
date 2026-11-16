@@ -1196,14 +1196,14 @@ function renderProductosMgmt() {
           <div style="font-size:11px;color:var(--text-muted)">${p.codigo}${p.externalCode ? ` · Joanis: <strong>${escHtml(p.externalCode)}</strong>` : ""}${(p.images || []).length > 1 ? ` · 🖼 ${p.images.length}` : ""}</div>
         </div>
       </div></td>
-      <td>${p.categoria}</td><td>${p.marca}</td>
+      <td>${p.categoria}</td><td class="col-marca">${p.marca || "—"}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:600">${p.stock}</td>
-      <td style="font-weight:600;color:var(--text-primary)">
+      <td class="price-cell" style="font-weight:600;color:var(--text-primary)">
         ${sinPrecio
           ? `<button type="button" onclick="openEdit('${p.id}')" title="Definir precio de venta"
                style="padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700;border:1px solid #d97706;background:rgba(217,119,6,.15);color:#d97706">✎ Poner precio</button>`
-          : fmt(p.precioVenta)}
-        ${p.sourcePrice != null ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Costo Joanis: ${fmt(p.sourcePrice)}</div>` : ""}
+          : `<span>${fmt(p.precioVenta)}</span>`}
+        ${p.importSource ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Costo: ${fmt(p.sourcePrice != null ? p.sourcePrice : p.precioCompra)}</div>` : ""}
         ${bajo ? `<div style="font-size:11px;color:#e05252;font-weight:600">⚠ Bajo el costo</div>` : ""}
         ${(p.importSource || p.totalChanges) ? `<button type="button" onclick="openSourceHistory('${p.id}')" title="Historial de cambios de Joanis"
             style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:600;
@@ -1212,7 +1212,7 @@ function renderProductosMgmt() {
       </td>
       <td><span class="badge ${st.cls}">${st.label}</span></td>
       <td>${publishToggle(p)}</td>
-      <td style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
+      <td class="col-venc" style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
       <td><div class="action-btns">
         <button class="btn-icon view" onclick="openDetail('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="btn-icon edit" onclick="openEdit('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
