@@ -1943,7 +1943,7 @@ body {
 /* Catálogo: cabecera + filtros + barra fijos al hacer scroll */
 .catalog-sticky {
   position: sticky;
-  top: var(--topbar-h);
+  top: -14px;
   z-index: 60;
   background: var(--bg-base);
   margin: -28px -28px 0;
