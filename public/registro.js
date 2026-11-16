@@ -1298,9 +1298,14 @@ function normalizeImportItem(raw, ctx = {}) {
   }
 
   // Precios: precioRegular = costo original (tachado); precio = final con descuento.
-  const precioRegular = pick(raw, ["precioRegular", "precio_regular", "precioOriginal", "precio_original", "costo_original", "costoOriginal", "precioVenta", "precio_venta", "sale_price"]);
-  const precioActual  = pick(raw, ["precio", "price", "pvp", "precio_final", "precioFinal", "costo_final", "costoFinal"]);
+  let precioRegular = pick(raw, ["precioRegular", "precio_regular", "precioOriginal", "precio_original", "costo_original", "costoOriginal", "precioVenta", "precio_venta", "sale_price"]);
+  let precioActual  = pick(raw, ["precio", "price", "pvp", "precio_final", "precioFinal", "costo_final", "costoFinal"]);
   const desc = pick(raw, ["descuento", "discount", "dcto", "off", "porcentaje_descuento"]);
+  // Productos con tallas/colores: el precio viene en variantes[].precio
+  if (precioRegular === undefined && precioActual === undefined && Array.isArray(raw.variantes)) {
+    const v = raw.variantes.find((x) => x && x.precio != null && x.precio !== "");
+    if (v) { precioActual = v.precio; if (v.precioRegular != null) precioRegular = v.precioRegular; }
+  }
   // precio de venta = el regular (para mantener el tachado); si no hay, el actual
   const precioVenta = parseFloat(precioRegular) || parseFloat(precioActual) || 0;
 
