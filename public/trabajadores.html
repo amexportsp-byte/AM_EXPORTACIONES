@@ -3545,6 +3545,7 @@
           refPhone: w.ref_phone || "",
           currentPage: w.current_page || null,
           lastSeen: w.last_seen || null,
+          totpEnabled: !!w.totp_enabled,
           createdAt: w.created_at ? new Date(w.created_at).toLocaleString("es-PE") : nowStr(),
         };
       }
@@ -4064,7 +4065,7 @@
             return `<tr class="acc-trigger" onclick="toggleAccordion('${w.id}')">
       <td><div class="worker-cell">${avatar(w.firstName + " " + w.lastName, 36)}
         <div><div class="worker-name">${esc(w.firstName)} ${esc(w.lastName)}<span class="acc-chevron" id="chev-${w.id}">▶</span></div>
-        <div class="worker-sub">${esc(w.username)} · ${esc(w.email)}</div>${antecH}</div></div></td>
+        <div class="worker-sub">${esc(w.username)} · ${esc(w.email)}</div>${antecH}${w.totpEnabled ? '<span class="antec-pill" style="background:rgba(22,163,74,.12);color:#16a34a;border-color:rgba(22,163,74,.35)" title="Verificación en 2 pasos activa">🔐 2FA activo</span>' : '<span class="antec-pill" style="background:rgba(107,114,128,.12);color:#6b7280;border-color:rgba(107,114,128,.35)" title="Vinculará la app en su próximo ingreso">2FA pendiente</span>'}</div></div></td>
       <td><span style="font-size:11px;color:var(--text3)">${esc(w.docType)}</span><br><span style="font-weight:500">${esc(w.docNumber)}</span></td>
       <td><span class="badge badge-info">${esc(w.role)}</span></td>
       <td>${badgeStatus(w.status)}${pageH}</td>
@@ -4074,6 +4075,7 @@
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-outline btn-sm" onclick="openWorkerModal('${w.id}')">✏️</button>
           <button class="btn btn-outline btn-sm" onclick="openAttModal('${w.id}',null)">📋</button>
+          <button class="btn btn-outline btn-sm" title="Resetear verificación 2FA (celular perdido o cambiado)" onclick="reset2FA('${w.id}')">🔐</button>
           <button class="btn btn-danger btn-sm" onclick="openDelete('${w.id}')">🗑️</button>
           <select class="inp sel" style="padding:4px 6px;font-size:11px;width:auto;border-radius:7px" onchange="quickStatus('${w.id}',this.value)">${opts}</select>
         </div>
@@ -4082,6 +4084,24 @@
     <tr class="acc-row"><td colspan="7"><div class="acc-inner" id="acc-${w.id}"></div></td></tr>`;
           })
           .join("");
+      }
+
+      // Desvincula la app autenticadora del trabajador (celular perdido/cambiado).
+      // En su próximo ingreso verá un QR nuevo para vincular.
+      async function reset2FA(wid) {
+        const w = DB.workers.find((x) => x.id === wid);
+        if (!w) return;
+        const nombre = `${w.firstName} ${w.lastName}`;
+        if (!confirm(`¿Resetear la verificación en 2 pasos de ${nombre}?\n\nSe cerrará su sesión y, al volver a ingresar, tendrá que escanear un QR nuevo con su app autenticadora.`)) return;
+        try {
+          await API.post(`/api/auth/2fa/reset/${encodeURIComponent(wid)}`, {});
+          w.totpEnabled = false;
+          addLog(wid, "Reset 2FA", "Se desvinculó la app autenticadora", "Trabajadores", []);
+          renderWorkers();
+          toast(`2FA reseteado — ${nombre} vinculará su app al ingresar`, "success");
+        } catch (e) {
+          toast(e.message || "No se pudo resetear el 2FA", "error");
+        }
       }
 
       function quickStatus(wid, newStatus) {

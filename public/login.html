@@ -397,6 +397,37 @@
         display: flex;
       }
 
+      /* 2FA */
+      .right-panel { max-height: 100vh; justify-content: safe center; }
+      .twofa-box { display: none; }
+      .twofa-box.show { display: block; }
+      .twofa-title {
+        font-size: 15px; font-weight: 700; color: var(--navy);
+        display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+      }
+      .twofa-text { font-size: 13px; color: var(--gray4); line-height: 1.5; margin-bottom: 12px; }
+      .twofa-steps { font-size: 12.5px; color: var(--gray4); line-height: 1.55; margin: 0 0 12px 18px; }
+      .twofa-qr {
+        display: flex; gap: 14px; align-items: center;
+        background: var(--gray1); border: 1px solid var(--gray2); border-radius: 8px;
+        padding: 10px; margin-bottom: 14px;
+      }
+      .twofa-qr img { width: 150px; height: 150px; border-radius: 6px; background: #fff; flex-shrink: 0; }
+      .twofa-secret { font-size: 11px; color: var(--gray3); word-break: break-all; }
+      .twofa-secret code {
+        display: block; margin-top: 4px; font-size: 12.5px; color: var(--navy);
+        font-weight: 700; letter-spacing: .04em; user-select: all;
+      }
+      #otpCode {
+        letter-spacing: .5em; font-size: 22px; font-weight: 700; text-align: center;
+        padding: 0 14px;
+      }
+      .twofa-back {
+        background: none; border: none; color: var(--gray3); font-size: 12.5px;
+        cursor: pointer; margin-top: 12px; text-decoration: underline; font-family: inherit;
+      }
+      .twofa-back:hover { color: var(--navy); }
+
       /* FOOTER */
 
       .divider-line {
@@ -557,7 +588,7 @@
 
       <!-- USUARIO -->
 
-      <div class="field">
+      <div class="field cred-step">
         <label for="username">Usuario</label>
 
         <div class="input-wrap">
@@ -593,7 +624,7 @@
 
       <!-- PASSWORD -->
 
-      <div class="field">
+      <div class="field cred-step">
         <label for="password">Contraseña</label>
 
         <div class="input-wrap">
@@ -649,6 +680,58 @@
 
           La contraseña debe tener al menos 6 caracteres
         </div>
+      </div>
+
+      <!-- VERIFICACIÓN EN 2 PASOS -->
+
+      <div class="twofa-box" id="twofaBox">
+        <div class="twofa-title">🔐 Verificación en 2 pasos</div>
+
+        <div id="twofaSetup" style="display: none">
+          <p class="twofa-text">
+            Primera vez: vincula tu celular. Solo se hace una vez.
+          </p>
+          <ol class="twofa-steps">
+            <li>Instala <b>Google Authenticator</b> o <b>Microsoft Authenticator</b>.</li>
+            <li>Toca <b>+</b> → <b>Escanear código QR</b> y escanea este código.</li>
+            <li>Escribe abajo el código de 6 dígitos que aparece.</li>
+          </ol>
+          <div class="twofa-qr">
+            <img id="twofaQr" alt="Código QR para la app autenticadora" />
+            <div class="twofa-secret">
+              ¿No puedes escanear? Ingresa esta clave manualmente:
+              <code id="twofaSecret"></code>
+            </div>
+          </div>
+        </div>
+
+        <p class="twofa-text" id="twofaVerifyText" style="display: none">
+          Abre tu app autenticadora y escribe el código de 6 dígitos de
+          <b>A&amp;M Importaciones</b>.
+        </p>
+
+        <div class="field">
+          <label for="otpCode">Código de verificación</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="otpCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="••••••"
+            />
+          </div>
+          <div class="field-error" id="otpErr"></div>
+        </div>
+
+        <button class="btn-submit" id="btnVerify2fa" type="button">
+          <span id="btnVerifyLabel">Verificar y entrar</span>
+          <div class="spinner" id="spinner2fa"></div>
+        </button>
+        <button class="twofa-back" id="btnBack2fa" type="button">
+          ← Volver a usuario y contraseña
+        </button>
       </div>
 
       <!-- BOTON -->
@@ -804,32 +887,13 @@
             return;
           }
 
-          // Limpiar aviso de sesión cerrada si estaba visible
-          var sesionAviso = document.getElementById("sesionCerradaAviso");
-          if (sesionAviso) sesionAviso.remove();
+          // Contraseña correcta → falta el segundo paso (2FA)
+          if (data.twofa) {
+            show2fa(data);
+            return;
+          }
 
-          // Guardar token y datos del trabajador
-          localStorage.setItem("am_token", data.token);
-          localStorage.setItem("am_worker", JSON.stringify(data.worker));
-
-          successBox.classList.add("show");
-          userInput.value = "";
-          passInput.value = "";
-
-          // Redirigir según rol (mapa sincronizado con API.ROLE_HOME en api.js)
-          setTimeout(function () {
-            var ROLE_HOME = {
-              admin:        "control.html",
-              supervisor:   "trabajadores.html",   // TBD
-              vendedor:     "venta.html",
-              cajero:       "venta.html",           // TBD
-              almacen:      "registro.html",
-              contabilidad: "libro.html",
-              soporte:      "control.html",         // TBD
-            };
-            var dest = ROLE_HOME[data.worker.role] || "control.html";
-            window.location.href = dest;
-          }, 1200);
+          finishLogin(data);
         } catch (err) {
           spinner.style.display = "none";
           btnLabel.textContent = "Acceder al sistema";
@@ -838,6 +902,138 @@
           userErr.classList.add("show");
         }
       }
+
+      function finishLogin(data) {
+        // Limpiar aviso de sesión cerrada si estaba visible
+        var sesionAviso = document.getElementById("sesionCerradaAviso");
+        if (sesionAviso) sesionAviso.remove();
+
+        // Guardar token y datos del trabajador
+        localStorage.setItem("am_token", data.token);
+        localStorage.setItem("am_worker", JSON.stringify(data.worker));
+
+        successBox.classList.add("show");
+        userInput.value = "";
+        passInput.value = "";
+
+        // Redirigir según rol (mapa sincronizado con API.ROLE_HOME en api.js)
+        setTimeout(function () {
+          var ROLE_HOME = {
+            admin:        "control.html",
+            supervisor:   "trabajadores.html",   // TBD
+            vendedor:     "venta.html",
+            cajero:       "venta.html",           // TBD
+            almacen:      "registro.html",
+            contabilidad: "libro.html",
+            soporte:      "control.html",         // TBD
+          };
+          var dest = ROLE_HOME[data.worker.role] || "control.html";
+          window.location.href = dest;
+        }, 1200);
+      }
+
+      /* ── Verificación en 2 pasos (app autenticadora) ── */
+      var twofaBox = document.getElementById("twofaBox");
+      var otpInput = document.getElementById("otpCode");
+      var otpErr = document.getElementById("otpErr");
+      var btnVerify = document.getElementById("btnVerify2fa");
+      var btnVerifyLabel = document.getElementById("btnVerifyLabel");
+      var spinner2fa = document.getElementById("spinner2fa");
+      var pendingToken = null;
+      var verifying = false;
+
+      function setCredVisible(visible) {
+        document.querySelectorAll(".cred-step").forEach(function (el) {
+          el.style.display = visible ? "" : "none";
+        });
+        btnLogin.style.display = visible ? "" : "none";
+        twofaBox.classList.toggle("show", !visible);
+      }
+
+      function show2fa(data) {
+        pendingToken = data.pendingToken;
+        var setup = data.twofa === "setup";
+        document.getElementById("twofaSetup").style.display = setup ? "" : "none";
+        document.getElementById("twofaVerifyText").style.display = setup ? "none" : "";
+        if (setup) {
+          document.getElementById("twofaQr").src = data.qr;
+          document.getElementById("twofaSecret").textContent = data.secret;
+        }
+        otpErr.classList.remove("show");
+        otpInput.classList.remove("invalid");
+        otpInput.value = "";
+        setCredVisible(false);
+        setTimeout(function () { otpInput.focus(); }, 50);
+      }
+
+      function back2fa() {
+        pendingToken = null;
+        otpInput.value = "";
+        document.getElementById("twofaQr").removeAttribute("src");
+        document.getElementById("twofaSecret").textContent = "";
+        setCredVisible(true);
+        passInput.value = "";
+        passInput.focus();
+      }
+
+      async function verify2fa() {
+        if (verifying) return;
+        var code = otpInput.value.replace(/\D/g, "");
+        if (code.length !== 6) {
+          otpErr.textContent = "Escribe los 6 dígitos que muestra tu app";
+          otpErr.classList.add("show");
+          otpInput.classList.add("invalid");
+          return;
+        }
+        verifying = true;
+        btnVerifyLabel.textContent = "Verificando…";
+        spinner2fa.style.display = "block";
+        btnVerify.classList.add("loading");
+        try {
+          var res = await fetch("/api/auth/login/2fa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pendingToken: pendingToken, code: code }),
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok) {
+            if (data.restart) {
+              back2fa();
+              userErr.textContent = data.error || "Vuelve a ingresar";
+              userErr.classList.add("show");
+              return;
+            }
+            otpErr.textContent = data.error || "Código incorrecto";
+            otpErr.classList.add("show");
+            otpInput.classList.add("invalid");
+            otpInput.select();
+            return;
+          }
+          pendingToken = null;
+          twofaBox.classList.remove("show");
+          finishLogin(data);
+        } catch (e) {
+          otpErr.textContent = "Error de conexión con el servidor";
+          otpErr.classList.add("show");
+        } finally {
+          verifying = false;
+          btnVerifyLabel.textContent = "Verificar y entrar";
+          spinner2fa.style.display = "none";
+          btnVerify.classList.remove("loading");
+        }
+      }
+
+      otpInput.addEventListener("input", function () {
+        otpInput.value = otpInput.value.replace(/\D/g, "").slice(0, 6);
+        otpErr.classList.remove("show");
+        otpInput.classList.remove("invalid");
+        if (otpInput.value.length === 6) verify2fa(); // envía solo al completar
+      });
+      otpInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") verify2fa();
+      });
+      btnVerify.addEventListener("click", verify2fa);
+      document.getElementById("btnBack2fa").addEventListener("click", back2fa);
 
       // Mostrar aviso si el usuario fue redirigido por cierre de sesión
       (function () {

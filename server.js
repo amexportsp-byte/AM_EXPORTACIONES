@@ -162,6 +162,16 @@ pool.query(`
   )
 `).then(() => console.log("✓  Migración: login_attempts OK"))
   .catch(err => console.error("✗  Migración login_attempts:", err.message));
+// Verificación en 2 pasos (app autenticadora) para trabajadores
+pool.query(`
+  ALTER TABLE workers
+    ADD COLUMN IF NOT EXISTS totp_secret     TEXT,
+    ADD COLUMN IF NOT EXISTS totp_enabled    BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS totp_last_step  BIGINT,
+    ADD COLUMN IF NOT EXISTS totp_enabled_at TIMESTAMPTZ
+`).then(() => console.log("✓  Migración: workers 2FA OK"))
+  .catch(err => console.error("✗  Migración workers 2FA:", err.message));
+
 pool.query(`ALTER TABLE client_accounts ADD COLUMN IF NOT EXISTS reset_code VARCHAR(128)`)
   .then(() => console.log("✓  Migración: client_accounts.reset_code OK"))
   .catch(err => console.error("✗  Migración client_accounts.reset_code:", err.message));

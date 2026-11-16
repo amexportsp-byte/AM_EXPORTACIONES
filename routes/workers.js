@@ -12,7 +12,7 @@ router.get("/", auth, async (req, res) => {
       `SELECT id, first_name, last_name, document_type, document_number,
               gender, birthday, email, phone, address, role, username,
               work_schedule, status, avatar_url, avatar_color,
-              current_page, last_seen, last_login, created_at,
+              current_page, last_seen, last_login, created_at, totp_enabled,
               antecedentes, ref_name, ref_phone
        FROM workers WHERE deleted_at IS NULL ORDER BY created_at DESC`
     );
@@ -59,7 +59,7 @@ router.get("/:id", auth, async (req, res) => {
       `SELECT id, first_name, last_name, document_type, document_number,
               gender, birthday, email, phone, address, role, username,
               work_schedule, status, avatar_url, avatar_color,
-              current_page, last_seen, last_login, created_at,
+              current_page, last_seen, last_login, created_at, totp_enabled,
               antecedentes, ref_name, ref_phone
        FROM workers WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]
