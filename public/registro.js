@@ -1247,8 +1247,10 @@ function pick(obj, keys) {
 
 // ── Soporte específico para el catálogo de Joanis (ERP grit) ──
 const JOANIS_BASE = "https://apiv2.erp-grit-server-lnx.com";
-// Stock por defecto para productos marcados DISPONIBLE (Joanis no expone stock exacto).
-const JOANIS_STOCK_DISPONIBLE = 10;
+// Joanis no expone stock exacto, solo un "nivel". Aproximación por nivel:
+const STOCK_APROX = { DISPONIBLE: 10, QUEDA_POCO: 5, MUY_POCO: 3, ULTIMO: 1, AGOTADO: 0 };
+// Orden de más disponible a menos (para elegir la mejor variante).
+const NIVEL_ORDEN = ["DISPONIBLE", "QUEDA_POCO", "MUY_POCO", "ULTIMO", "AGOTADO"];
 
 // Convierte el campo foto/fotos de Joanis en una URL de imagen completa.
 function buildImageUrl(val) {
@@ -1309,18 +1311,30 @@ function normalizeImportItem(raw, ctx = {}) {
   // precio de venta = el regular (para mantener el tachado); si no hay, el actual
   const precioVenta = parseFloat(precioRegular) || parseFloat(precioActual) || 0;
 
-  // Stock: si hay número úsalo; si viene nivel (DISPONIBLE/AGOTADO) de Joanis, mapear
-  let stock = pick(raw, ["stock", "cantidad", "existencia", "existencias", "inventario", "qty", "quantity"]);
-  if (stock === undefined) {
-    const nivel = String(pick(raw, ["nivel", "estado", "disponibilidad"]) || "").toUpperCase();
-    if (nivel) stock = nivel.includes("AGOTAD") ? 0 : JOANIS_STOCK_DISPONIBLE;
+  // Nivel efectivo: si hay variantes (tallas/colores), usar la MÁS disponible.
+  let nivel = String(pick(raw, ["nivel", "estado", "disponibilidad"]) || "").toUpperCase();
+  if (Array.isArray(raw.variantes) && raw.variantes.length) {
+    const best = raw.variantes.reduce((acc, v) => {
+      const vn = String(v && v.nivel || "").toUpperCase();
+      if (!vn) return acc;
+      if (acc === null || NIVEL_ORDEN.indexOf(vn) < NIVEL_ORDEN.indexOf(acc)) return vn;
+      return acc;
+    }, null);
+    if (best) nivel = best;
   }
+
+  // Stock: número explícito > aproximado por nivel > asumir disponible (sin info).
+  const stockRaw = pick(raw, ["stock", "cantidad", "existencia", "existencias", "inventario", "qty", "quantity"]);
+  let stock;
+  if (stockRaw !== undefined)      stock = parseInt(stockRaw, 10) || 0;
+  else if (nivel)                  stock = STOCK_APROX[nivel] ?? 0;
+  else                             stock = 1; // sin dato de stock → disponible
 
   const marca = pick(raw, ["marca", "brand", "fabricante"]);
   const sku = pick(raw, ["sku", "codigo", "code", "barcode", "ean", "modelo"]);
   const descripcion = pick(raw, ["descripcion", "description", "detalle", "detail", "resumen"]);
 
-  return {
+  const item = {
     nombre: String(nombre).trim(),
     imageUrl,
     categoria: categoria ? String(categoria).trim() : "Importados",
@@ -1329,9 +1343,12 @@ function normalizeImportItem(raw, ctx = {}) {
     precioVenta,
     precioCompra: 0, // Joanis no expone el costo
     descuento: parseFloat(desc) || 0,
-    stock: parseInt(stock, 10) || 0,
+    stock,
     sku: sku ? String(sku).trim() : "",
   };
+  // Los que ya no hay (agotados / stock 0) no se importan.
+  if (stock <= 0) item._skip = "agotado";
+  return item;
 }
 
 function previewImport() {
@@ -1347,16 +1364,20 @@ function previewImport() {
   }
   const arr = findProductArray(data);
   const catMap = buildCategoryMap(data);
-  const normalized = arr.map((r) => normalizeImportItem(r, { catMap })).filter(Boolean);
+  const all = arr.map((r) => normalizeImportItem(r, { catMap })).filter(Boolean);
+  const agotados = all.filter((p) => p._skip === "agotado").length;
+  const normalized = all.filter((p) => !p._skip);  // se omiten los agotados
   State.importParsed = normalized;
 
   if (!normalized.length) {
-    summary.innerHTML = `<span style="color:var(--warning)">No se detectaron productos con nombre en ese JSON.</span>`;
+    summary.innerHTML = `<span style="color:var(--warning)">No se detectaron productos disponibles en ese JSON${agotados ? ` (${agotados} estaban agotados y se omitieron)` : ""}.</span>`;
     document.getElementById("importPreviewWrap").style.display = "none";
     document.getElementById("importConfirmBtn").disabled = true;
     return;
   }
-  summary.innerHTML = `<span style="color:#22c55e">${normalized.length} producto(s) detectado(s).</span> Entrarán como <strong>borrador</strong>.`;
+  summary.innerHTML = `<span style="color:#22c55e">${normalized.length} producto(s) disponible(s) detectado(s).</span>` +
+    (agotados ? ` <span style="color:var(--text-muted)">${agotados} agotados omitidos.</span>` : "") +
+    ` Entrarán como <strong>borrador</strong>.`;
   document.getElementById("importPreviewBody").innerHTML = normalized.slice(0, 50).map((p) => {
     const img = safeImgUrl(p.imageUrl);
     return `
