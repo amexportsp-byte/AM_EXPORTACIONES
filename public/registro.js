@@ -1427,7 +1427,16 @@ async function runImport() {
   btn.disabled = true;
   btn.textContent = "Importando…";
   try {
-    const r = await API.products.import(lista, "Joanis");
+    // Enviar por tandas (el servidor limita el tamaño de cada envío)
+    const TANDA = 50;
+    const r = { insertados: 0, omitidos: 0, errores: 0 };
+    for (let i = 0; i < lista.length; i += TANDA) {
+      btn.textContent = `Importando ${Math.min(i + TANDA, lista.length)} de ${lista.length}…`;
+      const parcial = await API.products.import(lista.slice(i, i + TANDA), "Joanis");
+      r.insertados += parcial.insertados || 0;
+      r.omitidos   += parcial.omitidos   || 0;
+      r.errores    += parcial.errores    || 0;
+    }
     toast(`Importados: ${r.insertados} · Omitidos (ya existían): ${r.omitidos} · Errores: ${r.errores}`, "success");
     closeImportModal();
     await loadFromAPI();          // vuelve a traer los productos (incluye los importados)
