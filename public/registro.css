@@ -979,6 +979,21 @@ body {
 .view-btn:hover { background: var(--bg-input); color: var(--text-primary); }
 .view-btn.active { background: var(--accent); color: var(--bg-base); }
 
+/* Chips de filtro por origen (Todos / Míos / Joanis) */
+.btn-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-chip:hover { background: var(--bg-input); color: var(--text-primary); }
+.btn-chip.active { background: var(--accent); color: var(--bg-base); border-color: var(--accent); }
+
 /* ===================== PRODUCT GRID ===================== */
 .products-grid {
   display: grid;

@@ -1115,9 +1115,35 @@ function renderInventario() {
 }
 
 /* ============= PRODUCTOS MGMT ============= */
+// Filtro por origen: 'todos' (juntos) | 'mios' (sin import_source) | 'joanis' (importados)
+function setOriginFilter(origin) {
+  State.originFilter = origin;
+  document.querySelectorAll(".origin-filter .btn-chip").forEach((b) => {
+    b.classList.toggle("active", b.dataset.origin === origin);
+  });
+  renderProductosMgmt();
+}
+
 function renderProductosMgmt() {
   const tbody = document.getElementById("prodMgmtBody");
-  tbody.innerHTML = State.products
+  if (!tbody) return;
+  const origin = State.originFilter || "todos";
+  let lista = State.products;
+  if (origin === "mios")   lista = State.products.filter((p) => !p.importSource);
+  if (origin === "joanis") lista = State.products.filter((p) => !!p.importSource);
+
+  const countEl = document.getElementById("prodMgmtCount");
+  if (countEl) {
+    const imp = State.products.filter((p) => !!p.importSource).length;
+    const mine = State.products.length - imp;
+    countEl.textContent = `${lista.length} mostrados · ${mine} míos · ${imp} de Joanis`;
+  }
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Sin productos en este filtro</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista
     .map((p) => {
       const st = getStatus(p);
       return `<tr>
