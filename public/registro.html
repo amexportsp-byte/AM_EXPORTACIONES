@@ -1409,6 +1409,10 @@
           </div>
           <div class="form-group">
             <label class="form-label">JSON de productos</label>
+            <div style="margin-bottom:8px">
+              <input type="file" id="importFile" accept=".json,application/json" style="font-size:12px" />
+              <span style="font-size:12px;color:var(--text-muted)">&nbsp;(sube un .json) o pega el texto abajo</span>
+            </div>
             <textarea id="importJson" class="form-input" rows="8"
               placeholder='Pega aquí el JSON. Ej: [{"nombre":"...","imagen":"...","precio":10,"stock":5}]'
               style="font-family:monospace; font-size:12px; resize:vertical"></textarea>

@@ -1203,6 +1203,7 @@ async function togglePublish(id, published) {
 /* ============= IMPORTAR PRODUCTOS (BORRADOR) ============= */
 function openImportModal() {
   document.getElementById("importJson").value = "";
+  const f = document.getElementById("importFile"); if (f) f.value = "";
   document.getElementById("importSummary").textContent = "";
   document.getElementById("importPreviewWrap").style.display = "none";
   document.getElementById("importPreviewBody").innerHTML = "";
@@ -1244,32 +1245,84 @@ function pick(obj, keys) {
   return undefined;
 }
 
-// Normaliza un objeto arbitrario al formato que espera el backend.
-function normalizeImportItem(raw) {
+// ── Soporte específico para el catálogo de Joanis (ERP grit) ──
+const JOANIS_BASE = "https://apiv2.erp-grit-server-lnx.com";
+// Stock por defecto para productos marcados DISPONIBLE (Joanis no expone stock exacto).
+const JOANIS_STOCK_DISPONIBLE = 10;
+
+// Convierte el campo foto/fotos de Joanis en una URL de imagen completa.
+function buildImageUrl(val) {
+  if (Array.isArray(val)) val = val[0];
+  if (val && typeof val === "object") val = val.url || val.src || val.uri || val.foto || "";
+  const s = String(val || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;   // ya es URL
+  if (s.startsWith("/")) return JOANIS_BASE + s;                        // ruta relativa
+  // parece un id de medio → endpoint de imágenes de Joanis
+  return `${JOANIS_BASE}/api/catalogo/medios/${encodeURIComponent(s)}?tam=detalle`;
+}
+
+// Construye un mapa { categoriaId: nombre } desde el arreglo categorias[] (Joanis).
+function buildCategoryMap(data) {
+  const map = {};
+  const cats = data && (data.categorias || data.categories);
+  if (Array.isArray(cats)) {
+    cats.forEach((c) => {
+      const id = c.id ?? c.categoriaId ?? c._id;
+      const nom = c.nombre ?? c.name ?? c.titulo;
+      if (id != null && nom) map[String(id)] = String(nom);
+    });
+  }
+  return map;
+}
+
+// Normaliza un objeto de producto al formato que espera el backend.
+// ctx.catMap resuelve categoriaId → nombre (Joanis).
+function normalizeImportItem(raw, ctx = {}) {
   if (!raw || typeof raw !== "object") return null;
-  let img = pick(raw, ["imageUrl", "image_url", "imagen", "image", "foto", "img", "picture", "thumbnail", "thumb", "url_imagen"]);
-  if (Array.isArray(img)) img = img[0];
-  if (img && typeof img === "object") img = img.url || img.src || img.uri || "";
 
   const nombre = pick(raw, ["nombre", "name", "titulo", "title", "producto", "descripcion_corta", "descripcionCorta"]);
-  const precioV = pick(raw, ["precioVenta", "precio_venta", "sale_price", "precio", "price", "pvp", "precio_final", "precioFinal", "costo_final", "costoFinal"]);
-  const precioC = pick(raw, ["precioCompra", "purchase_price", "costo", "cost", "costo_original", "costoOriginal", "precio_original", "precioOriginal"]);
+  if (!nombre) return null;
+
+  // Imagen: preferir fotos[] (detalle) y si no foto
+  let imgRaw = pick(raw, ["fotos", "imagenes", "images"]);
+  if (Array.isArray(imgRaw) && imgRaw.length === 0) imgRaw = undefined; // fotos vacío → usar foto
+  if (!imgRaw) imgRaw = pick(raw, ["foto", "imageUrl", "image_url", "imagen", "image", "img", "picture", "thumbnail", "thumb", "url_imagen"]);
+  const imageUrl = buildImageUrl(imgRaw);
+
+  // Categoría: por nombre directo, o resolviendo categoriaId con el mapa
+  let categoria = pick(raw, ["categoria", "category", "categoria_nombre", "categoryName", "rubro", "linea"]);
+  if (!categoria) {
+    const catId = pick(raw, ["categoriaId", "categoryId", "category_id", "idCategoria"]);
+    if (catId != null && ctx.catMap) categoria = ctx.catMap[String(catId)];
+  }
+
+  // Precios: precioRegular = costo original (tachado); precio = final con descuento.
+  const precioRegular = pick(raw, ["precioRegular", "precio_regular", "precioOriginal", "precio_original", "costo_original", "costoOriginal", "precioVenta", "precio_venta", "sale_price"]);
+  const precioActual  = pick(raw, ["precio", "price", "pvp", "precio_final", "precioFinal", "costo_final", "costoFinal"]);
   const desc = pick(raw, ["descuento", "discount", "dcto", "off", "porcentaje_descuento"]);
-  const stock = pick(raw, ["stock", "cantidad", "existencia", "existencias", "inventario", "qty", "quantity", "disponible"]);
-  const categoria = pick(raw, ["categoria", "category", "categoria_nombre", "categoryName", "rubro", "linea"]);
+  // precio de venta = el regular (para mantener el tachado); si no hay, el actual
+  const precioVenta = parseFloat(precioRegular) || parseFloat(precioActual) || 0;
+
+  // Stock: si hay número úsalo; si viene nivel (DISPONIBLE/AGOTADO) de Joanis, mapear
+  let stock = pick(raw, ["stock", "cantidad", "existencia", "existencias", "inventario", "qty", "quantity"]);
+  if (stock === undefined) {
+    const nivel = String(pick(raw, ["nivel", "estado", "disponibilidad"]) || "").toUpperCase();
+    if (nivel) stock = nivel.includes("AGOTAD") ? 0 : JOANIS_STOCK_DISPONIBLE;
+  }
+
   const marca = pick(raw, ["marca", "brand", "fabricante"]);
-  const sku = pick(raw, ["sku", "codigo", "code", "barcode", "ean", "id", "modelo"]);
+  const sku = pick(raw, ["sku", "codigo", "code", "barcode", "ean", "modelo"]);
   const descripcion = pick(raw, ["descripcion", "description", "detalle", "detail", "resumen"]);
 
-  if (!nombre) return null;
   return {
     nombre: String(nombre).trim(),
-    imageUrl: img ? String(img) : "",
+    imageUrl,
     categoria: categoria ? String(categoria).trim() : "Importados",
     marca: marca ? String(marca).trim() : "",
     descripcion: descripcion ? String(descripcion) : "",
-    precioVenta: parseFloat(precioV) || 0,
-    precioCompra: parseFloat(precioC) || 0,
+    precioVenta,
+    precioCompra: 0, // Joanis no expone el costo
     descuento: parseFloat(desc) || 0,
     stock: parseInt(stock, 10) || 0,
     sku: sku ? String(sku).trim() : "",
@@ -1288,7 +1341,8 @@ function previewImport() {
     return;
   }
   const arr = findProductArray(data);
-  const normalized = arr.map(normalizeImportItem).filter(Boolean);
+  const catMap = buildCategoryMap(data);
+  const normalized = arr.map((r) => normalizeImportItem(r, { catMap })).filter(Boolean);
   State.importParsed = normalized;
 
   if (!normalized.length) {
@@ -2171,6 +2225,16 @@ async function init() {
   document.getElementById("importCancelBtn")?.addEventListener("click", closeImportModal);
   document.getElementById("importPreviewBtn")?.addEventListener("click", previewImport);
   document.getElementById("importConfirmBtn")?.addEventListener("click", runImport);
+  document.getElementById("importFile")?.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById("importJson").value = reader.result;
+      previewImport();
+    };
+    reader.readAsText(file);
+  });
 
   // Modal events
   document.getElementById("modalClose").addEventListener("click", closeModal);
