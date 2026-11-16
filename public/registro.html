@@ -544,22 +544,10 @@
             </div>
           </div>
           <div class="filters-panel">
-            <div class="filters-row">
-              <div class="filter-group">
-                <input
-                  type="text"
-                  class="filter-input"
-                  id="filterName"
-                  placeholder="Buscar por nombre…"
-                />
-              </div>
-              <div class="filter-group">
-                <input
-                  type="text"
-                  class="filter-input"
-                  id="filterCode"
-                  placeholder="Buscar por código…"
-                />
+            <div class="filters-row filters-main">
+              <div class="filter-group filter-search">
+                <input type="text" class="filter-input" id="filterName"
+                  placeholder="🔍 Buscar por nombre, código o marca…" />
               </div>
               <div class="filter-group">
                 <select class="filter-select" id="filterCategory">
@@ -567,42 +555,11 @@
                 </select>
               </div>
               <div class="filter-group">
-                <select class="filter-select" id="filterSubcategory">
-                  <option value="">Subcategorías</option>
+                <select class="filter-select" id="filterFuente">
+                  <option value="">Todos (míos + Joanis)</option>
+                  <option value="mios">Solo míos</option>
+                  <option value="importados">Solo Joanis</option>
                 </select>
-              </div>
-              <div class="filter-group">
-                <select class="filter-select" id="filterBrand">
-                  <option value="">Todas las marcas</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <select class="filter-select" id="filterProveedor">
-                  <option value="">Todos los proveedores</option>
-                </select>
-              </div>
-            </div>
-            <div class="filters-row">
-              <div class="filter-group">
-                <select class="filter-select" id="filterOrigen">
-                  <option value="">Todos los orígenes</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <input
-                  type="number"
-                  class="filter-input"
-                  id="filterPriceMin"
-                  placeholder="Precio mínimo"
-                />
-              </div>
-              <div class="filter-group">
-                <input
-                  type="number"
-                  class="filter-input"
-                  id="filterPriceMax"
-                  placeholder="Precio máximo"
-                />
               </div>
               <div class="filter-group">
                 <select class="filter-select" id="filterSort">
@@ -619,52 +576,66 @@
                   <option value="exp-asc">Vence más pronto</option>
                 </select>
               </div>
-            </div>
-            <div class="filters-row">
-              <div class="filter-group">
-                <select class="filter-select" id="filterFuente">
-                  <option value="">Todos (míos + Joanis)</option>
-                  <option value="mios">Solo míos</option>
-                  <option value="importados">Solo Joanis</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <select class="filter-select" id="filterPublicado">
-                  <option value="">Publicados y borradores</option>
-                  <option value="si">Solo publicados</option>
-                  <option value="no">Solo borradores</option>
-                </select>
-              </div>
-              <div class="filter-checkboxes">
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterLowStock" /> Stock bajo (≤5)</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterSoonExpire" /> Vence en 30 días</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterNoPrice" /> Sin precio de venta</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterReview" /> Por revisar</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterExpired" /> Vencidos</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterNoStock" /> Sin stock</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterInStock" /> Con stock</label
-                >
-                <label class="filter-check"
-                  ><input type="checkbox" id="filterDiscount" /> En
-                  oferta</label
-                >
-              </div>
-              <button class="btn-ghost" id="btnClearFilters" style="margin-left:auto">
-                Limpiar filtros<span id="activeFiltersCount"></span>
+              <button type="button" class="btn-ghost btn-adv" id="btnAdvFilters" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+                Filtros avanzados<span id="advFiltersCount"></span>
+                <span class="adv-caret">▾</span>
               </button>
+              <button type="button" class="btn-ghost" id="btnClearFilters">
+                Limpiar<span id="activeFiltersCount"></span>
+              </button>
+            </div>
+            <div class="filters-advanced" id="filtersAdvanced" hidden>
+              <div class="filters-row">
+                <div class="filter-group">
+                  <input type="text" class="filter-input" id="filterCode" placeholder="Código exacto…" />
+                </div>
+                <div class="filter-group">
+                  <select class="filter-select" id="filterSubcategory">
+                    <option value="">Todas las subcategorías</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <select class="filter-select" id="filterBrand">
+                    <option value="">Todas las marcas</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <select class="filter-select" id="filterProveedor">
+                    <option value="">Todos los proveedores</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <select class="filter-select" id="filterOrigen">
+                    <option value="">Todos los orígenes</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <select class="filter-select" id="filterPublicado">
+                    <option value="">Publicados y borradores</option>
+                    <option value="si">Solo publicados</option>
+                    <option value="no">Solo borradores</option>
+                  </select>
+                </div>
+              </div>
+              <div class="filters-row">
+                <div class="filter-group">
+                  <input type="number" class="filter-input" id="filterPriceMin" placeholder="Precio mínimo" />
+                </div>
+                <div class="filter-group">
+                  <input type="number" class="filter-input" id="filterPriceMax" placeholder="Precio máximo" />
+                </div>
+                <div class="filter-checkboxes">
+                  <label class="filter-check"><input type="checkbox" id="filterInStock" /> Con stock</label>
+                  <label class="filter-check"><input type="checkbox" id="filterNoStock" /> Sin stock</label>
+                  <label class="filter-check"><input type="checkbox" id="filterLowStock" /> Stock bajo (≤5)</label>
+                  <label class="filter-check"><input type="checkbox" id="filterDiscount" /> En oferta</label>
+                  <label class="filter-check"><input type="checkbox" id="filterExpired" /> Vencidos</label>
+                  <label class="filter-check"><input type="checkbox" id="filterSoonExpire" /> Vence en 30 días</label>
+                  <label class="filter-check"><input type="checkbox" id="filterNoPrice" /> Sin precio de venta</label>
+                  <label class="filter-check"><input type="checkbox" id="filterReview" /> Por revisar</label>
+                </div>
+              </div>
             </div>
           </div>
           <div class="toolbar">

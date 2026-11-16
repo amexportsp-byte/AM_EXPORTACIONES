@@ -1954,3 +1954,17 @@ body {
 @media (max-width: 768px) {
   .catalog-sticky { position: static; margin: 0; padding: 0; box-shadow: none; }
 }
+
+/* Filtros compactos + avanzados */
+.filters-main { align-items: center; }
+.filters-main .filter-search { flex: 2; max-width: 360px; min-width: 200px; }
+.btn-adv { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn-adv .adv-caret { transition: transform .2s; font-size: 11px; }
+.btn-adv[aria-expanded="true"] { border-color: var(--accent); color: var(--text-primary); }
+.btn-adv[aria-expanded="true"] .adv-caret { transform: rotate(180deg); }
+#btnClearFilters { margin-left: auto; white-space: nowrap; }
+.filters-advanced { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-light); }
+.filters-advanced[hidden] { display: none; }
+.catalog-sticky .filters-panel { padding: 12px 14px; margin-bottom: 10px; }
+.catalog-sticky .section-header { margin-bottom: 12px; }
+.catalog-sticky .toolbar { margin-bottom: 8px; }

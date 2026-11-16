@@ -969,6 +969,15 @@ function applyFilters() {
     FILTER_CHECK_IDS.filter((id) => chk(id)).length;
   const ac = document.getElementById("activeFiltersCount");
   if (ac) ac.textContent = activos ? ` (${activos})` : "";
+  // Cuántos de esos están dentro del panel avanzado (para verlo aunque esté cerrado)
+  const advRoot = document.getElementById("filtersAdvanced");
+  const advCount = advRoot
+    ? [...advRoot.querySelectorAll("input, select")].filter((el) =>
+        el.type === "checkbox" ? el.checked : String(el.value || "").trim(),
+      ).length
+    : 0;
+  const advc = document.getElementById("advFiltersCount");
+  if (advc) advc.textContent = advCount ? ` (${advCount})` : "";
 
   renderCurrentView();
 }
@@ -2795,6 +2804,20 @@ async function init() {
       renderCurrentView();
     });
   });
+
+  // Filtros avanzados: mostrar / ocultar (se recuerda en este navegador)
+  const advBtn = document.getElementById("btnAdvFilters");
+  const advBox = document.getElementById("filtersAdvanced");
+  const setAdv = (open) => {
+    if (!advBtn || !advBox) return;
+    advBox.hidden = !open;
+    advBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    try { localStorage.setItem("am_adv_filters", open ? "1" : "0"); } catch {}
+  };
+  let advOpen = false;
+  try { advOpen = localStorage.getItem("am_adv_filters") === "1"; } catch {}
+  setAdv(advOpen);
+  advBtn?.addEventListener("click", () => setAdv(advBox.hidden));
 
   // Filters
   FILTER_TEXT_IDS.forEach((id) => {
