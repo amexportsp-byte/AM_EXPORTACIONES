@@ -1131,7 +1131,7 @@ function renderProductosMgmt() {
   let lista = State.products;
   if (origin === "mios")    lista = State.products.filter((p) => !p.importSource);
   if (origin === "joanis")  lista = State.products.filter((p) => !!p.importSource);
-  if (origin === "cambios") lista = State.products.filter((p) => p.pendingChanges > 0 || bajoFuente(p));
+  if (origin === "cambios") lista = State.products.filter(porRevisar);
 
   const countEl = document.getElementById("prodMgmtCount");
   if (countEl) {
@@ -1141,7 +1141,7 @@ function renderProductosMgmt() {
   }
   const chipCambios = document.getElementById("chipCambiosCount");
   if (chipCambios) {
-    const n = State.products.filter((p) => p.pendingChanges > 0 || bajoFuente(p)).length;
+    const n = State.products.filter(porRevisar).length;
     chipCambios.textContent = n ? ` (${n})` : "";
   }
 
@@ -1154,9 +1154,11 @@ function renderProductosMgmt() {
       const st = getStatus(p);
       const pendiente = p.pendingChanges > 0;
       const bajo = bajoFuente(p);
+      const sinPrecio = sinPrecioVenta(p);
       const rowStyle = pendiente
         ? "background:rgba(34,197,94,.10);box-shadow:inset 3px 0 0 #22c55e"
-        : bajo ? "background:rgba(224,82,82,.08);box-shadow:inset 3px 0 0 #e05252" : "";
+        : bajo ? "background:rgba(224,82,82,.08);box-shadow:inset 3px 0 0 #e05252"
+        : sinPrecio ? "background:rgba(217,119,6,.07);box-shadow:inset 3px 0 0 #d97706" : "";
       const thumb = safeImgUrl(p.imageUrl);
       return `<tr style="${rowStyle}">
       <td><div style="display:flex;align-items:center;gap:10px">
@@ -1171,9 +1173,12 @@ function renderProductosMgmt() {
       <td>${p.categoria}</td><td>${p.marca}</td>
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:600">${p.stock}</td>
       <td style="font-weight:600;color:var(--text-primary)">
-        ${fmt(p.precioVenta)}
-        ${p.sourcePrice != null ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Joanis: ${fmt(p.sourcePrice)}</div>` : ""}
-        ${bajo ? `<div style="font-size:11px;color:#e05252;font-weight:600">⚠ Bajo Joanis</div>` : ""}
+        ${sinPrecio
+          ? `<button type="button" onclick="openEdit('${p.id}')" title="Definir precio de venta"
+               style="padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700;border:1px solid #d97706;background:rgba(217,119,6,.15);color:#d97706">✎ Pon tu precio</button>`
+          : fmt(p.precioVenta)}
+        ${p.sourcePrice != null ? `<div style="font-size:11px;font-weight:400;color:var(--text-muted)">Costo Joanis: ${fmt(p.sourcePrice)}</div>` : ""}
+        ${bajo ? `<div style="font-size:11px;color:#e05252;font-weight:600">⚠ Bajo el costo</div>` : ""}
         ${(p.importSource || p.totalChanges) ? `<button type="button" onclick="openSourceHistory('${p.id}')" title="Historial de cambios de Joanis"
             style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:600;
             border:1px solid ${pendiente ? "#22c55e" : "var(--border)"};background:${pendiente ? "rgba(34,197,94,.15)" : "transparent"};color:${pendiente ? "#22c55e" : "var(--text-muted)"}">
@@ -1210,6 +1215,12 @@ function publishToggle(p) {
 async function togglePublish(id, published) {
   // published llega como string "true"/"false" desde el onclick
   const toPublish = published === true || published === "true";
+  const prod = State.products.find((x) => x.id === id);
+  if (toPublish && prod && !(prod.precioVenta > 0)) {
+    toast("Primero pon tu precio de venta (el de Joanis es tu costo)", "warning");
+    openEdit(id);
+    return;
+  }
   try {
     await API.products.publish(id, toPublish);
     const p = State.products.find((x) => x.id === id);
@@ -1223,11 +1234,19 @@ async function togglePublish(id, published) {
 }
 
 /* ============= HISTORIAL DE CAMBIOS DE LA FUENTE (JOANIS) ============= */
-// ¿El precio final de A&M quedó por debajo del precio al que vende la fuente?
+// El precio de Joanis es el COSTO de compra de A&M; el precio de venta lo define A&M.
+// ¿Producto importado que aún no tiene precio de venta?
+function sinPrecioVenta(p) {
+  return !!p.importSource && !(p.precioVenta > 0);
+}
+// ¿El precio de venta final de A&M quedó por debajo de su costo (precio Joanis)?
 function bajoFuente(p) {
-  if (!p.importSource || p.sourcePrice == null) return false;
+  if (!p.importSource || p.sourcePrice == null || !(p.precioVenta > 0)) return false;
   const finalAM = p.precioVenta * (1 - (p.descuento || 0) / 100);
   return finalAM + 0.001 < p.sourcePrice;
+}
+function porRevisar(p) {
+  return p.pendingChanges > 0 || bajoFuente(p) || sinPrecioVenta(p);
 }
 
 function closeSourceHistory() {
@@ -1264,13 +1283,15 @@ function renderSourceHistory(p, cambios) {
   const body = document.getElementById("sourceHistoryBody");
   const resumen = `
     <div class="config-card" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
-      <div><div style="font-size:11px;color:var(--text-muted)">Tu precio de venta</div><div style="font-weight:700;color:var(--text-primary)">${fmt(p.precioVenta)}${p.descuento ? ` <span style="font-size:11px">(-${p.descuento}%)</span>` : ""}</div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Tu costo actual</div><div style="font-weight:700;color:var(--text-primary)">${fmt(p.precioCompra)}</div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Joanis lo vende a</div><div style="font-weight:700;color:var(--text-primary)">${p.sourcePrice != null ? fmt(p.sourcePrice) : "—"}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Tu precio de venta</div><div style="font-weight:700;color:var(--text-primary)">${p.precioVenta > 0 ? fmt(p.precioVenta) : "Sin definir"}${p.descuento ? ` <span style="font-size:11px">(-${p.descuento}%)</span>` : ""}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Tu costo registrado</div><div style="font-weight:700;color:var(--text-primary)">${fmt(p.precioCompra)}</div></div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Costo actual en Joanis</div><div style="font-weight:700;color:var(--text-primary)">${p.sourcePrice != null ? fmt(p.sourcePrice) : "—"}</div></div>
       <div><div style="font-size:11px;color:var(--text-muted)">Código Joanis</div><div style="font-weight:700;color:var(--text-primary)">${escHtml(p.externalCode || "—")}</div></div>
     </div>
     ${bajoFuente(p) ? `<div style="margin-bottom:14px;padding:10px 12px;border-radius:8px;border:1px solid #e05252;background:rgba(224,82,82,.10);color:#e05252;font-size:13px;font-weight:600">
-      ⚠ Tu precio final está por debajo del precio al que Joanis vende este producto.</div>` : ""}`;
+      ⚠ Tu precio de venta está por debajo de tu costo (lo que cobra Joanis).</div>` : ""}
+    ${sinPrecioVenta(p) ? `<div style="margin-bottom:14px;padding:10px 12px;border-radius:8px;border:1px solid #d97706;background:rgba(217,119,6,.10);color:#d97706;font-size:13px;font-weight:600">
+      ✎ Este producto aún no tiene tu precio de venta. Defínelo antes de publicarlo.</div>` : ""}`;
 
   if (!cambios.length) {
     body.innerHTML = resumen + `<p style="color:var(--text-muted)">Aún no hay cambios registrados para este producto. Se registrarán cuando una nueva consulta a Joanis detecte diferencias.</p>`;
@@ -1292,7 +1313,7 @@ function diffRows(d) {
   const rows = [];
   if (d.precio) {
     const sube = d.precio.to > d.precio.from;
-    rows.push(`<div>Precio Joanis: <s style="color:var(--text-muted)">${fmt(d.precio.from)}</s> →
+    rows.push(`<div>Costo (precio Joanis): <s style="color:var(--text-muted)">${fmt(d.precio.from)}</s> →
       <strong style="color:${sube ? "#22c55e" : "#d97706"}">${fmt(d.precio.to)}</strong>
       <span style="font-size:12px;color:${sube ? "#22c55e" : "#d97706"}">(${pct(d.precio.from, d.precio.to)})</span></div>`);
   }
@@ -1307,8 +1328,8 @@ function pendingCard(p, c) {
   const nuevo = c.new_source_price != null ? +c.new_source_price : null;
   const antes = c.old_source_price != null ? +c.old_source_price : null;
   let aviso = "";
-  if (d.precio && nuevo > antes) aviso = `📈 Joanis subió el precio. Tu costo sube a <strong>${fmt(nuevo)}</strong>; se recomienda actualizar tu precio de venta.`;
-  if (d.precio && nuevo < antes) aviso = `📉 Joanis bajó el precio a <strong>${fmt(nuevo)}</strong>. Evalúa si bajas el tuyo para seguir siendo competitivo.`;
+  if (d.precio && nuevo > antes) aviso = `📈 Joanis subió el precio: <strong>tu costo sube a ${fmt(nuevo)}</strong>. Se recomienda actualizar tu precio de venta para no perder margen.`;
+  if (d.precio && nuevo < antes) aviso = `📉 Joanis bajó el precio: <strong>tu costo baja a ${fmt(nuevo)}</strong>. Puedes mantener tu precio (ganas más margen) o bajarlo para ser más competitivo.`;
   return `
   <div style="margin-bottom:14px;padding:14px;border-radius:10px;border:1px solid #22c55e;background:rgba(34,197,94,.08)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1321,8 +1342,9 @@ function pendingCard(p, c) {
       ${d.precio ? `<div><div style="font-size:11px;color:var(--text-muted)">Costo nuevo (precio Joanis)</div><div style="font-weight:700;color:var(--text-primary)">${fmt(nuevo)}</div></div>` : ""}
       <div><div style="font-size:11px;color:var(--text-muted)">Tu precio de venta actual</div><div style="font-weight:700;color:var(--text-primary)">${fmt(c.sale_price_at != null ? c.sale_price_at : p.precioVenta)}</div></div>
       <div>
-        <label style="font-size:11px;color:var(--text-muted)">Nuevo precio de venta A&M (sugerido)</label>
+        <label style="font-size:11px;color:var(--text-muted)">Tu nuevo precio de venta ${c.suggested_price != null ? "(sugerido, mismo margen)" : ""}</label>
         <input type="number" step="0.01" min="0" class="form-input" id="chg-price-${c.id}"
+          placeholder="Escribe tu precio"
           value="${c.suggested_price != null ? (+c.suggested_price).toFixed(2) : ""}"
           data-source="${nuevo != null ? nuevo : ""}" oninput="updateChangeAlert('${c.id}')" style="margin-top:4px">
       </div>
@@ -1368,7 +1390,7 @@ function updateChangeAlert(changeId) {
   if (!isFinite(v) || !isFinite(src)) { box.innerHTML = ""; return; }
   const margen = src > 0 ? ((v - src) / src) * 100 : 0;
   box.innerHTML = v < src
-    ? `<span style="color:#e05252;font-weight:600">⚠ Venderías por debajo de lo que Joanis lo vende (${fmt(src)}). Margen: ${margen.toFixed(1)}%</span>`
+    ? `<span style="color:#e05252;font-weight:600">⚠ Venderías por debajo de tu costo (${fmt(src)}, precio Joanis). Margen: ${margen.toFixed(1)}%</span>`
     : `<span style="color:#22c55e">Margen sobre el costo: ${margen.toFixed(1)}%</span>`;
 }
 
@@ -1379,7 +1401,7 @@ async function decideSourceChange(changeId, accion) {
     const v = inp ? parseFloat(inp.value) : NaN;
     if (inp && inp.value !== "" && !(v > 0)) { toast("Ingresa un precio de venta válido", "warning"); return; }
     if (inp && v < parseFloat(inp.dataset.source) &&
-        !confirm("El precio queda por debajo del precio de Joanis. ¿Aceptar de todos modos?")) return;
+        !confirm("Tu precio de venta queda por debajo de tu costo (precio Joanis). ¿Aceptar de todos modos?")) return;
     body.precioVenta = inp && inp.value !== "" ? v : null;
     const n = document.getElementById("chg-name-" + changeId);
     const c = document.getElementById("chg-cat-" + changeId);
@@ -1621,7 +1643,7 @@ function previewImport() {
         ${img ? `<img src="${img}" style="width:30px;height:30px;object-fit:cover" onerror="this.style.display='none'">` : "📦"}</div></td>
       <td style="color:var(--text-primary);font-weight:600;max-width:200px;white-space:normal">${escHtml(p.nombre)}</td>
       <td>${escHtml(p.categoria)}</td>
-      <td>${fmt(p.precioVenta)}</td>
+      <td>${fmt(p.precioFuente != null ? p.precioFuente : p.precioVenta)}</td>
       <td>${p.descuento > 0 ? "-" + escHtml(p.descuento) + "%" : "—"}</td>
       <td>${escHtml(p.stock)}</td>
     </tr>`;

@@ -301,6 +301,11 @@ router.patch("/:id/publish", auth, async (req, res) => {
     return res.status(403).json({ error: "Sin autorización" });
   const published = req.body.published === true || req.body.published === "true";
   try {
+    if (published) {
+      const chk = await pool.query(`SELECT sale_price FROM products WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
+      if (chk.rows[0] && !(+chk.rows[0].sale_price > 0))
+        return res.status(400).json({ error: "Primero pon el precio de venta del producto" });
+    }
     const { rows } = await pool.query(
       `UPDATE products SET published = $1, updated_by = $2, updated_at = NOW()
        WHERE id = $3 AND deleted_at IS NULL
@@ -326,10 +331,11 @@ router.post("/publish-bulk", auth, async (req, res) => {
   try {
     const { rowCount } = await pool.query(
       `UPDATE products SET published = $1, updated_by = $2, updated_at = NOW()
-       WHERE id = ANY($3::uuid[]) AND deleted_at IS NULL`,
+       WHERE id = ANY($3::uuid[]) AND deleted_at IS NULL
+         AND ($1 = FALSE OR sale_price > 0)`, // sin precio de venta no se publica
       [published, req.worker.id, ids]
     );
-    res.json({ ok: true, actualizados: rowCount, published });
+    res.json({ ok: true, actualizados: rowCount, published, omitidosSinPrecio: published ? ids.length - rowCount : 0 });
     appEvents.emit("products_updated");
   } catch (err) {
     console.error("POST /products/publish-bulk:", err);
@@ -449,11 +455,14 @@ router.post("/import", auth, async (req, res) => {
           diffs.precio = { from: r2(ex.source_price), to: precioFuente };
 
         if (Object.keys(diffs).length) {
-          // Precio sugerido: mantener el mismo margen que A&M tenía sobre la fuente
-          let sugerido = precioFuente;
-          if (diffs.precio && +ex.source_price > 0 && +ex.sale_price > 0)
-            sugerido = r2(+ex.sale_price * (precioFuente / +ex.source_price));
-          else if (!diffs.precio) sugerido = r2(ex.sale_price);
+          // Precio de venta sugerido: mantener el mismo margen que A&M tenía sobre su costo.
+          // Si A&M aún no definió precio de venta, no se sugiere (lo pone el usuario).
+          let sugerido = null;
+          if (+ex.sale_price > 0) {
+            sugerido = diffs.precio && +ex.source_price > 0
+              ? r2(+ex.sale_price * (precioFuente / +ex.source_price))
+              : r2(ex.sale_price);
+          }
           await pool.query(
             `INSERT INTO product_source_changes
              (product_id, source, tipo, diffs, old_source_price, new_source_price, sale_price_at, suggested_price, status)
@@ -502,14 +511,14 @@ router.post("/import", auth, async (req, res) => {
           image_url, images, status, published, import_source, created_by,
           external_id, external_code, source_name, source_category, source_price,
           source_regular, source_discount, source_seen_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,'activo',FALSE,$13,$14,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,0,$11,$12,'activo',FALSE,$13,$14,
                  $15,$16,$2,$17,$9,$18,$10,NOW())`,
         [
           code, nombre, cat, brand,
           (item.descripcion || "").toString() || null,
           (item.descripcion || "").toString().slice(0, 300) || null,
           stockNuevo,
-          r2(item.precioVenta), // precio de venta A&M inicial = precio regular de la fuente
+          0,                    // precio de venta A&M: lo define el usuario
           precioFuente,         // costo de compra A&M = precio final de la fuente
           r2(item.descuento),
           (item.imageUrl || images[0] || "").toString() || null,
