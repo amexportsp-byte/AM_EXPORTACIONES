@@ -51,6 +51,7 @@ router.get("/public", async (req, res) => {
        LEFT JOIN subcategories s ON p.subcategory_id = s.id
        LEFT JOIN brands        b ON p.brand_id       = b.id
        WHERE p.deleted_at IS NULL AND p.stock > 0
+         AND p.published = TRUE
          AND (c.visible IS NULL OR c.visible = TRUE)
        ORDER BY p.created_at DESC`
     );
@@ -115,6 +116,8 @@ router.get("/", auth, async (req, res) => {
       fechaVence: p.expiration_date ? p.expiration_date.toISOString().split("T")[0] : "",
       imageUrl: p.image_url || "",
       status: p.status,
+      published: p.published !== false,
+      importSource: p.import_source || null,
       cat_visible: p.cat_visible !== false,
       createdAt: p.created_at,
       category_id: p.category_id,
@@ -280,6 +283,115 @@ router.delete("/:id", auth, async (req, res) => {
     console.error("DELETE /products/:id:", err);
     res.status(500).json({ error: "Error al eliminar producto" });
   }
+});
+
+// PATCH /api/products/:id/publish — publicar / despublicar en la tienda
+router.patch("/:id/publish", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+  const published = req.body.published === true || req.body.published === "true";
+  try {
+    const { rows } = await pool.query(
+      `UPDATE products SET published = $1, updated_by = $2, updated_at = NOW()
+       WHERE id = $3 AND deleted_at IS NULL
+       RETURNING id, published`,
+      [published, req.worker.id, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Producto no encontrado" });
+    res.json({ ok: true, id: rows[0].id, published: rows[0].published });
+    appEvents.emit("products_updated");
+  } catch (err) {
+    console.error("PATCH /products/:id/publish:", err);
+    res.status(500).json({ error: "Error al cambiar publicación" });
+  }
+});
+
+// POST /api/products/publish-bulk — publicar / despublicar varios a la vez
+router.post("/publish-bulk", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+  const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+  const published = req.body.published === true || req.body.published === "true";
+  if (!ids.length) return res.status(400).json({ error: "Sin productos seleccionados" });
+  try {
+    const { rowCount } = await pool.query(
+      `UPDATE products SET published = $1, updated_by = $2, updated_at = NOW()
+       WHERE id = ANY($3::uuid[]) AND deleted_at IS NULL`,
+      [published, req.worker.id, ids]
+    );
+    res.json({ ok: true, actualizados: rowCount, published });
+    appEvents.emit("products_updated");
+  } catch (err) {
+    console.error("POST /products/publish-bulk:", err);
+    res.status(500).json({ error: "Error al publicar en lote" });
+  }
+});
+
+// POST /api/products/import — importa productos como BORRADOR (published = FALSE).
+// Recibe { productos: [{ nombre, categoria, marca, imageUrl, descripcion,
+//                        precioVenta, precioCompra, descuento, stock, sku }] }
+// No se publican en la tienda hasta que el usuario le dé "Publicar".
+router.post("/import", auth, async (req, res) => {
+  if (!["admin", "almacen", "supervisor"].includes(req.worker.role))
+    return res.status(403).json({ error: "Sin autorización" });
+
+  const lista = Array.isArray(req.body.productos) ? req.body.productos : [];
+  const fuente = (req.body.fuente || "importado").toString().slice(0, 60);
+  if (!lista.length) return res.status(400).json({ error: "No hay productos para importar" });
+
+  const resultado = { insertados: 0, omitidos: 0, errores: 0, detalles: [] };
+
+  for (const item of lista) {
+    const nombre = (item.nombre || "").toString().trim();
+    if (!nombre) { resultado.omitidos++; continue; }
+    const sku = item.sku ? item.sku.toString().trim().slice(0, 100) : null;
+
+    try {
+      // Evitar duplicados: por SKU (si viene) o por nombre exacto no borrado.
+      const dup = await pool.query(
+        `SELECT id FROM products
+         WHERE deleted_at IS NULL AND (
+           ($1::text IS NOT NULL AND sku = $1) OR LOWER(name) = LOWER($2)
+         ) LIMIT 1`,
+        [sku, nombre]
+      );
+      if (dup.rows[0]) {
+        resultado.omitidos++;
+        resultado.detalles.push({ nombre, estado: "ya existe" });
+        continue;
+      }
+
+      const cat   = await findOrCreate("categories", "name", (item.categoria || "Importados").toString().trim() || "Importados");
+      const brand = item.marca ? await findOrCreate("brands", "name", item.marca.toString().trim()) : null;
+      const code  = await nextProductCode();
+      const stock = Number.isFinite(+item.stock) ? Math.max(0, Math.trunc(+item.stock)) : 0;
+      const status = stock > 0 ? "activo" : "agotado";
+
+      await pool.query(
+        `INSERT INTO products
+         (product_code, name, category_id, brand_id, description, short_description,
+          purchase_quantity, stock, sale_price, purchase_price, discount,
+          image_url, sku, status, published, import_source, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,FALSE,$15,$16)`,
+        [
+          code, nombre.slice(0, 200), cat, brand,
+          (item.descripcion || "").toString() || null,
+          (item.descripcion || "").toString().slice(0, 300) || null,
+          stock, stock,
+          +item.precioVenta || 0, +item.precioCompra || 0, +item.descuento || 0,
+          (item.imageUrl || "").toString() || null,
+          sku, status, fuente, req.worker.id,
+        ]
+      );
+      resultado.insertados++;
+    } catch (err) {
+      resultado.errores++;
+      resultado.detalles.push({ nombre, estado: "error", msg: err.message });
+    }
+  }
+
+  res.json(resultado);
+  if (resultado.insertados > 0) appEvents.emit("products_updated");
 });
 
 module.exports = router;

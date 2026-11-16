@@ -178,6 +178,18 @@ pool.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT 
   .then(() => console.log("✓  Migración: categories.visible OK"))
   .catch(err => console.error("✗  Migración categories.visible:", err.message));
 
+// Publicación por producto (borrador → publicado en tienda).
+// DEFAULT TRUE para que los productos existentes sigan visibles.
+// Los productos importados se insertan con published = FALSE (borrador).
+pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS published BOOLEAN NOT NULL DEFAULT TRUE`)
+  .then(() => console.log("✓  Migración: products.published OK"))
+  .catch(err => console.error("✗  Migración products.published:", err.message));
+
+// Origen del producto: NULL = creado normal; 'importado' = traído de un feed externo.
+pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS import_source VARCHAR(60)`)
+  .then(() => console.log("✓  Migración: products.import_source OK"))
+  .catch(err => console.error("✗  Migración products.import_source:", err.message));
+
 pool.query(`ALTER TABLE session_pages ADD COLUMN IF NOT EXISTS last_interaction TIMESTAMPTZ`)
   .then(() => console.log("✓  Migración: last_interaction OK"))
   .catch(err => console.error("✗  Migración last_interaction:", err.message));

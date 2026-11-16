@@ -755,17 +755,26 @@
                 Administra todos los productos del sistema
               </p>
             </div>
-            <button class="btn-primary" id="btnAddProduct3">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" /></svg
-              >Nuevo Producto
-            </button>
+            <div class="header-actions">
+              <button class="btn-secondary" id="btnImportProducts">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/></svg
+                >Importar
+              </button>
+              <button class="btn-primary" id="btnAddProduct3">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" /></svg
+                >Nuevo Producto
+              </button>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -777,6 +786,7 @@
                   <th>Stock</th>
                   <th>Precio Venta</th>
                   <th>Estado</th>
+                  <th>Tienda</th>
                   <th>F. Vencimiento</th>
                   <th>Acciones</th>
                 </tr>
@@ -1363,6 +1373,62 @@
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg
             >Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL IMPORTAR PRODUCTOS -->
+    <div class="modal-overlay" id="importModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Importar productos (como borrador)</h2>
+          <button class="modal-close" id="importClose">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="config-card" style="margin-bottom:14px; background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.25)">
+            <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin:0">
+              <strong style="color:var(--text-primary)">¿Cómo funciona?</strong><br>
+              Pega aquí el JSON de productos (por ejemplo la respuesta que copiaste desde la tienda).
+              Se detectan automáticamente nombre, imagen, categoría, precio, descuento y stock.
+              <strong style="color:var(--text-primary)">Los productos entran al inventario como BORRADOR</strong>
+              y <u>no se muestran en tu tienda</u> hasta que les des “Publicar”.
+            </p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">JSON de productos</label>
+            <textarea id="importJson" class="form-input" rows="8"
+              placeholder='Pega aquí el JSON. Ej: [{"nombre":"...","imagen":"...","precio":10,"stock":5}]'
+              style="font-family:monospace; font-size:12px; resize:vertical"></textarea>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px">
+            <button class="btn-secondary" id="importPreviewBtn" type="button">Detectar y previsualizar</button>
+            <span id="importSummary" style="font-size:13px; color:var(--text-muted)"></span>
+          </div>
+          <div id="importPreviewWrap" style="display:none; max-height:260px; overflow:auto; border:1px solid var(--border); border-radius:8px">
+            <table class="data-table" style="margin:0">
+              <thead>
+                <tr>
+                  <th></th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Desc.</th><th>Stock</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="importCancelBtn">Cancelar</button
+          ><button class="btn-primary" id="importConfirmBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/></svg
+            >Importar como borrador
           </button>
         </div>
       </div>

@@ -94,6 +94,9 @@ const API = {
     create(data) { return API.post("/api/products", data); },
     update(id, data) { return API.put(`/api/products/${id}`, data); },
     remove(id) { return API.delete(`/api/products/${id}`); },
+    publish(id, published) { return API.patch(`/api/products/${id}/publish`, { published }); },
+    publishBulk(ids, published) { return API.post(`/api/products/publish-bulk`, { ids, published }); },
+    import(productos, fuente) { return API.post(`/api/products/import`, { productos, fuente }); },
   },
 
   catalogs: {

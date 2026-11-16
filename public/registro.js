@@ -183,6 +183,19 @@ function fmt(n) {
   return "S/ " + Number(n).toFixed(2);
 }
 
+// Escapa texto para insertarlo de forma segura en HTML (evita XSS con datos externos).
+function escHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+// Solo permite URLs http/https/data-image como src de imagen; si no, devuelve "".
+function safeImgUrl(u) {
+  const s = String(u || "").trim();
+  if (/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s.replace(/"/g, "%22");
+  return "";
+}
+
 function isExpired(fecha) {
   if (!fecha) return false;
   return new Date(fecha) < new Date();
@@ -995,8 +1008,9 @@ function renderTable() {
       <td>${p.descuento > 0 ? `<span class="badge gold">-${p.descuento}%</span>` : "—"}</td>
       <td style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
       <td>${p.proveedor}</td>
-      <td><span class="badge ${st.cls}">${st.label}</span></td>
+      <td><span class="badge ${st.cls}">${st.label}</span>${p.published === false ? ` <span class="badge" style="background:rgba(156,163,175,.15);color:#9ca3af;border-color:#9ca3af">Borrador</span>` : ""}</td>
       <td><div class="action-btns">
+        <button class="btn-icon" onclick="togglePublish('${p.id}', ${p.published === false ? "true" : "false"})" title="${p.published === false ? "Publicar en la tienda" : "Quitar de la tienda"}" style="color:${p.published === false ? "#9ca3af" : "#22c55e"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>${p.published === false ? '<line x1="2" y1="2" x2="22" y2="22"/>' : ""}</svg></button>
         <button class="btn-icon view" onclick="openDetail('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="btn-icon edit" onclick="openEdit('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon del" onclick="confirmDelete('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
@@ -1108,6 +1122,7 @@ function renderProductosMgmt() {
       <td style="color:${p.stock === 0 ? "var(--danger)" : p.stock <= 5 ? "var(--warning)" : "inherit"};font-weight:600">${p.stock}</td>
       <td style="font-weight:600;color:var(--text-primary)">${fmt(p.precioVenta)}</td>
       <td><span class="badge ${st.cls}">${st.label}</span></td>
+      <td>${publishToggle(p)}</td>
       <td style="color:${isExpired(p.fechaVence) ? "var(--danger)" : "inherit"}">${p.fechaVence || "—"}</td>
       <td><div class="action-btns">
         <button class="btn-icon view" onclick="openDetail('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -1117,6 +1132,171 @@ function renderProductosMgmt() {
     </tr>`;
     })
     .join("");
+}
+
+/* ============= PUBLICAR EN TIENDA ============= */
+// Píldora-botón que muestra si el producto está publicado y permite cambiarlo.
+function publishToggle(p) {
+  const pub = p.published !== false;
+  const color = pub ? "#22c55e" : "#9ca3af";
+  const bg    = pub ? "rgba(34,197,94,.12)" : "rgba(156,163,175,.12)";
+  const label = pub ? "Publicado" : "Borrador";
+  const next  = pub ? "false" : "true";
+  const title = pub ? "Quitar de la tienda (volver a borrador)" : "Publicar en la tienda";
+  return `<button type="button" onclick="togglePublish('${p.id}', ${next})" title="${title}"
+    style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    border:1px solid ${color};background:${bg};color:${color};font-size:12px;font-weight:600;cursor:pointer">
+    <span style="width:8px;height:8px;border-radius:50%;background:${color}"></span>${label}</button>`;
+}
+
+async function togglePublish(id, published) {
+  // published llega como string "true"/"false" desde el onclick
+  const toPublish = published === true || published === "true";
+  try {
+    await API.products.publish(id, toPublish);
+    const p = State.products.find((x) => x.id === id);
+    if (p) p.published = toPublish;
+    toast(toPublish ? "Producto publicado en la tienda" : "Producto quitado de la tienda", "success");
+    renderCurrentView();
+    renderProductosMgmt();
+  } catch (err) {
+    toast("No se pudo cambiar la publicación: " + err.message, "warning");
+  }
+}
+
+/* ============= IMPORTAR PRODUCTOS (BORRADOR) ============= */
+function openImportModal() {
+  document.getElementById("importJson").value = "";
+  document.getElementById("importSummary").textContent = "";
+  document.getElementById("importPreviewWrap").style.display = "none";
+  document.getElementById("importPreviewBody").innerHTML = "";
+  document.getElementById("importConfirmBtn").disabled = true;
+  State.importParsed = [];
+  document.getElementById("importModal").classList.add("open");
+}
+function closeImportModal() {
+  document.getElementById("importModal").classList.remove("open");
+}
+
+// Busca el primer arreglo de objetos dentro de un JSON arbitrario.
+function findProductArray(data) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    // Claves comunes donde suele venir la lista
+    const keys = ["productos", "products", "data", "items", "results", "rows", "lista", "content", "docs"];
+    for (const k of keys) {
+      if (Array.isArray(data[k])) return data[k];
+    }
+    // Si no, buscar cualquier propiedad que sea arreglo de objetos
+    for (const k of Object.keys(data)) {
+      if (Array.isArray(data[k]) && data[k].some((x) => x && typeof x === "object")) return data[k];
+    }
+  }
+  return [];
+}
+
+// Toma el primer valor no vacío entre varias claves posibles (case-insensitive).
+function pick(obj, keys) {
+  for (const k of keys) {
+    for (const realKey of Object.keys(obj)) {
+      if (realKey.toLowerCase() === k.toLowerCase()) {
+        const v = obj[realKey];
+        if (v !== undefined && v !== null && v !== "") return v;
+      }
+    }
+  }
+  return undefined;
+}
+
+// Normaliza un objeto arbitrario al formato que espera el backend.
+function normalizeImportItem(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  let img = pick(raw, ["imageUrl", "image_url", "imagen", "image", "foto", "img", "picture", "thumbnail", "thumb", "url_imagen"]);
+  if (Array.isArray(img)) img = img[0];
+  if (img && typeof img === "object") img = img.url || img.src || img.uri || "";
+
+  const nombre = pick(raw, ["nombre", "name", "titulo", "title", "producto", "descripcion_corta", "descripcionCorta"]);
+  const precioV = pick(raw, ["precioVenta", "precio_venta", "sale_price", "precio", "price", "pvp", "precio_final", "precioFinal", "costo_final", "costoFinal"]);
+  const precioC = pick(raw, ["precioCompra", "purchase_price", "costo", "cost", "costo_original", "costoOriginal", "precio_original", "precioOriginal"]);
+  const desc = pick(raw, ["descuento", "discount", "dcto", "off", "porcentaje_descuento"]);
+  const stock = pick(raw, ["stock", "cantidad", "existencia", "existencias", "inventario", "qty", "quantity", "disponible"]);
+  const categoria = pick(raw, ["categoria", "category", "categoria_nombre", "categoryName", "rubro", "linea"]);
+  const marca = pick(raw, ["marca", "brand", "fabricante"]);
+  const sku = pick(raw, ["sku", "codigo", "code", "barcode", "ean", "id", "modelo"]);
+  const descripcion = pick(raw, ["descripcion", "description", "detalle", "detail", "resumen"]);
+
+  if (!nombre) return null;
+  return {
+    nombre: String(nombre).trim(),
+    imageUrl: img ? String(img) : "",
+    categoria: categoria ? String(categoria).trim() : "Importados",
+    marca: marca ? String(marca).trim() : "",
+    descripcion: descripcion ? String(descripcion) : "",
+    precioVenta: parseFloat(precioV) || 0,
+    precioCompra: parseFloat(precioC) || 0,
+    descuento: parseFloat(desc) || 0,
+    stock: parseInt(stock, 10) || 0,
+    sku: sku ? String(sku).trim() : "",
+  };
+}
+
+function previewImport() {
+  const txt = document.getElementById("importJson").value.trim();
+  const summary = document.getElementById("importSummary");
+  if (!txt) { summary.textContent = "Pega el JSON primero."; return; }
+  let data;
+  try {
+    data = JSON.parse(txt);
+  } catch (err) {
+    summary.innerHTML = `<span style="color:var(--danger)">JSON inválido: ${err.message}</span>`;
+    return;
+  }
+  const arr = findProductArray(data);
+  const normalized = arr.map(normalizeImportItem).filter(Boolean);
+  State.importParsed = normalized;
+
+  if (!normalized.length) {
+    summary.innerHTML = `<span style="color:var(--warning)">No se detectaron productos con nombre en ese JSON.</span>`;
+    document.getElementById("importPreviewWrap").style.display = "none";
+    document.getElementById("importConfirmBtn").disabled = true;
+    return;
+  }
+  summary.innerHTML = `<span style="color:#22c55e">${normalized.length} producto(s) detectado(s).</span> Entrarán como <strong>borrador</strong>.`;
+  document.getElementById("importPreviewBody").innerHTML = normalized.slice(0, 50).map((p) => {
+    const img = safeImgUrl(p.imageUrl);
+    return `
+    <tr>
+      <td><div style="width:30px;height:30px;border-radius:5px;background:var(--bg-input);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px">
+        ${img ? `<img src="${img}" style="width:30px;height:30px;object-fit:cover" onerror="this.style.display='none'">` : "📦"}</div></td>
+      <td style="color:var(--text-primary);font-weight:600;max-width:200px;white-space:normal">${escHtml(p.nombre)}</td>
+      <td>${escHtml(p.categoria)}</td>
+      <td>${fmt(p.precioVenta)}</td>
+      <td>${p.descuento > 0 ? "-" + escHtml(p.descuento) + "%" : "—"}</td>
+      <td>${escHtml(p.stock)}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("importPreviewWrap").style.display = "block";
+  document.getElementById("importConfirmBtn").disabled = false;
+}
+
+async function runImport() {
+  const lista = State.importParsed || [];
+  if (!lista.length) { toast("No hay productos para importar", "warning"); return; }
+  const btn = document.getElementById("importConfirmBtn");
+  btn.disabled = true;
+  btn.textContent = "Importando…";
+  try {
+    const r = await API.products.import(lista, "importado");
+    toast(`Importados: ${r.insertados} · Omitidos (ya existían): ${r.omitidos} · Errores: ${r.errores}`, "success");
+    closeImportModal();
+    await refreshAfterProductChange();
+    navigate("productos");
+  } catch (err) {
+    toast("Error al importar: " + err.message, "warning");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `Importar como borrador`;
+  }
 }
 
 /* ============= REPORTES ============= */
@@ -1945,6 +2125,13 @@ async function init() {
     const el = document.getElementById(id);
     if (el) el.addEventListener("click", () => openModal());
   });
+
+  // Importar productos
+  document.getElementById("btnImportProducts")?.addEventListener("click", openImportModal);
+  document.getElementById("importClose")?.addEventListener("click", closeImportModal);
+  document.getElementById("importCancelBtn")?.addEventListener("click", closeImportModal);
+  document.getElementById("importPreviewBtn")?.addEventListener("click", previewImport);
+  document.getElementById("importConfirmBtn")?.addEventListener("click", runImport);
 
   // Modal events
   document.getElementById("modalClose").addEventListener("click", closeModal);
