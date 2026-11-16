@@ -613,9 +613,41 @@
                   <option value="price-desc">Precio ↓</option>
                   <option value="stock-asc">Stock ↑</option>
                   <option value="stock-desc">Stock ↓</option>
+                  <option value="new">Más recientes</option>
+                  <option value="old">Más antiguos</option>
+                  <option value="disc-desc">Mayor descuento</option>
+                  <option value="exp-asc">Vence más pronto</option>
+                </select>
+              </div>
+            </div>
+            <div class="filters-row">
+              <div class="filter-group">
+                <select class="filter-select" id="filterFuente">
+                  <option value="">Todos (míos + Joanis)</option>
+                  <option value="mios">Solo míos</option>
+                  <option value="importados">Solo Joanis</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <select class="filter-select" id="filterPublicado">
+                  <option value="">Publicados y borradores</option>
+                  <option value="si">Solo publicados</option>
+                  <option value="no">Solo borradores</option>
                 </select>
               </div>
               <div class="filter-checkboxes">
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterLowStock" /> Stock bajo (≤5)</label
+                >
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterSoonExpire" /> Vence en 30 días</label
+                >
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterNoPrice" /> Sin precio de venta</label
+                >
+                <label class="filter-check"
+                  ><input type="checkbox" id="filterReview" /> Por revisar</label
+                >
                 <label class="filter-check"
                   ><input type="checkbox" id="filterExpired" /> Vencidos</label
                 >
@@ -630,8 +662,8 @@
                   oferta</label
                 >
               </div>
-              <button class="btn-ghost" id="btnClearFilters">
-                Limpiar filtros
+              <button class="btn-ghost" id="btnClearFilters" style="margin-left:auto">
+                Limpiar filtros<span id="activeFiltersCount"></span>
               </button>
             </div>
           </div>

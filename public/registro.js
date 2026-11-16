@@ -828,17 +828,21 @@ function renderCatalogo() {
   populateFilterDropdowns();
 }
 
+function uniqueSorted(values) {
+  return [...new Set(values.map((v) => (v == null ? "" : String(v).trim())).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
 function populateFilterDropdowns() {
-  const productCats = [...new Set(State.products.map((p) => p.categoria))];
-  const productSubs = [...new Set(State.products.map((p) => p.subcategoria))];
-  const productBrands = [...new Set(State.products.map((p) => p.marca))];
-  const productProvs = [...new Set(State.products.map((p) => p.proveedor))];
-  const productOrigins = [...new Set(State.products.map((p) => p.origen))];
-  setSelectOptions("filterCategory", productCats, "Todas las categorías");
-  setSelectOptions("filterSubcategory", productSubs, "Subcategorías");
-  setSelectOptions("filterBrand", productBrands, "Todas las marcas");
-  setSelectOptions("filterProveedor", productProvs, "Todos los proveedores");
-  setSelectOptions("filterOrigen", productOrigins, "Todos los orígenes");
+  const P = State.products;
+  const cat = document.getElementById("filterCategory")?.value || "";
+  setSelectOptions("filterCategory", uniqueSorted(P.map((p) => p.categoria)), "Todas las categorías");
+  // Subcategorías dependen de la categoría elegida
+  const subsBase = cat ? P.filter((p) => p.categoria === cat) : P;
+  setSelectOptions("filterSubcategory", uniqueSorted(subsBase.map((p) => p.subcategoria)), "Todas las subcategorías");
+  setSelectOptions("filterBrand", uniqueSorted(P.map((p) => p.marca)), "Todas las marcas");
+  setSelectOptions("filterProveedor", uniqueSorted(P.map((p) => p.proveedor)), "Todos los proveedores");
+  setSelectOptions("filterOrigen", uniqueSorted(P.map((p) => p.origen)), "Todos los orígenes");
 }
 
 function setSelectOptions(id, options, placeholder) {
@@ -846,72 +850,126 @@ function setSelectOptions(id, options, placeholder) {
   if (!el) return;
   const current = el.value;
   el.innerHTML =
-    `<option value="">${placeholder}</option>` +
+    `<option value="">${escHtml(placeholder)}</option>` +
     options
-      .map(
-        (o) =>
-          `<option value="${o}" ${o === current ? "selected" : ""}>${o}</option>`,
-      )
+      .map((o) => `<option value="${escHtml(o)}">${escHtml(o)}</option>`)
       .join("");
+  // Conserva la selección solo si sigue existiendo
+  el.value = options.includes(current) ? current : "";
 }
 
+function precioFinal(p) {
+  const v = Number(p.precioVenta) || 0;
+  return p.descuento > 0 ? v * (1 - p.descuento / 100) : v;
+}
+
+function diasParaVencer(fecha) {
+  if (!fecha) return Infinity;
+  const d = new Date(fecha + "T23:59:59");
+  if (isNaN(d)) return Infinity;
+  return (d - new Date()) / 86400000;
+}
+
+const FILTER_TEXT_IDS = ["filterName", "filterCode", "filterPriceMin", "filterPriceMax"];
+const FILTER_SELECT_IDS = [
+  "filterCategory", "filterSubcategory", "filterBrand", "filterProveedor",
+  "filterOrigen", "filterFuente", "filterPublicado",
+];
+const FILTER_CHECK_IDS = [
+  "filterExpired", "filterNoStock", "filterInStock", "filterDiscount",
+  "filterLowStock", "filterSoonExpire", "filterNoPrice", "filterReview",
+];
+
 function applyFilters() {
-  const name = (
-    document.getElementById("filterName")?.value || ""
-  ).toLowerCase();
-  const code = (
-    document.getElementById("filterCode")?.value || ""
-  ).toLowerCase();
-  const cat = document.getElementById("filterCategory")?.value || "";
-  const sub = document.getElementById("filterSubcategory")?.value || "";
-  const brand = document.getElementById("filterBrand")?.value || "";
-  const prov = document.getElementById("filterProveedor")?.value || "";
-  const orig = document.getElementById("filterOrigen")?.value || "";
-  const priceMin =
-    parseFloat(document.getElementById("filterPriceMin")?.value) || 0;
-  const priceMax =
-    parseFloat(document.getElementById("filterPriceMax")?.value) || Infinity;
-  const expired = document.getElementById("filterExpired")?.checked;
-  const noStock = document.getElementById("filterNoStock")?.checked;
-  const inStock = document.getElementById("filterInStock")?.checked;
-  const discount = document.getElementById("filterDiscount")?.checked;
-  const sort = document.getElementById("filterSort")?.value || "";
+  const val = (id) => document.getElementById(id)?.value || "";
+  const chk = (id) => !!document.getElementById(id)?.checked;
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  const name = norm(val("filterName").trim());
+  const code = norm(val("filterCode").trim());
+  const cat = val("filterCategory");
+  const sub = val("filterSubcategory");
+  const brand = val("filterBrand");
+  const prov = val("filterProveedor");
+  const orig = val("filterOrigen");
+  const fuente = val("filterFuente");
+  const publicado = val("filterPublicado");
+  let priceMin = parseFloat(val("filterPriceMin"));
+  let priceMax = parseFloat(val("filterPriceMax"));
+  if (isNaN(priceMin)) priceMin = null;
+  if (isNaN(priceMax)) priceMax = null;
+  if (priceMin != null && priceMax != null && priceMin > priceMax) [priceMin, priceMax] = [priceMax, priceMin];
+  const expired = chk("filterExpired");
+  const noStock = chk("filterNoStock");
+  const inStock = chk("filterInStock");
+  const discount = chk("filterDiscount");
+  const lowStock = chk("filterLowStock");
+  const soonExpire = chk("filterSoonExpire");
+  const noPrice = chk("filterNoPrice");
+  const review = chk("filterReview");
+  const sort = val("filterSort");
 
   let filtered = State.products.filter((p) => {
-    if (
-      name &&
-      !p.nombre.toLowerCase().includes(name) &&
-      !p.codigo.toLowerCase().includes(name)
-    )
-      return false;
-    if (code && !p.codigo.toLowerCase().includes(code)) return false;
+    const stock = Number(p.stock) || 0;
+    if (name) {
+      const hay = [p.nombre, p.codigo, p.externalCode, p.marca, p.categoria].map(norm).join(" ");
+      if (!name.split(/\s+/).every((w) => hay.includes(w))) return false;
+    }
+    if (code && !norm(p.codigo).includes(code) && !norm(p.externalCode).includes(code)) return false;
     if (cat && p.categoria !== cat) return false;
     if (sub && p.subcategoria !== sub) return false;
     if (brand && p.marca !== brand) return false;
     if (prov && p.proveedor !== prov) return false;
     if (orig && p.origen !== orig) return false;
-    if (p.precioVenta < priceMin || p.precioVenta > priceMax) return false;
+    if (fuente === "mios" && p.importSource) return false;
+    if (fuente === "importados" && !p.importSource) return false;
+    if (publicado === "si" && p.published === false) return false;
+    if (publicado === "no" && p.published !== false) return false;
+    const pf = precioFinal(p);
+    if (priceMin != null && pf < priceMin) return false;
+    if (priceMax != null && pf > priceMax) return false;
     if (expired && !isExpired(p.fechaVence)) return false;
-    if (noStock && p.stock !== 0) return false;
-    if (inStock && p.stock <= 0) return false;
-    if (discount && p.descuento <= 0) return false;
+    if (soonExpire) {
+      const d = diasParaVencer(p.fechaVence);
+      if (!(d >= 0 && d <= 30)) return false;
+    }
+    if (noStock && stock > 0) return false;
+    if (inStock && stock <= 0) return false;
+    if (lowStock && !(stock > 0 && stock <= 5)) return false;
+    if (discount && !(p.descuento > 0)) return false;
+    if (noPrice && Number(p.precioVenta) > 0) return false;
+    if (review && !porRevisar(p)) return false;
     return true;
   });
 
-  if (sort === "name-asc")
-    filtered.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  if (sort === "name-desc")
-    filtered.sort((a, b) => b.nombre.localeCompare(a.nombre));
-  if (sort === "price-asc")
-    filtered.sort((a, b) => a.precioVenta - b.precioVenta);
-  if (sort === "price-desc")
-    filtered.sort((a, b) => b.precioVenta - a.precioVenta);
-  if (sort === "stock-asc") filtered.sort((a, b) => a.stock - b.stock);
-  if (sort === "stock-desc") filtered.sort((a, b) => b.stock - a.stock);
+  const byName = (a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
+  const ts = (p) => new Date(p.createdAt || 0).getTime() || 0;
+  const sorters = {
+    "name-asc": byName,
+    "name-desc": (a, b) => byName(b, a),
+    "price-asc": (a, b) => precioFinal(a) - precioFinal(b),
+    "price-desc": (a, b) => precioFinal(b) - precioFinal(a),
+    "stock-asc": (a, b) => (a.stock || 0) - (b.stock || 0),
+    "stock-desc": (a, b) => (b.stock || 0) - (a.stock || 0),
+    new: (a, b) => ts(b) - ts(a),
+    old: (a, b) => ts(a) - ts(b),
+    "disc-desc": (a, b) => (b.descuento || 0) - (a.descuento || 0),
+    "exp-asc": (a, b) => diasParaVencer(a.fechaVence) - diasParaVencer(b.fechaVence),
+  };
+  if (sorters[sort]) filtered.sort(sorters[sort]);
 
   State.filtered = filtered;
   const rc = document.getElementById("resultsCount");
-  if (rc) rc.textContent = `${filtered.length} productos`;
+  if (rc) rc.textContent = `${filtered.length} de ${State.products.length} productos`;
+
+  // Cantidad de filtros activos (en el botón Limpiar)
+  const activos =
+    FILTER_TEXT_IDS.filter((id) => val(id).trim()).length +
+    FILTER_SELECT_IDS.filter((id) => val(id)).length +
+    FILTER_CHECK_IDS.filter((id) => chk(id)).length;
+  const ac = document.getElementById("activeFiltersCount");
+  if (ac) ac.textContent = activos ? ` (${activos})` : "";
+
   renderCurrentView();
 }
 
@@ -2739,40 +2797,40 @@ async function init() {
   });
 
   // Filters
-  ["filterName", "filterCode", "filterPriceMin", "filterPriceMax"].forEach(
-    (id) => {
-      document.getElementById(id)?.addEventListener("input", applyFilters);
-    },
-  );
-  [
-    "filterCategory",
-    "filterSubcategory",
-    "filterBrand",
-    "filterProveedor",
-    "filterOrigen",
-    "filterSort",
-  ].forEach((id) => {
-    document.getElementById(id)?.addEventListener("change", applyFilters);
+  FILTER_TEXT_IDS.forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", applyFilters);
   });
-  ["filterExpired", "filterNoStock", "filterInStock", "filterDiscount"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("change", applyFilters);
+  [...FILTER_SELECT_IDS, "filterSort"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", () => {
+      if (id === "filterCategory") {
+        const s = document.getElementById("filterSubcategory");
+        if (s) s.value = "";
+        populateFilterDropdowns(); // subcategorías de esa categoría
+      }
+      applyFilters();
+    });
+  });
+  // Casillas que se contradicen: al marcar una se desmarcan las otras
+  const STOCK_EXCL = { filterNoStock: ["filterInStock", "filterLowStock"], filterInStock: ["filterNoStock"], filterLowStock: ["filterNoStock"] };
+  FILTER_CHECK_IDS.forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", (e) => {
+      if (e.target.checked && STOCK_EXCL[id]) {
+        STOCK_EXCL[id].forEach((o) => { const el = document.getElementById(o); if (el) el.checked = false; });
+      }
+      applyFilters();
+    });
   });
 
   document.getElementById("btnClearFilters").addEventListener("click", () => {
-    document.getElementById("filterName").value = "";
-    document.getElementById("filterCode").value = "";
-    document.getElementById("filterCategory").value = "";
-    document.getElementById("filterSubcategory").value = "";
-    document.getElementById("filterBrand").value = "";
-    document.getElementById("filterProveedor").value = "";
-    document.getElementById("filterOrigen").value = "";
-    document.getElementById("filterPriceMin").value = "";
-    document.getElementById("filterPriceMax").value = "";
-    document.getElementById("filterExpired").checked = false;
-    document.getElementById("filterNoStock").checked = false;
-    document.getElementById("filterInStock").checked = false;
-    document.getElementById("filterDiscount").checked = false;
-    document.getElementById("filterSort").value = "";
+    [...FILTER_TEXT_IDS, ...FILTER_SELECT_IDS, "filterSort"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    FILTER_CHECK_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = false;
+    });
+    populateFilterDropdowns();
     applyFilters();
   });
 
