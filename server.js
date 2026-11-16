@@ -124,6 +124,7 @@ app.use("/api/permissions",       require("./routes/permissions"));
 app.use("/api/customers",         require("./routes/customers"));
 app.use("/api/admin/customers",   require("./routes/admin-customers"));
 app.use("/api/delivery-orders",   require("./routes/delivery-orders"));
+app.use("/api/compare",           require("./routes/compare"));
 
 /* ─── Monitoreo post-rutas: log de 403 / acceso denegado (ISO A.8.16) ─── */
 app.use((req, res, next) => {

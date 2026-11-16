@@ -1995,3 +1995,102 @@ body {
   position: absolute; top: 8px; left: 8px; z-index: 2;
   display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
 }
+
+/* ===================== COMPARACIONES ===================== */
+.cmp-layout { display: grid; grid-template-columns: minmax(320px, 2fr) 3fr; gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .cmp-layout { grid-template-columns: 1fr; } }
+.cmp-panel {
+  background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius);
+  padding: 14px; box-shadow: var(--shadow-card); min-width: 0;
+}
+.cmp-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cmp-panel-head h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.cmp-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.cmp-tools .filter-input, .cmp-tools .filter-select { flex: 1; min-width: 150px; }
+.cmp-count { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+.cmp-mine-list { max-height: calc(100vh - 290px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+.cmp-mine-row {
+  display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 8px;
+  border: 1px solid var(--border-light); background: var(--bg-surface);
+}
+.cmp-mine-row.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cmp-thumb {
+  width: 42px; height: 42px; border-radius: 6px; background: var(--bg-input); flex-shrink: 0;
+  overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.cmp-thumb.big { width: 64px; height: 64px; background: #fff; }
+.cmp-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.cmp-mine-info, .cmp-offer-info { flex: 1; min-width: 0; }
+.cmp-mine-name { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; word-break: break-word; }
+.cmp-mine-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cmp-mine-meta b { color: var(--text-secondary); }
+.cmp-mine-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.cmp-tag {
+  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 5px;
+  background: rgba(156,163,175,.15); color: #9ca3af; white-space: nowrap;
+}
+.cmp-tag.mine { background: rgba(99,102,241,.15); color: #818cf8; }
+.cmp-tag.imp  { background: rgba(217,119,6,.15); color: #d97706; }
+.cmp-tag.jo   { background: rgba(234,179,8,.15); color: #eab308; }
+.cmp-tag.draft{ background: rgba(156,163,175,.15); color: #9ca3af; }
+.cmp-tag.best { background: #16a34a; color: #fff; }
+.cmp-tag.grp  { background: rgba(59,130,246,.15); color: #60a5fa; }
+.cmp-empty, .cmp-hint { font-size: 12.5px; color: var(--text-muted); padding: 14px; text-align: center; }
+.cmp-hint { text-align: left; padding: 10px 12px; background: var(--bg-surface); border-radius: 8px; margin-bottom: 10px; border: 1px dashed var(--border-light); }
+.cmp-ref {
+  display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 10px;
+  background: var(--bg-surface); border: 1px solid var(--accent);
+}
+.cmp-ref-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); font-weight: 700; }
+.cmp-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.cmp-search-row .filter-input { flex: 1; }
+.cmp-stores { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cmp-store-chip {
+  --c: #9ca3af;
+  font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-light); background: transparent; color: var(--text-muted);
+  font-family: inherit;
+}
+.cmp-store-chip.on { border-color: var(--c); color: #fff; background: var(--c); }
+.cmp-status { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+.cmp-store-status { display: flex; flex-wrap: wrap; gap: 5px; }
+.cmp-st { --c: #9ca3af; font-size: 11px; padding: 2px 7px; border-radius: 5px; border-left: 3px solid var(--c); background: var(--bg-surface); }
+.cmp-st.zero { opacity: .55; }
+.cmp-st.err { border-left-color: #ef4444; color: #ef4444; }
+.cmp-spinner {
+  display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border-light);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 4px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cmp-summary {
+  display: flex; justify-content: space-between; gap: 12px; align-items: flex-end;
+  padding: 12px; border-radius: 8px; background: var(--bg-surface); border: 1px solid var(--border-light); margin-bottom: 8px;
+}
+.cmp-verdict { font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; background: var(--bg-surface); }
+.cmp-verdict.cheaper { background: rgba(234,179,8,.12); color: #eab308; border: 1px solid rgba(234,179,8,.35); }
+.cmp-verdict.better  { background: rgba(34,197,94,.12); color: #22c55e; border: 1px solid rgba(34,197,94,.35); }
+.cmp-offers { display: flex; flex-direction: column; gap: 8px; }
+.cmp-offer {
+  display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 8px;
+  background: var(--bg-surface); border: 1px solid var(--border-light);
+}
+.cmp-offer.best { border-color: #16a34a; box-shadow: 0 0 0 1px #16a34a inset; }
+.cmp-offer-top { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 4px; }
+.cmp-store-badge {
+  --c: #888; font-size: 10.5px; font-weight: 800; color: #fff; background: var(--c);
+  padding: 2px 8px; border-radius: 5px; vertical-align: middle;
+}
+.cmp-offer-price { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.cmp-price { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.cmp-list { font-size: 12px; color: var(--text-muted); text-decoration: line-through; }
+.cmp-card { font-size: 11px; color: #a78bfa; }
+.cmp-offer-actions { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.cmp-offer-actions a { text-decoration: none; }
+.cmp-diff { display: inline-block; font-size: 11.5px; font-weight: 700; margin-top: 4px; }
+.cmp-diff.cheaper { color: #eab308; }
+.cmp-diff.pricier { color: #22c55e; }
+@media (max-width: 600px) {
+  .cmp-offer { flex-wrap: wrap; }
+  .cmp-offer-price { width: 100%; align-items: flex-start; text-align: left; }
+}
+.cmp-panel .btn-sm, .cmp-offer .btn-sm, .cmp-ref .btn-sm { padding: 5px 10px; font-size: 12px; white-space: nowrap; }

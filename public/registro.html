@@ -255,6 +255,13 @@
           </svg>
           <span>Reportes</span>
         </a>
+        <a href="#" class="nav-item" data-section="comparaciones">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 3v18" /><path d="M5 7h14" />
+            <path d="M5 7l-3 7a3 3 0 0 0 6 0z" /><path d="M19 7l-3 7a3 3 0 0 0 6 0z" />
+          </svg>
+          <span>Comparaciones</span>
+        </a>
 
         <div class="nav-label" style="margin-top: 24px">TIENDA</div>
         <a href="#" class="nav-item" data-section="visibilidad">
@@ -813,6 +820,65 @@
         </section>
 
         <!-- ===== REPORTES ===== -->
+        <!-- ===== COMPARACIONES ===== -->
+        <section class="section" id="section-comparaciones">
+          <div class="catalog-sticky">
+            <div class="section-header">
+              <div>
+                <h1 class="section-title">Comparaciones de precios</h1>
+                <p class="section-subtitle">
+                  Compara tus productos (A&amp;M y Joanis) con otras tiendas y pasa a tu catálogo lo que convenga
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="cmp-layout">
+            <!-- Izquierda: productos A&M + Joanis -->
+            <div class="cmp-panel">
+              <div class="cmp-panel-head">
+                <h3>Tus productos</h3>
+                <button type="button" class="btn-secondary btn-sm" id="cmpLoadJoanis" title="Consulta una vez el catálogo público de Joanis">
+                  ⟳ Cargar catálogo Joanis
+                </button>
+              </div>
+              <div class="cmp-tools">
+                <input type="text" class="filter-input" id="cmpMineSearch" placeholder="🔍 Buscar en tus productos…" />
+                <select class="filter-select" id="cmpMineOrigin">
+                  <option value="todos">Todos</option>
+                  <option value="mios">Solo míos</option>
+                  <option value="importados">Importados en A&amp;M</option>
+                  <option value="joanis_nuevo">Joanis (aún no importados)</option>
+                </select>
+              </div>
+              <div class="cmp-count" id="cmpMineCount"></div>
+              <div class="cmp-mine-list" id="cmpMineList"></div>
+            </div>
+
+            <!-- Derecha: comparar en tiendas -->
+            <div class="cmp-panel">
+              <div class="cmp-panel-head"><h3>Comparar en tiendas</h3></div>
+              <div id="cmpRef"></div>
+              <div class="cmp-search-row">
+                <input type="text" class="filter-input" id="cmpQuery" placeholder="Producto a buscar (ej. taladro bosch, leche gloria 400g)…" />
+                <button type="button" class="btn-primary" id="cmpSearchBtn">⚖ Comparar</button>
+              </div>
+              <div class="cmp-stores" id="cmpStores"></div>
+              <div id="cmpStatus" class="cmp-status"></div>
+              <div class="cmp-tools" id="cmpResultTools" style="display:none">
+                <select class="filter-select" id="cmpSort">
+                  <option value="price-asc">Precio: menor a mayor</option>
+                  <option value="price-desc">Precio: mayor a menor</option>
+                  <option value="store">Por tienda</option>
+                </select>
+                <select class="filter-select" id="cmpStoreFilter"><option value="">Todas las tiendas</option></select>
+                <label class="filter-check"><input type="checkbox" id="cmpOnlyGroups" /> Solo el mismo producto en varias tiendas</label>
+              </div>
+              <div id="cmpResults"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="section" id="section-reportes">
           <div class="section-header">
             <div>
@@ -1556,6 +1622,7 @@
     <div class="toast-container" id="toastContainer"></div>
     <script src="api.js"></script>
     <script src="registro.js"></script>
+    <script src="comparaciones.js"></script>
     <script>
       /* ── WORKER INFO ── */
       (function loadWorkerUI() {

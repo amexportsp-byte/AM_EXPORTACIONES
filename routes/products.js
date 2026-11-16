@@ -409,7 +409,8 @@ router.post("/import", auth, async (req, res) => {
     const precioFuente = r2(item.precioFuente ?? item.precioVenta);
     const images = Array.isArray(item.images) ? item.images.filter(Boolean).map(String).slice(0, 20) : [];
     const stockNuevo = Number.isFinite(+item.stock) ? Math.max(0, Math.trunc(+item.stock)) : 0;
-    const agotado = item.agotado === true || stockNuevo <= 0;
+    // "Pasar a catálogo" desde Comparaciones: aún no se compró, entra con stock 0
+    const agotado = item.agotado === true || (stockNuevo <= 0 && item.permitirSinStock !== true);
 
     try {
       // ¿Ya lo tenemos? (solo entre productos traídos de esta misma fuente)

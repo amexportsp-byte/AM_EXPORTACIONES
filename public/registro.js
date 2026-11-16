@@ -588,6 +588,7 @@ function navigate(section) {
   if (section === "inventario") renderInventario();
   if (section === "productos") renderProductosMgmt();
   if (section === "reportes") renderReportes();
+  if (section === "comparaciones") renderComparaciones();
   if (section === "configuracion") renderConfiguracion();
   if (section === "visibilidad") renderVisibilidad();
 
