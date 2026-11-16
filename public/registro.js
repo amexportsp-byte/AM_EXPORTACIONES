@@ -1224,9 +1224,8 @@ async function fetchFromJoanis() {
   btn.innerHTML = "Consultando a Joanis…";
   summary.innerHTML = `<span style="color:var(--text-muted)">Trayendo catálogo…</span>`;
   try {
-    const resp = await fetch(JOANIS_CATALOGO_URL, { headers: { "Accept": "application/json" } });
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
+    // Pasa por el propio servidor (evita el bloqueo CORS del navegador)
+    const data = await API.products.fetchJoanis();
     // Volcar el JSON al textarea y previsualizar con el mismo flujo
     document.getElementById("importJson").value = JSON.stringify(data);
     previewImport();

@@ -327,6 +327,34 @@ router.post("/publish-bulk", auth, async (req, res) => {
   }
 });
 
+// GET /api/products/joanis-catalogo — proxy on-demand (se dispara solo al dar clic).
+// Consulta UNA vez el catálogo público de Joanis desde el servidor (evita el bloqueo CORS
+// del navegador). No es un proceso automático: solo responde cuando el usuario lo pide.
+const JOANIS_CATALOGO_URL =
+  "https://apiv2.erp-grit-server-lnx.com/api/tienda/cf894123-13ae-4a14-9efe-c480622f841c/catalogo";
+
+router.get("/joanis-catalogo", auth, (req, res) => {
+  const https = require("https");
+  const reqJ = https.get(JOANIS_CATALOGO_URL, { headers: { "Accept": "application/json" }, timeout: 25000 }, (r) => {
+    if (r.statusCode !== 200) {
+      r.resume();
+      return res.status(502).json({ error: `Joanis respondió ${r.statusCode}` });
+    }
+    let data = "";
+    r.setEncoding("utf8");
+    r.on("data", (chunk) => { data += chunk; });
+    r.on("end", () => {
+      try {
+        res.type("application/json").send(data); // se reenvía tal cual
+      } catch {
+        res.status(500).json({ error: "Respuesta inválida de Joanis" });
+      }
+    });
+  });
+  reqJ.on("timeout", () => { reqJ.destroy(); res.status(504).json({ error: "Tiempo de espera agotado consultando Joanis" }); });
+  reqJ.on("error", (err) => { res.status(502).json({ error: "No se pudo consultar Joanis: " + err.message }); });
+});
+
 // POST /api/products/import — importa productos como BORRADOR (published = FALSE).
 // Recibe { productos: [{ nombre, categoria, marca, imageUrl, descripcion,
 //                        precioVenta, precioCompra, descuento, stock, sku }] }
