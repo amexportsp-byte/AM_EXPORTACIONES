@@ -866,13 +866,21 @@
               <div class="cmp-stores" id="cmpStores"></div>
               <div id="cmpStatus" class="cmp-status"></div>
               <div class="cmp-tools" id="cmpResultTools" style="display:none">
+                <div class="cmp-seg" id="cmpView">
+                  <button type="button" data-v="tiendas" class="on">🏪 Mejor de cada tienda</button>
+                  <button type="button" data-v="todas">☰ Todas las ofertas</button>
+                </div>
+                <select class="filter-select" id="cmpMatch" title="Qué tanto se parece cada oferta a tu producto">
+                  <option value="media">Coincidencia: alta y media</option>
+                  <option value="alta">Coincidencia: solo alta</option>
+                  <option value="todas">Coincidencia: todas</option>
+                </select>
                 <select class="filter-select" id="cmpSort">
                   <option value="price-asc">Precio: menor a mayor</option>
                   <option value="price-desc">Precio: mayor a menor</option>
-                  <option value="store">Por tienda</option>
+                  <option value="match">Más parecidos primero</option>
                 </select>
                 <select class="filter-select" id="cmpStoreFilter"><option value="">Todas las tiendas</option></select>
-                <label class="filter-check"><input type="checkbox" id="cmpOnlyGroups" /> Solo el mismo producto en varias tiendas</label>
               </div>
               <div id="cmpResults"></div>
             </div>

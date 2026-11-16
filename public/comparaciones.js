@@ -40,12 +40,17 @@ function renderCmpStores() {
   const box = document.getElementById("cmpStores");
   if (!box) return;
   const all = Cmp.stores.length && Cmp.stores.every((s) => Cmp.selectedStores.has(s.id));
+  // Tras una búsqueda, cada chip muestra cuántos resultados trajo esa tienda
+  const res = new Map((Cmp.result?.tiendas || []).map((t) => [t.id, t]));
   box.innerHTML =
-    `<button type="button" class="cmp-store-chip ${all ? "on" : ""}" onclick="cmpToggleAllStores()">Todas</button>` +
+    `<button type="button" class="cmp-store-chip all ${all ? "on" : ""}" onclick="cmpToggleAllStores()">${all ? "✓ " : ""}Todas (${Cmp.selectedStores.size}/${Cmp.stores.length})</button>` +
     Cmp.stores.map((s) => {
       const on = Cmp.selectedStores.has(s.id);
+      const t = res.get(s.id);
+      const n = !t ? "" : t.ok ? `<b class="cmp-chip-n ${t.count ? "" : "zero"}">${t.count}</b>` : `<b class="cmp-chip-n err" title="${escHtml(t.error || "Sin respuesta")}">!</b>`;
       return `<button type="button" class="cmp-store-chip ${on ? "on" : ""}" style="--c:${escHtml(s.color)}"
-        onclick="cmpToggleStore('${escHtml(s.id)}')">${escHtml(s.name)}</button>`;
+        title="${on ? "Clic para no buscar en esta tienda" : "Clic para buscar también aquí"}"
+        onclick="cmpToggleStore('${escHtml(s.id)}')"><span class="cmp-dot"></span>${escHtml(s.name)}${n}</button>`;
     }).join("");
 }
 function saveCmpStores() {
@@ -194,7 +199,11 @@ function cmpQueryFromName(name) {
     .replace(/[|/\\()[\]{}"“”'´`*_#]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .split(" ").slice(0, 6).join(" ");
+    .split(" ")
+    // Sin palabras de relleno ni códigos internos; las 3 primeras palabras clave
+    // (las tiendas exigen que aparezcan todas: más palabras = menos resultados).
+    .filter((w) => w && !/^(de|del|la|el|los|las|con|para|y|x|en|por)$/i.test(w) && !/^[A-Z]{2,}-?\d+$/.test(w))
+    .slice(0, 3).join(" ");
 }
 
 function renderCmpRef() {
@@ -263,107 +272,228 @@ function cmpInCatalog(offer) {
   return State.products.find((p) => p.importSource === st.name && p.externalId === offer.key);
 }
 
+/* ── Coincidencia: qué tanto se parece una oferta a tu producto ──
+ * Evita comparar "Candado" con "Agenda ... con Candado": la palabra principal
+ * debe ser el producto (al inicio), no un accesorio ("con …", "para …"). */
+const CMP_STOP = new Set(["de", "del", "la", "el", "los", "las", "con", "para", "y", "x", "en", "por", "un", "una", "a", "al", "sin", "tipo", "modelo"]);
+const CMP_LINK = new Set(["con", "para", "sin", "y", "incluye", "incl", "de"]);
+function cmpWords(s) {
+  return cmpNorm(s).replace(/[^a-z0-9.,"\s-]/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+}
+const cmpSing = (w) => (w.length > 3 && w.endsWith("s") && !/\d/.test(w) ? w.slice(0, -1) : w);
+function cmpSig(words) {
+  return words.filter((w) => !CMP_STOP.has(w) && !/^[-.,"]+$/.test(w)).map(cmpSing);
+}
+function cmpMatchScore(offerName, refName) {
+  const refSig = cmpSig(cmpWords(refName));
+  if (!refSig.length) return 1;
+  const ow = cmpWords(offerName);
+  const owSing = ow.map(cmpSing);
+  const offSig = cmpSig(ow);
+  const offSet = new Set(offSig);
+  const refSet = new Set(refSig);
+  const present = [...refSet].filter((w) => offSet.has(w)).length;
+  let score = present / refSet.size;
+
+  // Palabra principal (la primera de tu producto): ¿es de lo que trata la oferta?
+  const head = refSig[0];
+  const pos = owSing.indexOf(head);
+  if (pos === -1) score -= 0.3;
+  else {
+    if (pos <= 1) score += 0.35;
+    else if (pos > 3) score -= 0.2;
+    if (pos > 0 && CMP_LINK.has(ow[pos - 1])) score -= 0.5;   // "agenda CON candado"
+  }
+  // Muchas palabras ajenas = otro producto
+  const extra = offSig.filter((w) => !refSet.has(w)).length / Math.max(offSig.length, 1);
+  score -= 0.3 * extra;
+  // Medidas / números: si ambos los tienen, deben coincidir
+  const nums = (arr) => arr.filter((w) => /\d/.test(w));
+  const rn = nums(refSig), on = nums(offSig);
+  if (rn.length && on.length) score += rn.some((n) => on.includes(n)) ? 0.2 : -0.2;
+  return Math.round(score * 100) / 100;
+}
+function cmpLevel(score) {
+  return score >= 1 ? "alta" : score >= 0.6 ? "media" : "baja";
+}
+const CMP_LEVEL = {
+  alta:  { label: "Coincide", cls: "m-alta", rank: 3 },
+  media: { label: "Parecido", cls: "m-media", rank: 2 },
+  baja:  { label: "Poco parecido", cls: "m-baja", rank: 1 },
+};
+
+// Ofertas con su coincidencia calculada contra tu producto (o lo buscado)
+function cmpScoredOffers() {
+  const R = Cmp.result;
+  if (!R) return [];
+  const refName = Cmp.ref ? Cmp.ref.nombre : R.query;
+  return R.offers.map((o) => {
+    const score = cmpMatchScore(o.name, refName);
+    return { ...o, score, level: cmpLevel(score) };
+  });
+}
+
+function cmpVsCost(price, ref) {
+  if (!ref) return "";
+  const d = price - ref;
+  const pct = Math.round((Math.abs(d) / ref) * 100);
+  if (Math.abs(d) < 0.005) return `<span class="cmp-diff">= igual a tu costo</span>`;
+  return d < 0
+    ? `<span class="cmp-diff cheaper" title="La tienda lo vende más barato que lo que te cuesta a ti">▼ ${fmt(-d)} <small>(−${pct}%)</small></span>`
+    : `<span class="cmp-diff pricier" title="La tienda lo vende más caro que tu costo: buen margen para ti">▲ ${fmt(d)} <small>(+${pct}%)</small></span>`;
+}
+
+function cmpActions(o) {
+  const url = /^https?:\/\//i.test(o.url || "") ? o.url : null;
+  const ya = cmpInCatalog(o);
+  return `<div class="cmp-offer-actions">
+    ${url ? `<a class="btn-ghost btn-sm" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="Abrir en la tienda">Ver ↗</a>` : ""}
+    ${ya
+      ? `<button type="button" class="btn-secondary btn-sm" onclick="openEdit('${escHtml(ya.id)}')" title="Ya está en tu catálogo">✓ En catálogo</button>`
+      : `<button type="button" class="btn-primary btn-sm" onclick="cmpPassOffer('${escHtml(o.key)}')">+ Pasar a catálogo</button>`}
+  </div>`;
+}
+
+function cmpRow(o, ref, opts = {}) {
+  const st = cmpStoreInfo(o.store);
+  const img = safeImgUrl(o.image);
+  const lv = CMP_LEVEL[o.level];
+  return `
+  <div class="cmp-row ${opts.best ? "best" : ""}">
+    <div class="cmp-row-store"><span class="cmp-dot" style="--c:${escHtml(st.color)}"></span>${escHtml(st.name)}</div>
+    <div class="cmp-row-prod">
+      <div class="cmp-thumb">${img ? `<img src="${img}" alt="" loading="lazy" onerror="this.remove()">` : "🛒"}</div>
+      <div style="min-width:0">
+        <div class="cmp-row-name" title="${escHtml(o.name)}">${escHtml(o.name)}</div>
+        <div class="cmp-row-sub">
+          <span class="cmp-match ${lv.cls}" title="Parecido con tu producto: ${o.score}">${lv.label}</span>
+          ${opts.best ? `<span class="cmp-tag best">★ Más barato</span>` : ""}
+          ${o.brand ? `<span>${escHtml(o.brand)}</span>` : ""}
+          ${o.seller ? `<span>· Vende: ${escHtml(o.seller)}</span>` : ""}
+          ${o.unitPrice ? `<span>· ${fmt(o.unitPrice.value)}/${escHtml(o.unitPrice.label)}</span>` : ""}
+          ${opts.more ? `<span class="cmp-more">+${opts.more} opción(es) más</span>` : ""}
+        </div>
+      </div>
+    </div>
+    <div class="cmp-row-price">
+      <div class="cmp-price">${fmt(o.price)}</div>
+      ${o.listPrice ? `<div class="cmp-list">${fmt(o.listPrice)}</div>` : ""}
+      ${o.cardPrice ? `<div class="cmp-card">Tarjeta ${fmt(o.cardPrice)}</div>` : ""}
+    </div>
+    <div class="cmp-row-vs">${cmpVsCost(o.price, ref)}</div>
+    <div class="cmp-row-act">${cmpActions(o)}</div>
+  </div>`;
+}
+
+// Barra de precios: dónde queda tu costo frente a las tiendas
+function cmpPriceBar(list, ref) {
+  if (!list.length) return "";
+  const prices = list.map((o) => o.price);
+  let lo = Math.min(...prices, ref || Infinity);
+  let hi = Math.max(...prices, ref || 0);
+  if (hi - lo < 0.01) { lo = lo * 0.9; hi = hi * 1.1 || 1; }
+  const pos = (v) => (((v - lo) / (hi - lo)) * 100).toFixed(1);
+  const dots = list.map((o) => {
+    const st = cmpStoreInfo(o.store);
+    return `<span class="cmp-bar-dot" style="left:${pos(o.price)}%;--c:${escHtml(st.color)}" title="${escHtml(st.name)}: ${fmt(o.price)}"></span>`;
+  }).join("");
+  const refMark = ref ? `<span class="cmp-bar-ref" style="left:${pos(ref)}%"><span>Tu costo ${fmt(ref)}</span></span>` : "";
+  return `<div class="cmp-bar">
+    <div class="cmp-bar-track">${dots}${refMark}</div>
+    <div class="cmp-bar-scale"><span>${fmt(lo)}</span><span>${fmt(hi)}</span></div>
+  </div>`;
+}
+
 function renderCmpResults() {
   const box = document.getElementById("cmpResults");
   const status = document.getElementById("cmpStatus");
   const R = Cmp.result;
   if (!box) return;
-  if (!R) { box.innerHTML = ""; return; }
+  renderCmpStores();
+  if (!R) { box.innerHTML = ""; if (status) status.innerHTML = ""; return; }
 
+  const fallidas = R.tiendas.filter((t) => !t.ok);
   status.innerHTML =
-    `<div class="cmp-store-status">` +
-    R.tiendas.map((t) => t.ok
-      ? `<span class="cmp-st ${t.count ? "ok" : "zero"}" style="--c:${escHtml(t.color)}">${escHtml(t.name)}: ${t.count}</span>`
-      : `<span class="cmp-st err" title="${escHtml(t.error || "")}">${escHtml(t.name)}: sin respuesta</span>`).join("") +
-    `</div>` +
-    `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">«${escHtml(R.query)}» · ${R.offers.length} oferta(s)${R.cached ? " · resultado reciente (10 min)" : ""}</div>`;
+    `«${escHtml(R.query)}» · ${R.offers.length} resultado(s) en ${R.tiendas.filter((t) => t.ok && t.count).length} tienda(s)` +
+    (R.cached ? " · reciente (10 min)" : "") +
+    (fallidas.length ? ` · <span style="color:#ef4444" title="${escHtml(fallidas.map((t) => t.name + ": " + (t.error || "")).join(" | "))}">${fallidas.length} sin respuesta</span>` : "");
 
   if (!R.offers.length) {
     box.innerHTML = `<div class="cmp-empty">Ninguna tienda tiene un producto con esas palabras. Prueba con menos palabras o más generales.</div>`;
     return;
   }
 
+  const view = document.querySelector("#cmpView .on")?.dataset.v || "tiendas";
+  const minLevel = document.getElementById("cmpMatch").value;            // alta | media | todas
   const sort = document.getElementById("cmpSort").value;
   const storeF = document.getElementById("cmpStoreFilter").value;
-  const onlyGroups = document.getElementById("cmpOnlyGroups").checked;
-  const groupOf = new Map();
-  R.groups.forEach((g, i) => g.offers.forEach((k) => groupOf.set(k, i)));
+  const okLevel = (l) => minLevel === "todas" || (minLevel === "media" ? l !== "baja" : l === "alta");
 
-  let offers = R.offers.filter((o) => (!storeF || o.store === storeF) && (!onlyGroups || groupOf.has(o.key)));
-  if (sort === "price-desc") offers = [...offers].sort((a, b) => b.price - a.price);
-  else if (sort === "store") offers = [...offers].sort((a, b) => a.store.localeCompare(b.store) || a.price - b.price);
-
+  const scored = cmpScoredOffers();
+  let list = scored.filter((o) => okLevel(o.level) && (!storeF || o.store === storeF));
+  const ocultas = scored.filter((o) => !okLevel(o.level)).length;
   const ref = Cmp.ref && Cmp.ref.costo != null ? Number(Cmp.ref.costo) : null;
-  const best = R.offers[0];
 
-  // Resumen: mejor precio vs tu costo
+  // Vista "Mejor de cada tienda": la oferta más barata (entre las que coinciden) por tienda
+  let rows = list;
+  const extraPorTienda = {};
+  if (view === "tiendas") {
+    const best = new Map();
+    for (const o of list) {
+      const cur = best.get(o.store);
+      if (!cur || CMP_LEVEL[o.level].rank > CMP_LEVEL[cur.level].rank ||
+          (o.level === cur.level && o.price < cur.price)) best.set(o.store, o);
+      extraPorTienda[o.store] = (extraPorTienda[o.store] || 0) + 1;
+    }
+    rows = [...best.values()];
+  }
+  if (sort === "price-desc") rows.sort((a, b) => b.price - a.price);
+  else if (sort === "match") rows.sort((a, b) => b.score - a.score || a.price - b.price);
+  else rows.sort((a, b) => a.price - b.price);
+
+  // Resumen (solo con ofertas que sí coinciden)
+  const base = view === "tiendas" ? rows : list;
   let resumen = "";
-  if (best) {
-    const st = cmpStoreInfo(best.store);
-    let vs = "";
+  if (base.length) {
+    const ps = base.map((o) => o.price).sort((a, b) => a - b);
+    const min = ps[0], max = ps[ps.length - 1], med = ps[Math.floor(ps.length / 2)];
+    const cheapest = base.reduce((a, b) => (b.price < a.price ? b : a));
+    const stC = cmpStoreInfo(cheapest.store);
+    let verdict = "";
     if (ref) {
-      const d = best.price - ref;
+      const d = min - ref;
       const pct = Math.round((Math.abs(d) / ref) * 100);
-      vs = d < 0
-        ? `<div class="cmp-verdict cheaper">💡 ${escHtml(st.name)} lo tiene <b>${fmt(-d)} más barato</b> que tu costo (−${pct}%). Conviene revisarlo.</div>`
-        : d > 0
-          ? `<div class="cmp-verdict better">✅ Tu costo es <b>${fmt(d)} menor</b> que el mejor precio de las tiendas (${pct}% más barato).</div>`
-          : `<div class="cmp-verdict">= Mismo precio que tu costo.</div>`;
+      verdict = d < -0.005
+        ? `<div class="cmp-verdict cheaper">💡 <b>${escHtml(stC.name)}</b> lo vende a <b>${fmt(min)}</b>: ${fmt(-d)} menos que tu costo (−${pct}%). Revisa si te conviene comprarlo ahí.</div>`
+        : `<div class="cmp-verdict better">✅ Tu costo (${fmt(ref)}) es menor que el precio más bajo de las tiendas (${fmt(min)}). Tienes margen: las tiendas lo venden hasta <b>${fmt(max)}</b>.</div>`;
     }
     resumen = `
-      <div class="cmp-summary">
-        <div><div class="cmp-ref-label">Mejor precio encontrado</div>
-          <div style="font-size:20px;font-weight:800;color:var(--text-primary)">${fmt(best.price)}
-            <span class="cmp-store-badge" style="--c:${escHtml(st.color)}">${escHtml(st.name)}</span></div>
-          <div style="font-size:12px;color:var(--text-muted)">${escHtml(best.name)}</div></div>
-        ${ref ? `<div style="text-align:right"><div class="cmp-ref-label">Tu costo</div><div style="font-size:20px;font-weight:800">${fmt(ref)}</div></div>` : ""}
-      </div>${vs}`;
+    <div class="cmp-summary">
+      <div class="cmp-kpis">
+        ${ref ? `<div class="cmp-kpi ref"><span>Tu costo</span><b>${fmt(ref)}</b></div>` : ""}
+        <div class="cmp-kpi"><span>Más barato</span><b>${fmt(min)}</b><small>${escHtml(stC.name)}</small></div>
+        <div class="cmp-kpi"><span>Precio típico</span><b>${fmt(med)}</b><small>mediana</small></div>
+        <div class="cmp-kpi"><span>Más caro</span><b>${fmt(max)}</b></div>
+        <div class="cmp-kpi"><span>Tiendas</span><b>${new Set(base.map((o) => o.store)).size}</b><small>${base.length} oferta(s)</small></div>
+      </div>
+      ${cmpPriceBar(base, ref)}
+    </div>
+    ${verdict}`;
   }
 
-  box.innerHTML = resumen + `<div class="cmp-offers">` + offers.slice(0, 150).map((o) => {
-    const st = cmpStoreInfo(o.store);
-    const img = safeImgUrl(o.image);
-    const url = /^https?:\/\//i.test(o.url || "") ? o.url : null;
-    const ya = cmpInCatalog(o);
-    let diff = "";
-    if (ref) {
-      const d = o.price - ref;
-      const pct = Math.round((Math.abs(d) / ref) * 100);
-      diff = d < 0
-        ? `<span class="cmp-diff cheaper">▼ ${fmt(-d)} más barato que tu costo (−${pct}%)</span>`
-        : d > 0 ? `<span class="cmp-diff pricier">▲ ${fmt(d)} más caro (+${pct}%)</span>` : `<span class="cmp-diff">= igual a tu costo</span>`;
-    }
-    const gi = groupOf.get(o.key);
-    const grupo = gi != null ? R.groups[gi] : null;
-    return `
-    <div class="cmp-offer ${o === best ? "best" : ""}">
-      <div class="cmp-thumb big">${img ? `<img src="${img}" alt="" loading="lazy" onerror="this.remove()">` : "🛒"}</div>
-      <div class="cmp-offer-info">
-        <div class="cmp-offer-top">
-          <span class="cmp-store-badge" style="--c:${escHtml(st.color)}">${escHtml(st.name)}</span>
-          ${o === best ? `<span class="cmp-tag best">★ Más barato</span>` : ""}
-          ${grupo ? `<span class="cmp-tag grp" title="Mismo producto encontrado en ${grupo.offers.length} tiendas">≡ En ${grupo.offers.length} tiendas${grupo.winner === o.store ? " · gana" : ""}</span>` : ""}
-          ${o.seller ? `<span class="cmp-tag">Vende: ${escHtml(o.seller)}</span>` : ""}
-        </div>
-        <div class="cmp-mine-name">${escHtml(o.name)}</div>
-        <div class="cmp-mine-meta">${o.brand ? escHtml(o.brand) + " · " : ""}${o.unitPrice ? `${fmt(o.unitPrice.value)} / ${escHtml(o.unitPrice.label)}` : ""}</div>
-        ${diff}
-      </div>
-      <div class="cmp-offer-price">
-        <div class="cmp-price">${fmt(o.price)}</div>
-        ${o.listPrice ? `<div class="cmp-list">${fmt(o.listPrice)}</div>` : ""}
-        ${o.cardPrice ? `<div class="cmp-card">Con tarjeta: ${fmt(o.cardPrice)}</div>` : ""}
-        <div class="cmp-offer-actions">
-          ${url ? `<a class="btn-ghost btn-sm" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">Ver ↗</a>` : ""}
-          ${ya
-            ? `<button type="button" class="btn-secondary btn-sm" onclick="openEdit('${escHtml(ya.id)}')" title="Ya está en tu catálogo">✓ En catálogo</button>`
-            : `<button type="button" class="btn-primary btn-sm" onclick="cmpPassOffer('${escHtml(o.key)}')">+ Pasar a catálogo</button>`}
-        </div>
-      </div>
-    </div>`;
-  }).join("") + `</div>` +
-  (offers.length > 150 ? `<div class="cmp-empty">Mostrando 150 de ${offers.length}. Filtra por tienda para ver más.</div>` : "") +
-  (!offers.length ? `<div class="cmp-empty">Nada con estos filtros.</div>` : "");
+  const head = `<div class="cmp-row cmp-row-head">
+    <div class="cmp-row-store">Tienda</div><div class="cmp-row-prod">Producto</div>
+    <div class="cmp-row-price">Precio</div><div class="cmp-row-vs">${ref ? "vs tu costo" : ""}</div><div class="cmp-row-act"></div></div>`;
+  const minPrice = rows.length ? Math.min(...rows.map((o) => o.price)) : null;
+  const MAX = 120;
+  box.innerHTML = resumen +
+    (rows.length
+      ? `<div class="cmp-table">${head}${rows.slice(0, MAX).map((o) =>
+          cmpRow(o, ref, { best: o.price === minPrice, more: view === "tiendas" ? (extraPorTienda[o.store] || 1) - 1 : 0 })).join("")}</div>`
+      : `<div class="cmp-empty">Ninguna oferta coincide bien con tu producto. Cambia «Coincidencia» a <b>todas</b> o ajusta la búsqueda.</div>`) +
+    (rows.length > MAX ? `<div class="cmp-empty">Mostrando ${MAX} de ${rows.length}. Filtra por tienda para ver más.</div>` : "") +
+    (ocultas ? `<div class="cmp-empty" style="font-size:11.5px">${ocultas} oferta(s) poco parecida(s) ocultas · <a href="#" onclick="document.getElementById('cmpMatch').value='todas';renderCmpResults();return false">ver todas</a></div>` : "") +
+    (view === "tiendas" ? `<div class="cmp-empty" style="font-size:11.5px">Se muestra la opción más barata de cada tienda. Usa <b>☰ Todas las ofertas</b> para ver el resto.</div>` : "");
 }
 
 /* ── Pasar a catálogo (borrador, costo = precio de la tienda, venta = la pone el trabajador) ── */
@@ -436,6 +566,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let t;
   document.getElementById("cmpMineSearch")?.addEventListener("input", () => { clearTimeout(t); t = setTimeout(renderCmpMine, 150); });
   document.getElementById("cmpMineOrigin")?.addEventListener("change", renderCmpMine);
-  ["cmpSort", "cmpStoreFilter", "cmpOnlyGroups"].forEach((id) =>
+  document.querySelectorAll("#cmpView button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#cmpView button").forEach((x) => x.classList.toggle("on", x === b));
+    renderCmpResults();
+  }));
+  ["cmpSort", "cmpStoreFilter", "cmpMatch"].forEach((id) =>
     document.getElementById(id)?.addEventListener("change", renderCmpResults));
 });
