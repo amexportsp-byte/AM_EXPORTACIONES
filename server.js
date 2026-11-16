@@ -201,10 +201,21 @@ pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS import_source VARCHAR(
   ["source_regular",   "NUMERIC(12,2)"], // precio regular (antes del descuento)
   ["source_discount",  "NUMERIC(5,2)"],
   ["source_seen_at",   "TIMESTAMPTZ"],
-].forEach(([col, def]) => {
+].reduce((prev, [col, def]) => prev.then(() =>
   pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS ${col} ${def}`)
-    .catch(err => console.error(`✗  Migración products.${col}:`, err.message));
-});
+    .catch(err => console.error(`✗  Migración products.${col}:`, err.message))
+), Promise.resolve()).then(() =>
+  // Corrección única: productos de Joanis importados con la lógica anterior
+  // (precio Joanis como precio de VENTA y costo 0). El precio de Joanis es el COSTO;
+  // el precio de venta lo define A&M. Solo borradores nunca sincronizados.
+  pool.query(`
+    UPDATE products SET
+      purchase_price = ROUND(sale_price * (1 - COALESCE(discount, 0) / 100), 2),
+      sale_price = 0, discount = 0, updated_at = NOW()
+    WHERE import_source = 'Joanis' AND deleted_at IS NULL AND published = FALSE
+      AND source_price IS NULL AND purchase_price = 0 AND sale_price > 0`)
+).then((r) => r && r.rowCount && console.log(`✓  Corrección Joanis: ${r.rowCount} productos (costo/venta)`))
+  .catch(err => console.error("✗  Corrección precios Joanis:", err.message));
 pool.query(`CREATE INDEX IF NOT EXISTS idx_products_external ON products(import_source, external_id)`)
   .catch(err => console.error("✗  Migración idx_products_external:", err.message));
 

@@ -474,6 +474,17 @@ router.post("/import", auth, async (req, res) => {
           resultado.sinCambios++;
         }
 
+        // Primera sincronización de un producto importado con la lógica anterior
+        // (sin "foto" de la fuente): fijar el costo exacto = precio Joanis y, si quedó
+        // en la categoría genérica "Importados", asignarle su categoría real.
+        if (ex.source_price == null) {
+          await pool.query(`UPDATE products SET purchase_price = $1 WHERE id = $2`, [precioFuente, ex.id]);
+          if (sameText(ex.categoria_nombre, "Importados") && !sameText(categoria, "Importados")) {
+            const catReal = await findOrCreate("categories", "name", categoria);
+            await pool.query(`UPDATE products SET category_id = $1 WHERE id = $2`, [catReal, ex.id]);
+          }
+        }
+
         // Actualizar SOLO la "foto" de la fuente (y completar ids/imágenes si faltaban)
         await pool.query(
           `UPDATE products SET
